@@ -1,0 +1,50 @@
+services:
+  mysql:
+    image: mysql:8.0
+    restart: always
+    environment:
+      MYSQL_DATABASE: saasoms
+      MYSQL_USER: ${DB_USERNAME}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+    volumes:
+      - mysqldata:/var/lib/mysql
+    networks:
+      - saasoms-net
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "${DB_USERNAME}", "-p${DB_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build: ./backend
+    restart: always
+    environment:
+      SPRING_PROFILES_ACTIVE: dev
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/saasoms?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true
+      SPRING_DATASOURCE_USERNAME: ${DB_USERNAME}
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - saasoms-net
+
+  frontend:
+    build: ./frontend
+    restart: always
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    networks:
+      - saasoms-net
+
+networks:
+  saasoms-net:
+    driver: bridge
+
+volumes:
+  mysqldata:
