@@ -7,18 +7,28 @@ services:
       MYSQL_USER: ${DB_USERNAME}
       MYSQL_PASSWORD: ${DB_PASSWORD}
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+    # Giới hạn MySQL chỉ dùng 256MB
+    command: >
+      --innodb-buffer-pool-size=128M
+      --max-connections=50
+      --performance-schema=OFF
+      --skip-name-resolve
     volumes:
       - mysqldata:/var/lib/mysql
     networks:
       - saasoms-net
+    deploy:
+      resources:
+        limits:
+          memory: 256M
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "${DB_USERNAME}", "-p${DB_PASSWORD}"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
       interval: 10s
       timeout: 5s
       retries: 10
 
   backend:
-    build: ./backend
+    image: ${DOCKERHUB_USERNAME}/saasoms-backend:latest
     restart: always
     environment:
       SPRING_PROFILES_ACTIVE: dev
@@ -26,14 +36,20 @@ services:
       SPRING_DATASOURCE_USERNAME: ${DB_USERNAME}
       SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
       JWT_SECRET: ${JWT_SECRET}
+      # Giới hạn JVM heap Spring Boot
+      JAVA_OPTS: "-Xms128m -Xmx256m -XX:+UseContainerSupport -XX:MaxRAMPercentage=70.0"
     depends_on:
       mysql:
         condition: service_healthy
     networks:
       - saasoms-net
+    deploy:
+      resources:
+        limits:
+          memory: 320M
 
   frontend:
-    build: ./frontend
+    image: ${DOCKERHUB_USERNAME}/saasoms-frontend:latest
     restart: always
     ports:
       - "80:80"
@@ -41,6 +57,10 @@ services:
       - backend
     networks:
       - saasoms-net
+    deploy:
+      resources:
+        limits:
+          memory: 32M
 
 networks:
   saasoms-net:
