@@ -1,0 +1,607 @@
+// Apollo-inspired dark shell (https://apollo.primeng.org/)
+
+.apollo-layout.layout-wrapper {
+  display: flex;
+  align-items: stretch;
+  min-height: 100vh;
+  height: 100vh;
+  overflow: hidden;
+  background: #090e1a;
+  color: #e2e8f0;
+  --apollo-bg: #090e1a;
+  --apollo-surface: #151c2c;
+  --apollo-surface-2: #1e293b;
+  --apollo-border: rgba(148, 163, 184, 0.12);
+  --apollo-muted: #94a3b8;
+  --apollo-text: #f1f5f9;
+  --apollo-accent: #6366f1;
+  --apollo-accent-soft: rgba(99, 102, 241, 0.15);
+  /* PrimeNG Lara dùng 0.2rem (~3px) — thu nhỏ ring focus trong shell */
+  --focus-ring: 0 0 0 1px rgba(129, 140, 248, 0.45);
+}
+
+.apollo-layout .layout-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-width: 0;
+}
+
+.apollo-layout .layout-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1.5rem 1.25rem 2rem;
+  background: var(--apollo-bg);
+}
+
+// --- Sidebar (host must fill column height; .sidebar holds the background)
+.apollo-layout app-sidebar {
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  align-self: stretch;
+  min-height: 100%;
+  height: 100%;
+}
+
+.apollo-layout app-sidebar .sidebar {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+  width: 260px;
+  min-width: 260px;
+  background: var(--apollo-surface);
+  color: var(--apollo-muted);
+  border-right: 1px solid var(--apollo-border);
+  transition:
+    width 0.2s ease,
+    min-width 0.2s ease;
+}
+
+.apollo-layout app-sidebar .sidebar-logo {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 1.35rem 1.25rem;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--apollo-text);
+  letter-spacing: 0.04em;
+  border-bottom: 1px solid var(--apollo-border);
+}
+
+.apollo-layout app-sidebar .logo-mark {
+  width: 2rem;
+  height: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+  border-radius: 8px;
+  color: #fff;
+  font-size: 0.95rem;
+}
+
+.apollo-layout app-sidebar .sidebar-shop {
+  padding: 0.65rem 1.25rem;
+  font-size: 0.75rem;
+  color: var(--apollo-muted);
+  border-bottom: 1px solid var(--apollo-border);
+  line-height: 1.35;
+}
+
+.apollo-layout app-sidebar .nav-section-label {
+  padding: 1.25rem 1.25rem 0.4rem;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: #64748b;
+}
+
+.apollo-layout app-sidebar .nav-list {
+  list-style: none;
+  margin: 0;
+  padding: 0 0.5rem 0.75rem;
+  flex: 1;
+  min-height: 0;
+}
+
+.apollo-layout app-sidebar .nav-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem 0.85rem;
+  color: var(--apollo-muted);
+  text-decoration: none;
+  border-radius: 8px;
+  margin: 2px 0;
+  font-size: 0.9rem;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
+}
+
+.apollo-layout app-sidebar .nav-item:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--apollo-text);
+}
+
+.apollo-layout app-sidebar .nav-item.active {
+  background: var(--apollo-accent-soft);
+  color: #a5b4fc;
+}
+
+.apollo-layout app-sidebar .nav-item i {
+  font-size: 1rem;
+  opacity: 0.9;
+}
+
+// Sidebar thu gọn (chỉ icon)
+.apollo-layout--sidebar-collapsed app-sidebar .sidebar {
+  width: 4.25rem;
+  min-width: 4.25rem;
+}
+
+.apollo-layout--sidebar-collapsed app-sidebar .logo-text,
+.apollo-layout--sidebar-collapsed app-sidebar .nav-section-label,
+.apollo-layout--sidebar-collapsed app-sidebar .nav-item > span {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.apollo-layout--sidebar-collapsed app-sidebar .sidebar-shop {
+  display: none;
+}
+
+.apollo-layout--sidebar-collapsed app-sidebar .sidebar-logo {
+  justify-content: center;
+  padding-left: 0.75rem;
+  padding-right: 0.75rem;
+}
+
+.apollo-layout--sidebar-collapsed app-sidebar .nav-list {
+  padding-left: 0.35rem;
+  padding-right: 0.35rem;
+}
+
+.apollo-layout--sidebar-collapsed app-sidebar .nav-item {
+  justify-content: center;
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
+}
+
+.apollo-layout--sidebar-collapsed app-sidebar .nav-item i {
+  margin: 0;
+}
+
+// --- Topbar ---
+.apollo-layout app-topbar .topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 1.5rem 0 1.25rem;
+  height: 56px;
+  background: var(--apollo-surface);
+  border-bottom: 1px solid var(--apollo-border);
+  flex-shrink: 0;
+}
+
+.apollo-layout app-topbar .topbar-left {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  min-width: 0;
+}
+
+.apollo-layout app-topbar .menu-toggle {
+  color: var(--apollo-muted);
+  display: inline-flex;
+  flex-shrink: 0;
+}
+
+// Nút sidebar: bỏ viền/bóng focus dày của PrimeNG khi click (chuột vẫn giữ :focus)
+.apollo-layout app-topbar p-button.menu-toggle .p-button,
+.apollo-layout app-topbar p-button.menu-toggle .p-button:focus,
+.apollo-layout app-topbar p-button.menu-toggle .p-button:active {
+  box-shadow: none !important;
+  outline: none;
+}
+
+.apollo-layout app-topbar p-button.menu-toggle .p-button.p-focus {
+  box-shadow: none !important;
+}
+
+// Tab bàn phím: ring mảnh để vẫn biết đang focus
+.apollo-layout app-topbar p-button.menu-toggle .p-button:focus-visible {
+  box-shadow: none !important;
+  outline: 1px solid rgba(148, 163, 184, 0.4);
+  outline-offset: 2px;
+}
+
+.apollo-layout app-topbar .page-title {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--apollo-text);
+  letter-spacing: -0.02em;
+}
+
+.apollo-layout app-topbar .topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.apollo-layout app-topbar .topbar-search .p-inputtext {
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid var(--apollo-border);
+  color: var(--apollo-text);
+  border-radius: 8px;
+  padding: 0.5rem 0.75rem 0.5rem 2.35rem;
+  font-size: 0.875rem;
+  width: 220px;
+  max-width: 40vw;
+}
+
+.apollo-layout app-topbar .topbar-search .p-inputtext::placeholder {
+  color: #64748b;
+}
+
+.apollo-layout app-topbar .user-name {
+  font-weight: 600;
+  font-size: 0.875rem;
+  color: var(--apollo-text);
+}
+
+.apollo-layout app-topbar .user-role {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  background: rgba(99, 102, 241, 0.2);
+  color: #c4b5fd;
+  padding: 3px 10px;
+  border-radius: 6px;
+}
+
+// PrimeNG in shell (cards, tables)
+.apollo-layout .p-card {
+  background: var(--apollo-surface-2);
+  color: var(--apollo-text);
+  border: 1px solid var(--apollo-border);
+  border-radius: 12px;
+  box-shadow: none;
+}
+
+.apollo-layout .p-card .p-card-title,
+.apollo-layout .p-card .p-card-header {
+  color: var(--apollo-text);
+}
+
+.apollo-layout .p-card .p-card-body {
+  padding: 1.25rem;
+}
+
+.apollo-layout .p-card .p-card-content {
+  padding: 0;
+}
+
+.apollo-layout .p-datatable .p-datatable-thead > tr > th {
+  background: rgba(0, 0, 0, 0.2);
+  color: var(--apollo-muted);
+  border-color: var(--apollo-border);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 0.75rem 1rem;
+}
+
+// Order list table (scrollable): keep header colors aligned with dark theme
+.apollo-layout .apollo-order-table .p-datatable-wrapper {
+  border-radius: 10px;
+}
+
+.apollo-layout .apollo-order-table .p-datatable-scrollable-header,
+.apollo-layout .apollo-order-table .p-datatable-scrollable-body,
+.apollo-layout .apollo-order-table .p-datatable-scrollable-header-box {
+  background: transparent;
+}
+
+.apollo-layout .apollo-order-table .p-datatable-scrollable-body {
+  overflow-y: auto !important;
+}
+
+.apollo-layout
+  .apollo-order-table
+  .p-datatable-scrollable-header
+  .p-datatable-thead
+  > tr
+  > th {
+  background: #111827 !important;
+  color: #94a3b8 !important;
+  border-color: var(--apollo-border) !important;
+}
+
+/* PrimeNG scrollable header uses a separate table; force dark header there too */
+.apollo-layout
+  .apollo-order-table
+  .p-datatable-scrollable-header-table
+  > thead
+  > tr
+  > th,
+.apollo-layout .apollo-order-table .p-datatable-thead > tr > th,
+.apollo-layout .apollo-order-table .p-datatable-table > thead > tr > th {
+  background-color: #111827 !important;
+  background: #111827 !important;
+  color: #94a3b8 !important;
+  border-color: var(--apollo-border) !important;
+}
+
+.apollo-layout .p-datatable .p-datatable-tbody > tr {
+  background: transparent;
+  color: var(--apollo-text);
+}
+
+.apollo-layout .p-datatable .p-datatable-tbody > tr > td {
+  border-color: var(--apollo-border);
+  padding: 0.85rem 1rem;
+  font-size: 0.875rem;
+}
+
+.apollo-layout .p-datatable .p-datatable-tbody > tr:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.apollo-layout .p-paginator {
+  background: transparent;
+  border: none;
+  color: var(--apollo-muted);
+  padding: 0.75rem 0 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0.125rem;
+}
+
+.apollo-layout .p-paginator .p-paginator-page.p-highlight {
+  background: var(--apollo-accent-soft);
+  color: #a5b4fc;
+}
+
+// Cùng chiều cao, căn giữa — dropdown “số dòng/trang” không cao hơn nút trang
+.apollo-layout .p-paginator .p-paginator-first,
+.apollo-layout .p-paginator .p-paginator-prev,
+.apollo-layout .p-paginator .p-paginator-next,
+.apollo-layout .p-paginator .p-paginator-last {
+  min-width: 2.375rem !important;
+  width: 2.375rem !important;
+  height: 2.375rem !important;
+  margin: 0 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.apollo-layout .p-paginator .p-paginator-pages .p-paginator-page,
+.apollo-layout .p-paginator .p-paginator-current {
+  min-width: 2.375rem !important;
+  height: 2.375rem !important;
+  margin: 0 !important;
+  padding-left: 0.35rem !important;
+  padding-right: 0.35rem !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.apollo-layout .p-paginator .p-dropdown {
+  height: 2.375rem !important;
+  min-height: 2.375rem !important;
+  margin-left: 0.35rem !important;
+  margin-right: 0.35rem !important;
+  display: inline-flex !important;
+  align-items: center !important;
+}
+
+.apollo-layout .p-paginator .p-dropdown .p-dropdown-label {
+  padding: 0.2rem 0 0.2rem 0.5rem !important;
+  line-height: 1.2 !important;
+  font-size: 0.8125rem !important;
+  display: flex !important;
+  align-items: center !important;
+}
+
+.apollo-layout .p-paginator .p-dropdown .p-dropdown-trigger {
+  width: 1.75rem !important;
+  height: 100%;
+}
+
+.apollo-layout .p-paginator .p-paginator-pages,
+.apollo-layout .p-paginator .p-paginator-left-content,
+.apollo-layout .p-paginator .p-paginator-right-content {
+  display: inline-flex;
+  align-items: center;
+}
+
+.apollo-layout .p-button.p-button-text {
+  color: var(--apollo-muted);
+}
+
+.apollo-layout .p-button.p-button-text:enabled:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--apollo-text);
+}
+
+.apollo-layout .p-inputtext {
+  background: rgba(0, 0, 0, 0.2);
+  border-color: var(--apollo-border);
+  color: var(--apollo-text);
+}
+
+// Select / dropdown — dark pill giống mẫu Apollo (viền sáng mảnh, chữ trắng)
+.apollo-layout .p-dropdown {
+  background: #141b2d;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 6px;
+  transition:
+    border-color 0.15s ease,
+    background-color 0.15s ease;
+}
+
+.apollo-layout .p-dropdown:not(.p-disabled):hover {
+  border-color: rgba(255, 255, 255, 0.32);
+}
+
+.apollo-layout .p-dropdown .p-dropdown-label {
+  color: #f8fafc;
+  padding-top: 0.6rem;
+  padding-bottom: 0.6rem;
+}
+
+.apollo-layout .p-dropdown .p-dropdown-label.p-placeholder {
+  color: rgba(248, 250, 252, 0.5);
+}
+
+.apollo-layout .p-dropdown .p-dropdown-trigger {
+  color: #f8fafc;
+  width: 2.5rem;
+}
+
+.apollo-layout .p-tag.p-tag-success {
+  background: rgba(34, 197, 94, 0.2);
+  color: #86efac;
+}
+
+.apollo-layout .p-tag.p-tag-warning {
+  background: rgba(245, 158, 11, 0.2);
+  color: #fcd34d;
+}
+
+.apollo-layout .p-tag.p-tag-info {
+  background: rgba(59, 130, 246, 0.2);
+  color: #93c5fd;
+}
+
+.apollo-layout .p-tag.p-tag-secondary {
+  background: rgba(148, 163, 184, 0.15);
+  color: var(--apollo-muted);
+}
+
+.apollo-layout .p-tag.p-tag-danger {
+  background: rgba(239, 68, 68, 0.2);
+  color: #fca5a5;
+}
+
+// Dropdown panels opened from dashboard (appendTo body)
+.p-dropdown-panel.apollo-dash-panel {
+  background: #141b2d;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 6px;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.5);
+}
+
+.p-dropdown-panel.apollo-dash-panel .p-dropdown-items .p-dropdown-item {
+  color: #f8fafc;
+}
+
+.p-dropdown-panel.apollo-dash-panel
+  .p-dropdown-items
+  .p-dropdown-item.p-highlight {
+  background: #ffffff !important;
+  color: #0f172a !important;
+}
+
+.p-dropdown-panel.apollo-dash-panel
+  .p-dropdown-items
+  .p-dropdown-item:not(.p-highlight):not(.p-disabled):hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #ffffff;
+}
+
+// --- Viền & focus mỏng (ghi đè Lara: border 2px + ring 0.2rem)
+.apollo-layout .p-inputtext,
+.apollo-layout .p-dropdown,
+.apollo-layout .p-multiselect,
+.apollo-layout .p-calendar-w-btn .p-inputtext,
+.apollo-layout .p-inputnumber .p-inputtext {
+  border-width: 1px !important;
+}
+
+.apollo-layout .p-inputtext:enabled:focus,
+.apollo-layout .p-inputtext.p-focus,
+.apollo-layout .p-inputtext:enabled:focus-visible {
+  box-shadow: 0 0 0 1px rgba(129, 140, 248, 0.4) !important;
+  border-color: rgba(129, 140, 248, 0.65) !important;
+  outline: none !important;
+}
+
+.apollo-layout .p-dropdown:not(.p-disabled).p-focus,
+.apollo-layout .p-dropdown:not(.p-disabled).p-inputwrapper-focus {
+  box-shadow: none !important;
+  border-color: rgba(255, 255, 255, 0.48) !important;
+  outline: none !important;
+}
+
+.apollo-layout .p-multiselect:not(.p-disabled).p-focus {
+  box-shadow: 0 0 0 1px rgba(129, 140, 248, 0.4) !important;
+  border-color: rgba(129, 140, 248, 0.65) !important;
+}
+
+.apollo-layout .p-button:focus,
+.apollo-layout .p-button.p-focus {
+  box-shadow: 0 0 0 1px rgba(129, 140, 248, 0.35) !important;
+  outline: none !important;
+}
+
+.apollo-layout .p-button.p-button-outlined {
+  border-width: 1px !important;
+}
+
+.apollo-layout .p-paginator .p-dropdown:not(.p-disabled).p-focus,
+.apollo-layout .p-paginator .p-dropdown:not(.p-disabled).p-inputwrapper-focus {
+  box-shadow: none !important;
+  border-color: rgba(255, 255, 255, 0.48) !important;
+}
+
+.apollo-layout .p-paginator .p-paginator-page.p-focus,
+.apollo-layout .p-paginator .p-paginator-first.p-focus,
+.apollo-layout .p-paginator .p-paginator-prev.p-focus,
+.apollo-layout .p-paginator .p-paginator-next.p-focus,
+.apollo-layout .p-paginator .p-paginator-last.p-focus {
+  box-shadow: 0 0 0 1px rgba(129, 140, 248, 0.35) !important;
+}
+
+.apollo-layout .p-datatable .p-sortable-column:focus-visible {
+  box-shadow: inset 0 0 0 1px rgba(129, 140, 248, 0.35) !important;
+}
+
+.apollo-layout .p-datatable .p-datatable-thead > tr > th,
+.apollo-layout .p-datatable .p-datatable-tbody > tr > td,
+.apollo-layout .p-datatable .p-datatable-tfoot > tr > td {
+  border-width: 0 0 1px 0 !important;
+  border-style: solid !important;
+}
+
+.apollo-layout .p-tag {
+  border-width: 1px;
+  font-weight: 600;
+}
+
+// Giữ nút sidebar không có ring (ghi đè rule .p-button:focus phía trên)
+.apollo-layout app-topbar p-button.menu-toggle .p-button,
+.apollo-layout app-topbar p-button.menu-toggle .p-button:focus,
+.apollo-layout app-topbar p-button.menu-toggle .p-button:active,
+.apollo-layout app-topbar p-button.menu-toggle .p-button.p-focus {
+  box-shadow: none !important;
+}

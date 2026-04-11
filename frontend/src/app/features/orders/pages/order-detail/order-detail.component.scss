@@ -1,0 +1,67 @@
+:host {
+  display: block;
+}
+
+/* Cùng hàng: hai cột co giãn theo chiều cao lớn nhất (50% width giữ nguyên theo grid md:col-6) */
+.order-detail-top-row {
+  align-items: stretch;
+}
+
+.order-detail-top-col {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+
+/* Lấp đầy chiều cao cột — host p-card mặc định không stretch nên cần wrapper */
+.order-detail-card-stretch {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  width: 100%;
+  min-height: 100%;
+}
+
+:host ::ng-deep .order-detail-card-stretch > p-card {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+}
+
+:host ::ng-deep .order-detail-card-stretch .order-detail-equal-card.p-card {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  width: 100%;
+  min-height: 100%;
+  height: 100%;
+}
+
+:host
+  ::ng-deep
+  .order-detail-card-stretch
+  .order-detail-equal-card
+  .p-card-body {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+/* Nội dung Tóm tắt: phần dưới (gạch + tổng) dính đáy khi card cao hơn nội dung */
+.order-detail-summary-inner {
+  flex: 1 1 auto;
+  min-height: 100%;
+}
+
+.order-detail-summary-hr {
+  margin: 0.75rem 0;
+  border: 0;
+  border-top: 1px solid var(--surface-border, rgba(255, 255, 255, 0.12));
+}
+
+.order-detail-summary-footer {
+  flex-shrink: 0;
+}

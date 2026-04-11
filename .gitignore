@@ -1,1 +1,8 @@
+# Environment secrets
 .env
+
+# Claude Code artifacts
+.claude/
+.history/
+*.md
+skills-lock.json

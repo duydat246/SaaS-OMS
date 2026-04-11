@@ -1,0 +1,133 @@
+<div class="app-auth-apollo app-auth-apollo--register">
+  <div class="app-auth-apollo__waves" aria-hidden="true">
+    <div class="app-auth-apollo__wave app-auth-apollo__wave--1"></div>
+    <div class="app-auth-apollo__wave app-auth-apollo__wave--2"></div>
+    <div class="app-auth-apollo__wave app-auth-apollo__wave--3"></div>
+    <div class="app-auth-apollo__wave app-auth-apollo__wave--4"></div>
+  </div>
+
+  <div class="app-auth-apollo__card">
+    <header class="app-auth-apollo__header">
+      <h1 class="app-auth-apollo__title">Đăng ký</h1>
+      <p class="app-auth-apollo__subtitle">
+        Tạo cửa hàng và bắt đầu quản lý đơn hàng
+      </p>
+    </header>
+
+    @if (errorMsg()) {
+      <p-message
+        severity="error"
+        [text]="errorMsg()!"
+        styleClass="w-full app-auth-apollo__message"
+      />
+    }
+
+    <form
+      [formGroup]="form"
+      (ngSubmit)="onSubmit()"
+      class="app-auth-apollo__form"
+    >
+      <p-iconField iconPosition="left" styleClass="w-full">
+        <p-inputIcon styleClass="pi pi-shopping-bag" />
+        <input
+          pInputText
+          id="shopName"
+          formControlName="shopName"
+          placeholder="Tên cửa hàng"
+          class="w-full"
+        />
+      </p-iconField>
+
+      <div class="app-auth-apollo__field-row">
+        <span class="app-auth-apollo__field-row-icon" aria-hidden="true">
+          <i class="pi pi-th-large"></i>
+        </span>
+        <div class="app-auth-apollo__field-row-body">
+          <p-dropdown
+            formControlName="platform"
+            inputId="platform"
+            [options]="platforms"
+            optionLabel="label"
+            optionValue="value"
+            placeholder="Nền tảng"
+            styleClass="w-full"
+            [appendTo]="'body'"
+            panelStyleClass="app-auth-apollo-dropdown-panel"
+          />
+        </div>
+      </div>
+
+      <p-iconField iconPosition="left" styleClass="w-full">
+        <p-inputIcon styleClass="pi pi-user" />
+        <input
+          pInputText
+          id="fullName"
+          formControlName="fullName"
+          placeholder="Họ và tên"
+          class="w-full"
+        />
+      </p-iconField>
+
+      <p-iconField iconPosition="left" styleClass="w-full">
+        <p-inputIcon styleClass="pi pi-envelope" />
+        <input
+          pInputText
+          id="email"
+          formControlName="email"
+          type="email"
+          placeholder="Email"
+          class="w-full"
+        />
+      </p-iconField>
+
+      <div class="app-auth-apollo__password-wrap">
+        <i class="pi pi-lock app-auth-apollo__pwd-icon" aria-hidden="true"></i>
+        <p-password
+          formControlName="password"
+          [toggleMask]="true"
+          [feedback]="false"
+          placeholder="Mật khẩu"
+          styleClass="w-full"
+          inputStyleClass="w-full"
+        />
+      </div>
+
+      <div class="flex align-items-start gap-2" style="margin-top: 0.15rem">
+        <p-checkbox
+          formControlName="acceptTerms"
+          [binary]="true"
+          inputId="acceptTerms"
+        />
+        <label
+          for="acceptTerms"
+          class="app-auth-apollo__check-label"
+          style="line-height: 1.45"
+        >
+          Tôi đã đọc
+          <a
+            href="#"
+            class="app-auth-apollo__terms-inline"
+            (click)="$event.preventDefault(); $event.stopPropagation()"
+            >Điều khoản và điều kiện</a
+          >
+        </label>
+      </div>
+
+      <p-button
+        type="submit"
+        label="Tạo cửa hàng"
+        styleClass="app-auth-apollo__submit w-full"
+        [rounded]="true"
+        [loading]="loading()"
+        [disabled]="form.invalid"
+      />
+    </form>
+
+    <footer class="app-auth-apollo__footer">
+      Đã có tài khoản?
+      <a routerLink="/auth/login" class="app-auth-apollo__link-strong"
+        >Đăng nhập</a
+      >
+    </footer>
+  </div>
+</div>

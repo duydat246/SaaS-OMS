@@ -1,0 +1,120 @@
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background-color: #f4f6f9;
+  color: #333;
+}
+
+/* Global scrollbar styling to match dark app palette */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #5b6bff #0f172a;
+}
+
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+*::-webkit-scrollbar-track {
+  background: #0f172a;
+  border-radius: 999px;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #6f7dff 0%, #4f46e5 100%);
+  border: 2px solid #0f172a;
+  border-radius: 999px;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #8792ff 0%, #6366f1 100%);
+}
+
+*::-webkit-scrollbar-corner {
+  background: #0f172a;
+}
+
+@import "./app/features/auth/styles/auth-apollo-layout.scss";
+@import "./app/layout/styles/apollo-shell.scss";
+@import "./app/layout/styles/apollo-toast.scss";
+
+// Utility
+.w-full {
+  width: 100%;
+}
+.text-center {
+  text-align: center;
+}
+
+// Panel dropdown (appendTo body) — dark list giống mẫu: nền tối, mục chọn trắng/chữ đen
+.p-dropdown-panel.p-component:not(.app-auth-apollo-dropdown-panel) {
+  background: #141b2d;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 6px;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.45);
+  margin-top: 4px;
+}
+
+.p-dropdown-panel.p-component:not(.app-auth-apollo-dropdown-panel)
+  .p-dropdown-items
+  .p-dropdown-item {
+  color: #f8fafc;
+  padding: 0.65rem 1rem;
+}
+
+.p-dropdown-panel.p-component:not(.app-auth-apollo-dropdown-panel)
+  .p-dropdown-items
+  .p-dropdown-item.p-highlight {
+  background: #ffffff !important;
+  color: #0f172a !important;
+}
+
+.p-dropdown-panel.p-component:not(.app-auth-apollo-dropdown-panel)
+  .p-dropdown-items
+  .p-dropdown-item:not(.p-highlight):not(.p-disabled):hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #ffffff;
+}
+
+.p-dropdown-panel.p-component:not(.app-auth-apollo-dropdown-panel)
+  .p-dropdown-items
+  .p-dropdown-item:not(.p-highlight):not(.p-disabled).p-focus {
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+}
+
+// Auth register: platform dropdown panel (appendTo body, outside component encapsulation)
+.p-dropdown-panel.app-auth-apollo-dropdown-panel {
+  background: #141b2d;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 8px;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5);
+}
+
+.p-dropdown-panel.app-auth-apollo-dropdown-panel
+  .p-dropdown-items
+  .p-dropdown-item {
+  color: #ffffff;
+}
+
+.p-dropdown-panel.app-auth-apollo-dropdown-panel
+  .p-dropdown-items
+  .p-dropdown-item.p-highlight {
+  background: rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+}
+
+.p-dropdown-panel.app-auth-apollo-dropdown-panel
+  .p-dropdown-items
+  .p-dropdown-item:not(.p-highlight):hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #ffffff;
+}

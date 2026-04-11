@@ -1,0 +1,17 @@
+# Maven build output
+target/
+
+# Credentials - chỉ commit file .example
+application-dev.yml
+application-prod.yml
+application-local.yml
+
+# IDE
+.idea/
+*.iml
+.vscode/
+*.class
+
+# OS
+.DS_Store
+Thumbs.db

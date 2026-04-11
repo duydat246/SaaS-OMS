@@ -1,0 +1,276 @@
+:host {
+  display: block;
+}
+
+/* Luôn dùng hết chiều ngang vùng nội dung (sidebar mở hay thu gọn) */
+.dash-page {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+}
+
+.dash-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: #f1f5f9;
+}
+
+.dash-subtitle {
+  font-size: 0.95rem;
+  color: #94a3b8;
+}
+
+.dash-stat-card {
+  background: #1e293b;
+  border: 1px solid rgba(148, 163, 184, 0.12);
+  border-radius: 12px;
+  padding: 1.25rem 1.35rem;
+  height: 100%;
+}
+
+.dash-stat-card--loading .dash-stat-value {
+  opacity: 0.55;
+}
+
+.dash-stat-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.dash-stat-value {
+  font-size: 1.85rem;
+  font-weight: 700;
+  color: #f8fafc;
+  margin-top: 0.35rem;
+  letter-spacing: -0.02em;
+}
+
+.dash-stat-trend {
+  display: inline-flex;
+  align-items: center;
+  margin-top: 0.5rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.dash-stat-trend--up {
+  color: #4ade80;
+}
+
+.dash-stat-trend--down {
+  color: #fb923c;
+}
+
+.dash-panel {
+  background: #1e293b;
+  border: 1px solid rgba(148, 163, 184, 0.12);
+  border-radius: 12px;
+  padding: 1.35rem 1.5rem 1.5rem;
+  height: 100%;
+}
+
+.dash-panel--tight {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Cột biểu đồ cột: phần chart căn giữa theo chiều dọc trong card cao */
+.dash-panel--bar {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.dash-panel-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #f1f5f9;
+}
+
+.dash-chart-box {
+  position: relative;
+  height: 280px;
+}
+
+.dash-chart-box--bar-centered {
+  flex: 1 1 auto;
+  height: auto;
+  min-height: 280px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dash-chart-box-inner {
+  width: 100%;
+  height: 280px;
+  position: relative;
+}
+
+.dash-chart-box-inner ::ng-deep p-chart {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.dash-chart-box--donut {
+  flex: 1;
+  min-height: 260px;
+}
+
+.dash-code {
+  font-size: 0.85rem;
+  color: #cbd5e1;
+  background: rgba(0, 0, 0, 0.25);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+$search-height: 2.25rem;
+
+:host ::ng-deep .dash-table-search {
+  // PrimeNG design token (PrimeNG 18+)
+  --p-inputtext-border-radius: 999px;
+
+  // Direct override — fallback cho PrimeNG 17 chưa dùng token
+  input.p-inputtext {
+    border-radius: 999px;
+    height: $search-height;
+    background: #0f172a;
+    border: 1px solid rgba(148, 163, 184, 0.15);
+    color: #f1f5f9;
+    font-size: 0.875rem;
+    min-width: 200px;
+
+    &::placeholder {
+      color: #64748b;
+    }
+
+    &:focus {
+      border-color: rgba(148, 163, 184, 0.4);
+      box-shadow: none;
+    }
+  }
+
+  .p-input-icon {
+    color: #64748b;
+  }
+}
+
+:host ::ng-deep .dash-export-btn.p-button {
+  height: $search-height;
+  width: $search-height;
+  background: #10b981;
+  border-color: #10b981;
+  color: #0f172a;
+
+  &:hover {
+    background: #059669;
+    border-color: #059669;
+  }
+
+  &:focus {
+    box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.25);
+  }
+}
+
+.dash-muted {
+  color: #64748b;
+}
+
+.dash-product-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.dash-product-row {
+  padding: 0.65rem 0;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+
+  &:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+  }
+
+  &:first-child {
+    padding-top: 0;
+  }
+}
+
+.dash-product-thumb {
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #94a3b8;
+  flex-shrink: 0;
+}
+
+.dash-product-name {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #e2e8f0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dash-product-stars {
+  margin-top: 0.2rem;
+  display: flex;
+  gap: 2px;
+}
+
+.dash-star-on {
+  color: #eab308;
+}
+
+.dash-star-off {
+  color: #475569;
+}
+
+.dash-product-price {
+  font-size: 0.875rem;
+  color: #f1f5f9;
+  flex-shrink: 0;
+}
+
+// Primary CTA (indigo) — matches auth / Apollo accent
+:host ::ng-deep .dash-cta.p-button {
+  background: #4f46e5 !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  color: #fff !important;
+  font-weight: 600;
+  border-radius: 8px;
+}
+
+:host ::ng-deep .dash-cta.p-button:enabled:hover {
+  background: #6366f1 !important;
+}
+
+:host ::ng-deep .dash-period-dd {
+  min-width: 9rem;
+}
+
+:host ::ng-deep .dash-period-dd.p-dropdown {
+  background: rgba(0, 0, 0, 0.2);
+  border-color: rgba(148, 163, 184, 0.15);
+}
+
+:host ::ng-deep .dash-table-search .p-inputtext {
+  padding-left: 2.25rem;
+  font-size: 0.8125rem;
+  max-width: 160px;
+}
+
+:host ::ng-deep .dash-table-search .p-icon-field .p-input-icon {
+  color: #64748b;
+}

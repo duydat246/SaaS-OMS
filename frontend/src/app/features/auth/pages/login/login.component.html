@@ -1,0 +1,71 @@
+<div class="app-auth-apollo app-auth-apollo--login">
+  <div class="app-auth-apollo__waves" aria-hidden="true">
+    <div class="app-auth-apollo__wave app-auth-apollo__wave--1"></div>
+    <div class="app-auth-apollo__wave app-auth-apollo__wave--2"></div>
+    <div class="app-auth-apollo__wave app-auth-apollo__wave--3"></div>
+    <div class="app-auth-apollo__wave app-auth-apollo__wave--4"></div>
+  </div>
+
+  <div class="app-auth-apollo__card">
+    <header class="app-auth-apollo__header">
+      <h1 class="app-auth-apollo__title">Đăng nhập</h1>
+      <p class="app-auth-apollo__subtitle">Nhập thông tin tài khoản của bạn</p>
+    </header>
+
+    @if (errorMsg()) {
+      <p-message
+        severity="error"
+        [text]="errorMsg()!"
+        styleClass="w-full app-auth-apollo__message"
+      />
+    }
+
+    <form [formGroup]="form" (ngSubmit)="onSubmit()" class="app-auth-apollo__form">
+      <p-iconField iconPosition="left" styleClass="w-full">
+        <p-inputIcon styleClass="pi pi-envelope" />
+        <input
+          pInputText
+          id="email"
+          formControlName="email"
+          type="email"
+          placeholder="Email"
+          class="w-full"
+        />
+      </p-iconField>
+
+      <div class="app-auth-apollo__password-wrap">
+        <i class="pi pi-lock app-auth-apollo__pwd-icon" aria-hidden="true"></i>
+        <p-password
+          formControlName="password"
+          [feedback]="false"
+          [toggleMask]="true"
+          placeholder="Mật khẩu"
+          styleClass="w-full"
+          inputStyleClass="w-full"
+        />
+      </div>
+
+      <div class="app-auth-apollo__row">
+        <div class="flex align-items-center gap-2">
+          <p-checkbox formControlName="rememberMe" [binary]="true" inputId="rememberMe" />
+          <label for="rememberMe" class="app-auth-apollo__check-label">Ghi nhớ đăng nhập</label>
+        </div>
+        <a href="#" class="app-auth-apollo__link" (click)="$event.preventDefault()">Quên mật khẩu?</a>
+      </div>
+
+      <p-button
+        type="submit"
+        label="Đăng nhập"
+        styleClass="app-auth-apollo__submit w-full"
+        [rounded]="true"
+        [loading]="loading()"
+        [disabled]="form.invalid"
+      />
+    </form>
+
+    <footer class="app-auth-apollo__footer">
+      Chưa có tài khoản?
+      <a routerLink="/auth/register" class="app-auth-apollo__link-strong">Tạo cửa hàng</a>
+    </footer>
+  </div>
+</div>
