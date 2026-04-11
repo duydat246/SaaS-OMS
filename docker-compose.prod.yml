@@ -7,7 +7,6 @@ services:
       MYSQL_USER: ${DB_USERNAME}
       MYSQL_PASSWORD: ${DB_PASSWORD}
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
-    # Giới hạn MySQL chỉ dùng 256MB
     command: >
       --innodb-buffer-pool-size=128M
       --max-connections=50
@@ -36,8 +35,7 @@ services:
       SPRING_DATASOURCE_USERNAME: ${DB_USERNAME}
       SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
       JWT_SECRET: ${JWT_SECRET}
-      # Giới hạn JVM heap Spring Boot
-      JAVA_OPTS: "-Xms128m -Xmx256m -XX:+UseContainerSupport -XX:MaxRAMPercentage=70.0"
+      JAVA_OPTS: "-Xms128m -Xmx256m"
     depends_on:
       mysql:
         condition: service_healthy
