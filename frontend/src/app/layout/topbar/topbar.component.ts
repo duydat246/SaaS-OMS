@@ -26,20 +26,14 @@ import { filter, Subscription } from "rxjs";
       <div class="topbar-left">
         <p-button
           class="menu-toggle"
-          [icon]="
-            layout.sidebarCollapsed()
-              ? 'pi pi-angle-double-right'
-              : 'pi pi-bars'
-          "
+          [icon]="menuToggleIcon()"
           [rounded]="true"
           [text]="true"
           severity="secondary"
           type="button"
-          [attr.aria-expanded]="!layout.sidebarCollapsed()"
+          [attr.aria-expanded]="menuToggleAriaExpanded()"
           aria-controls="app-sidebar-nav"
-          [pTooltip]="
-            layout.sidebarCollapsed() ? 'Mở rộng menu' : 'Thu gọn menu'
-          "
+          [pTooltip]="menuToggleTooltip()"
           tooltipPosition="bottom"
           (click)="layout.toggleSidebar()"
         />
@@ -56,6 +50,7 @@ import { filter, Subscription } from "rxjs";
           />
         </p-iconField>
         <p-button
+          class="topbar-globe"
           icon="pi pi-globe"
           [rounded]="true"
           [text]="true"
@@ -99,6 +94,28 @@ export class TopbarComponent implements OnInit, OnDestroy {
     this.sub?.unsubscribe();
   }
 
+  menuToggleIcon(): string {
+    if (this.layout.isMobileViewport()) {
+      return this.layout.mobileNavOpen() ? "pi pi-times" : "pi pi-bars";
+    }
+    return this.layout.sidebarCollapsed()
+      ? "pi pi-angle-double-right"
+      : "pi pi-bars";
+  }
+
+  menuToggleAriaExpanded(): boolean {
+    return this.layout.isMobileViewport()
+      ? this.layout.mobileNavOpen()
+      : !this.layout.sidebarCollapsed();
+  }
+
+  menuToggleTooltip(): string {
+    if (this.layout.isMobileViewport()) {
+      return this.layout.mobileNavOpen() ? "Đóng menu" : "Mở menu";
+    }
+    return this.layout.sidebarCollapsed() ? "Mở rộng menu" : "Thu gọn menu";
+  }
+
   private setTitleFromUrl(url: string): void {
     if (url.includes("/orders/new")) {
       this.pageTitle.set("Tạo đơn hàng");
@@ -106,6 +123,12 @@ export class TopbarComponent implements OnInit, OnDestroy {
       this.pageTitle.set("Chi tiết đơn hàng");
     } else if (url.includes("/orders")) {
       this.pageTitle.set("Đơn hàng");
+    } else if (url.includes("/products/new")) {
+      this.pageTitle.set("Tạo sản phẩm");
+    } else if (url.includes("/products/") && /\/products\/\d+/.test(url)) {
+      this.pageTitle.set("Chi tiết sản phẩm");
+    } else if (url.includes("/products")) {
+      this.pageTitle.set("Sản phẩm");
     } else if (url.includes("/dashboard")) {
       this.pageTitle.set("Tổng quan");
     } else {

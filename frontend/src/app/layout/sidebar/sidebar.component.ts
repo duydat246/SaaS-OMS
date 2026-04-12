@@ -38,6 +38,7 @@ interface NavItem {
               [tooltipDisabled]="!layout.sidebarCollapsed()"
               tooltipPosition="right"
               [showDelay]="200"
+              (click)="layout.closeMobileNav()"
             >
               <i [class]="'pi ' + item.icon" aria-hidden="true"></i>
               <span>{{ item.label }}</span>
@@ -54,6 +55,7 @@ export class SidebarComponent {
   navItems: NavItem[] = [
     { label: "Tổng quan", icon: "pi-home", route: "/dashboard" },
     { label: "Đơn hàng", icon: "pi-shopping-cart", route: "/orders" },
+    { label: "Sản phẩm", icon: "pi-box", route: "/products" },
   ];
 
   constructor(public auth: AuthService) {}

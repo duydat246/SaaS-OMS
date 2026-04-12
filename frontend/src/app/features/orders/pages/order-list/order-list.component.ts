@@ -48,50 +48,60 @@ type TagSeverity =
   template: `
     <div class="flex flex-column gap-3">
       <!-- Header -->
-      <div class="flex align-items-center justify-content-between">
+      <div
+        class="flex align-items-center justify-content-between flex-wrap gap-2"
+      >
         <h2 class="m-0">Đơn hàng</h2>
-        <a routerLink="/orders/new">
-          <p-button label="Tạo đơn hàng" icon="pi pi-plus" size="small" />
+        <a routerLink="/orders/new" class="w-full sm:w-auto">
+          <p-button
+            label="Tạo đơn hàng"
+            icon="pi pi-plus"
+            size="small"
+            styleClass="w-full sm:w-auto"
+          />
         </a>
       </div>
 
       <!-- Filters -->
       <p-card>
-        <div class="flex gap-2 align-items-center flex-wrap">
-          <div class="w-full order-search-input" style="max-width:280px">
-            <input
-              pInputText
-              [(ngModel)]="searchText"
-              placeholder="Tìm khách hàng hoặc mã đơn..."
-              class="w-full"
-              style="padding-right:2.25rem"
-              (keyup.enter)="applyFilters()"
+        <div class="order-list-filters">
+          <div class="order-list-filters__inputs">
+            <div class="order-search-input">
+              <input
+                pInputText
+                [(ngModel)]="searchText"
+                placeholder="Tìm khách hàng hoặc mã đơn..."
+                class="w-full"
+                style="padding-right:2.25rem"
+                (keyup.enter)="applyFilters()"
+              />
+              @if (searchText) {
+                <button
+                  type="button"
+                  class="order-search-input__clear"
+                  (click)="clearSearch()"
+                  aria-label="Xóa tìm kiếm"
+                >
+                  <i class="pi pi-times"></i>
+                </button>
+              }
+            </div>
+            <p-dropdown
+              class="order-list-status-dd"
+              [(ngModel)]="selectedStatus"
+              [options]="statusOptions"
+              optionLabel="label"
+              optionValue="value"
+              placeholder="Tất cả trạng thái"
+              [showClear]="true"
+              (onChange)="applyFilters()"
             />
-            @if (searchText) {
-              <button
-                type="button"
-                class="order-search-input__clear"
-                (click)="clearSearch()"
-                aria-label="Xóa tìm kiếm"
-              >
-                <i class="pi pi-times"></i>
-              </button>
-            }
           </div>
-          <p-dropdown
-            [(ngModel)]="selectedStatus"
-            [options]="statusOptions"
-            optionLabel="label"
-            optionValue="value"
-            placeholder="Tất cả trạng thái"
-            [showClear]="true"
-            (onChange)="applyFilters()"
-            [style]="{ width: 'min(100%, 240px)', 'min-width': '200px' }"
-          />
           <p-button
             label="Tìm kiếm"
             icon="pi pi-search"
             size="small"
+            styleClass="order-list-search-btn"
             (click)="applyFilters()"
           />
         </div>
@@ -109,7 +119,7 @@ type TagSeverity =
         [rowsPerPageOptions]="rowsPerPageOptions"
         [showCurrentPageReport]="true"
         [scrollable]="true"
-        scrollHeight="37rem"
+        scrollHeight="calc(100dvh - 14rem)"
         styleClass="p-datatable-sm apollo-order-table"
         [rowHover]="true"
       >
@@ -169,8 +179,23 @@ type TagSeverity =
   `,
   styles: [
     `
+      .order-list-filters {
+        display: flex;
+        flex-direction: column;
+        gap: 0.65rem;
+      }
+
+      .order-list-filters__inputs {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: stretch;
+        gap: 0.5rem;
+        width: 100%;
+      }
+
       .order-search-input {
         position: relative;
+        min-width: 0;
       }
 
       .order-search-input__clear {
@@ -194,6 +219,74 @@ type TagSeverity =
       .order-search-input__clear:hover {
         background: transparent;
         color: var(--text-color);
+      }
+
+      :host ::ng-deep .order-list-status-dd .p-dropdown {
+        width: 100%;
+        min-width: 0;
+      }
+
+      :host ::ng-deep .order-list-search-btn {
+        width: 100%;
+      }
+
+      @media (min-width: 768px) {
+        .order-list-filters {
+          flex-direction: row;
+          flex-wrap: wrap;
+          align-items: center;
+          gap: 0.5rem;
+        }
+
+        .order-list-filters__inputs {
+          flex: 1 1 auto;
+          flex-wrap: nowrap;
+          min-width: 0;
+          width: auto;
+        }
+
+        .order-search-input {
+          flex: 0 1 auto;
+          max-width: 280px;
+          width: min(100%, 280px);
+        }
+
+        :host ::ng-deep .order-list-status-dd {
+          flex: 0 0 auto;
+          width: min(100%, 240px);
+        }
+
+        :host ::ng-deep .order-list-status-dd .p-dropdown {
+          width: 100% !important;
+          min-width: 200px;
+        }
+
+        :host ::ng-deep .order-list-search-btn {
+          width: auto;
+          flex: 0 0 auto;
+        }
+      }
+
+      @media (max-width: 767.98px) {
+        .order-list-filters__inputs .order-search-input {
+          flex: 1 1 calc(50% - 0.25rem);
+          max-width: none;
+          width: auto;
+        }
+
+        :host ::ng-deep .order-list-filters__inputs .order-list-status-dd {
+          display: flex;
+          flex: 1 1 calc(50% - 0.25rem);
+          min-width: 0;
+          width: auto;
+          align-items: stretch;
+        }
+
+        :host ::ng-deep .order-list-filters__inputs .order-list-status-dd .p-dropdown {
+          flex: 1 1 auto;
+          width: 100% !important;
+          min-width: 0 !important;
+        }
       }
     `,
   ],

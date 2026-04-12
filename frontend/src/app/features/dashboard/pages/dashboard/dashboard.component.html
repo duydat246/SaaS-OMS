@@ -8,8 +8,12 @@
         Chào mừng trở lại, {{ auth.currentUser()?.fullName }}
       </p>
     </div>
-    <a routerLink="/orders/new">
-      <p-button label="Tạo đơn hàng" icon="pi pi-plus" styleClass="dash-cta" />
+    <a routerLink="/orders/new" class="w-full sm:w-auto">
+      <p-button
+        label="Tạo đơn hàng"
+        icon="pi pi-plus"
+        styleClass="dash-cta w-full sm:w-auto"
+      />
     </a>
   </div>
 
@@ -117,12 +121,10 @@
           [rowHover]="true"
           [lazy]="true"
           [first]="tableFirst()"
+          [rows]="PAGE_SIZE"
           [totalRecords]="totalRecords()"
           (onLazyLoad)="onLazyLoad($event)"
-          [paginator]="true"
-          [rows]="PAGE_SIZE"
-          [showCurrentPageReport]="true"
-          currentPageReportTemplate="{first}–{last} / {totalRecords}"
+          [paginator]="false"
         >
           <ng-template pTemplate="header">
             <tr>
@@ -176,6 +178,76 @@
             </tr>
           </ng-template>
         </p-table>
+        @if (showRecentPaginator()) {
+          <div class="dash-recent-paginator">
+            <span class="dash-recent-paginator__report">{{
+              recentPageReport()
+            }}</span>
+            <nav
+              class="dash-recent-paginator__nav"
+              aria-label="Phân trang đơn gần đây"
+            >
+              <button
+                type="button"
+                class="dash-recent-paginator__btn dash-recent-paginator__btn--edge"
+                [disabled]="isRecentFirstPage()"
+                (click)="goRecentFirst()"
+                aria-label="Trang đầu"
+              >
+                <i class="pi pi-angle-double-left" aria-hidden="true"></i>
+              </button>
+              <button
+                type="button"
+                class="dash-recent-paginator__btn"
+                [disabled]="isRecentFirstPage()"
+                (click)="goRecentPrev()"
+                aria-label="Trang trước"
+              >
+                <i class="pi pi-angle-left" aria-hidden="true"></i>
+              </button>
+              @for (item of paginationItems(); track $index) {
+                @if (item === "ellipsis") {
+                  <span
+                    class="dash-recent-paginator__ellipsis"
+                    aria-hidden="true"
+                    >…</span>
+                } @else {
+                  <button
+                    type="button"
+                    class="dash-recent-paginator__btn dash-recent-paginator__btn--page"
+                    [class.dash-recent-paginator__btn--active]="
+                      item === currentPage1Based()
+                    "
+                    [attr.aria-current]="
+                      item === currentPage1Based() ? 'page' : null
+                    "
+                    (click)="goRecentPage(item)"
+                  >
+                    {{ item }}
+                  </button>
+                }
+              }
+              <button
+                type="button"
+                class="dash-recent-paginator__btn"
+                [disabled]="isRecentLastPage()"
+                (click)="goRecentNext()"
+                aria-label="Trang sau"
+              >
+                <i class="pi pi-angle-right" aria-hidden="true"></i>
+              </button>
+              <button
+                type="button"
+                class="dash-recent-paginator__btn dash-recent-paginator__btn--edge"
+                [disabled]="isRecentLastPage()"
+                (click)="goRecentLast()"
+                aria-label="Trang cuối"
+              >
+                <i class="pi pi-angle-double-right" aria-hidden="true"></i>
+              </button>
+            </nav>
+          </div>
+        }
       </div>
     </div>
     <div class="col-12 xl:col-4">

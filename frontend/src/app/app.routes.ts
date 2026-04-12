@@ -1,26 +1,39 @@
-import { Routes } from '@angular/router';
-import { authGuard } from './core/auth/auth.guard';
+import { Routes } from "@angular/router";
+import { authGuard } from "./core/auth/auth.guard";
 
 export const routes: Routes = [
   {
-    path: 'auth',
-    loadChildren: () => import('./features/auth/auth.routes').then(m => m.authRoutes)
+    path: "auth",
+    loadChildren: () =>
+      import("./features/auth/auth.routes").then((m) => m.authRoutes),
   },
   {
-    path: '',
-    loadComponent: () => import('./layout/shell/shell.component').then(m => m.ShellComponent),
+    path: "",
+    loadComponent: () =>
+      import("./layout/shell/shell.component").then((m) => m.ShellComponent),
     canActivate: [authGuard],
     children: [
       {
-        path: 'dashboard',
-        loadChildren: () => import('./features/dashboard/dashboard.routes').then(m => m.dashboardRoutes)
+        path: "dashboard",
+        loadChildren: () =>
+          import("./features/dashboard/dashboard.routes").then(
+            (m) => m.dashboardRoutes,
+          ),
       },
       {
-        path: 'orders',
-        loadChildren: () => import('./features/orders/orders.routes').then(m => m.ordersRoutes)
+        path: "orders",
+        loadChildren: () =>
+          import("./features/orders/orders.routes").then((m) => m.ordersRoutes),
       },
-      { path: '', redirectTo: 'dashboard', pathMatch: 'full' }
-    ]
+      {
+        path: "products",
+        loadChildren: () =>
+          import("./features/products/products.routes").then(
+            (m) => m.productsRoutes,
+          ),
+      },
+      { path: "", redirectTo: "dashboard", pathMatch: "full" },
+    ],
   },
-  { path: '**', redirectTo: '/dashboard' }
+  { path: "**", redirectTo: "/dashboard" },
 ];

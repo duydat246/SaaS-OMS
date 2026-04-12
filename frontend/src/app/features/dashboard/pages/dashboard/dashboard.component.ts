@@ -1,4 +1,11 @@
-import { Component, DestroyRef, OnInit, inject, signal } from "@angular/core";
+import {
+  Component,
+  DestroyRef,
+  OnInit,
+  computed,
+  inject,
+  signal,
+} from "@angular/core";
 import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 import { CommonModule } from "@angular/common";
 import { RouterLink } from "@angular/router";
@@ -45,6 +52,28 @@ type StatusSeverity =
   | "contrast"
   | "warning"
   | "danger";
+
+/** Trang đánh số 1..total; delta = số trang lân cận quanh trang hiện tại. */
+function buildPaginationItems(
+  current: number,
+  total: number,
+  delta: number,
+): Array<number | "ellipsis"> {
+  if (total <= 1) return [];
+  if (total <= delta * 2 + 3) {
+    return Array.from({ length: total }, (_, i) => i + 1);
+  }
+  const pages: Array<number | "ellipsis"> = [];
+  const left = Math.max(2, current - delta);
+  const right = Math.min(total - 1, current + delta);
+
+  pages.push(1);
+  if (left > 2) pages.push("ellipsis");
+  for (let i = left; i <= right; i++) pages.push(i);
+  if (right < total - 1) pages.push("ellipsis");
+  pages.push(total);
+  return pages;
+}
 
 @Component({
   selector: "app-dashboard",
@@ -151,6 +180,35 @@ export class DashboardComponent implements OnInit {
   };
 
   readonly PAGE_SIZE = 5;
+  /** Số trang số hiển thị quanh trang hiện tại (kiểu 1 … 2 3 4 … 10). */
+  private readonly recentPageDelta = 2;
+
+  readonly pageCount = computed(() =>
+    Math.ceil(this.totalRecords() / this.PAGE_SIZE),
+  );
+
+  readonly showRecentPaginator = computed(() => this.pageCount() > 1);
+
+  readonly currentPage1Based = computed(
+    () => Math.floor(this.tableFirst() / this.PAGE_SIZE) + 1,
+  );
+
+  readonly paginationItems = computed(() =>
+    buildPaginationItems(
+      this.currentPage1Based(),
+      this.pageCount(),
+      this.recentPageDelta,
+    ),
+  );
+
+  readonly recentPageReport = computed(() => {
+    const total = this.totalRecords();
+    if (total <= 0) return "";
+    const first = this.tableFirst() + 1;
+    const last = Math.min(this.tableFirst() + this.PAGE_SIZE, total);
+    return `${first}–${last} / ${total}`;
+  });
+
   private readonly destroyRef = inject(DestroyRef);
   private readonly loadSubject = new Subject<{
     page: number;
@@ -209,6 +267,50 @@ export class DashboardComponent implements OnInit {
     this.searchTerm.set(value);
     this.tableFirst.set(0);
     this.loadSubject.next({ page: 0, search: value });
+  }
+
+  isRecentFirstPage(): boolean {
+    return this.tableFirst() === 0;
+  }
+
+  isRecentLastPage(): boolean {
+    const pc = this.pageCount();
+    if (pc < 1) return true;
+    return this.tableFirst() >= (pc - 1) * this.PAGE_SIZE;
+  }
+
+  goRecentFirst(): void {
+    this.goRecentPageIndex(0);
+  }
+
+  goRecentPrev(): void {
+    const idx = Math.floor(this.tableFirst() / this.PAGE_SIZE) - 1;
+    if (idx >= 0) this.goRecentPageIndex(idx);
+  }
+
+  goRecentNext(): void {
+    const idx = Math.floor(this.tableFirst() / this.PAGE_SIZE) + 1;
+    if (idx < this.pageCount()) this.goRecentPageIndex(idx);
+  }
+
+  goRecentLast(): void {
+    const pc = this.pageCount();
+    if (pc > 0) this.goRecentPageIndex(pc - 1);
+  }
+
+  goRecentPage(page1Based: number): void {
+    this.goRecentPageIndex(page1Based - 1);
+  }
+
+  private goRecentPageIndex(pageIndex: number): void {
+    const pc = this.pageCount();
+    if (pageIndex < 0 || pageIndex >= pc) return;
+    const first = pageIndex * this.PAGE_SIZE;
+    this.tableFirst.set(first);
+    this.loadSubject.next({
+      page: pageIndex,
+      search: this.searchTerm(),
+    });
   }
 
   exportOrders(): void {

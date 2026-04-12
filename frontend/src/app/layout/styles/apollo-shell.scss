@@ -605,3 +605,258 @@
 .apollo-layout app-topbar p-button.menu-toggle .p-button.p-focus {
   box-shadow: none !important;
 }
+
+// Dashboard — phân trang “Đơn gần đây”: 1 hàng, báo cáo trái, nút căn giữa toàn khối (1fr | auto | 1fr)
+.apollo-layout .dash-recent-paginator {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  column-gap: 0.5rem;
+  row-gap: 0.35rem;
+  margin-top: 0.35rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--apollo-border);
+  width: 100%;
+}
+
+.apollo-layout .dash-recent-paginator__report {
+  grid-column: 1;
+  justify-self: start;
+  font-size: 0.75rem;
+  color: var(--apollo-muted);
+  white-space: nowrap;
+  text-align: left;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.apollo-layout .dash-recent-paginator__nav {
+  grid-column: 2;
+  justify-self: center;
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.125rem;
+  width: max-content;
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 0.1rem 0;
+}
+
+.apollo-layout .dash-recent-paginator__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  min-width: 1.75rem;
+  height: 1.75rem;
+  padding: 0 0.3rem;
+  border: 1px solid var(--apollo-border);
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.2);
+  color: var(--apollo-muted);
+  font-size: 0.7rem;
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.apollo-layout .dash-recent-paginator__btn .pi {
+  font-size: 0.75rem;
+}
+
+.apollo-layout .dash-recent-paginator__btn--edge {
+  min-width: 1.65rem;
+  padding: 0 0.2rem;
+}
+
+.apollo-layout .dash-recent-paginator__btn--page {
+  min-width: 1.65rem;
+  padding: 0 0.35rem;
+}
+
+.apollo-layout .dash-recent-paginator__btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--apollo-text);
+  border-color: rgba(148, 163, 184, 0.35);
+}
+
+.apollo-layout .dash-recent-paginator__btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.apollo-layout .dash-recent-paginator__btn--active {
+  background: var(--apollo-accent-soft);
+  color: #a5b4fc;
+  border-color: rgba(99, 102, 241, 0.45);
+}
+
+.apollo-layout .dash-recent-paginator__ellipsis {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.25rem;
+  color: var(--apollo-muted);
+  font-size: 0.8rem;
+  font-weight: 600;
+  user-select: none;
+  flex-shrink: 0;
+}
+
+// --- Mobile (đồng bộ max-width với SHELL_MOBILE_MAX_WIDTH_PX trong shell-layout.service)
+@media (max-width: 767.98px) {
+  .apollo-layout .layout-content {
+    padding: 0.75rem 0.65rem 1.25rem;
+  }
+
+  .apollo-mobile-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 1090;
+    background: rgba(0, 0, 0, 0.55);
+    backdrop-filter: blur(2px);
+  }
+
+  .apollo-layout app-sidebar {
+    flex: 0 0 0;
+    width: 0;
+    min-width: 0;
+    overflow: visible;
+    position: static;
+  }
+
+  .apollo-layout app-sidebar .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 1100;
+    height: 100vh;
+    height: 100dvh;
+    max-height: 100dvh;
+    width: min(280px, 88vw);
+    min-width: min(280px, 88vw);
+    transform: translateX(-100%);
+    transition: transform 0.2s ease;
+    pointer-events: none;
+    overflow-y: auto;
+    box-shadow: none;
+  }
+
+  .apollo-layout--mobile-nav-open app-sidebar .sidebar {
+    transform: translateX(0);
+    pointer-events: auto;
+    box-shadow: 8px 0 28px rgba(0, 0, 0, 0.45);
+  }
+
+  .apollo-layout app-topbar .topbar {
+    padding: 0 0.65rem 0 0.5rem;
+    column-gap: 1rem;
+    row-gap: 0.5rem;
+  }
+
+  .apollo-layout app-topbar .topbar-left {
+    gap: 0.75rem;
+    min-width: 0;
+    flex: 1;
+    padding-right: 0.5rem;
+  }
+
+  .apollo-layout app-topbar p-button.menu-toggle {
+    margin-right: 0.35rem;
+  }
+
+  .apollo-layout app-topbar .page-title {
+    font-size: 0.95rem;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .apollo-layout app-topbar .topbar-right {
+    gap: 0.5rem;
+    flex-shrink: 0;
+    margin-left: 0.5rem;
+    padding-left: 1rem;
+  }
+
+  .apollo-layout app-topbar .topbar-search {
+    flex-shrink: 0;
+  }
+
+  .apollo-layout app-topbar .topbar-search .p-inputtext {
+    width: 6.75rem;
+    max-width: min(7rem, 26vw);
+    min-width: 5.25rem;
+    padding: 0.45rem 0.5rem 0.45rem 2rem;
+    font-size: 0.8125rem;
+  }
+
+  .apollo-layout app-topbar .topbar-search .p-icon-field .p-input-icon {
+    left: 0.55rem;
+    font-size: 0.8rem;
+  }
+
+  .apollo-layout app-topbar .topbar-globe {
+    display: none !important;
+  }
+
+  .apollo-layout app-topbar .user-role {
+    display: none;
+  }
+
+  .apollo-layout app-topbar .user-name {
+    max-width: 5.5rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .apollo-layout .p-datatable .p-datatable-tbody > tr > td {
+    padding: 0.65rem 0.5rem;
+    font-size: 0.8125rem;
+  }
+
+  .apollo-layout .p-datatable .p-datatable-thead > tr > th {
+    padding: 0.6rem 0.5rem;
+    font-size: 0.68rem;
+  }
+
+  .apollo-layout .apollo-order-table .p-datatable-scrollable-body {
+    max-height: min(37rem, calc(100dvh - 13rem)) !important;
+  }
+
+  .apollo-layout .dash-page .dash-title {
+    font-size: 1.25rem;
+  }
+
+  .apollo-layout .dash-page .dash-chart-box,
+  .apollo-layout .dash-page .dash-chart-box-inner {
+    height: 220px;
+  }
+
+  .apollo-layout .dash-page .dash-chart-box--bar-centered,
+  .apollo-layout .dash-page .dash-chart-box--donut {
+    min-height: 220px;
+  }
+
+  .apollo-layout .dash-page .dash-table-search .p-inputtext {
+    min-width: 0;
+    max-width: none;
+    width: 100%;
+  }
+
+  .apollo-layout .dash-page .apollo-dash-table .p-datatable-wrapper {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
