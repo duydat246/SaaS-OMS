@@ -1,4 +1,4 @@
-import { Component, ChangeDetectionStrategy, inject, signal } from "@angular/core";
+import { Component, ChangeDetectionStrategy, computed, inject, signal } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { ActivatedRoute, Router, RouterLink } from "@angular/router";
 import { MessageService, ConfirmationService } from "primeng/api";
@@ -10,7 +10,7 @@ import { DialogModule } from "primeng/dialog";
 import { ConfirmDialogModule } from "primeng/confirmdialog";
 import { ToastModule } from "primeng/toast";
 import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
-import { Product } from "@features/products/models/product.model";
+import { Product, ProductImage } from "@features/products/models/product.model";
 import { productStatusLabelVi } from "@features/products/models/product-status";
 import { PRODUCT_STATUS_SEVERITY } from "@features/products/constants/product.constants";
 import { ProductService } from "@features/products/services/product.service";
@@ -53,6 +53,27 @@ export class ProductDetailComponent {
   loading = signal(true);
   actionLoading = signal(false);
 
+  /** Ảnh đang xem trong gallery; null = dùng ảnh đầu tiên. */
+  currentImageId = signal<number | null>(null);
+  private readonly brokenImageIds = signal<ReadonlySet<number>>(new Set());
+  private readonly legacyImageBroken = signal(false);
+
+  images = computed<ProductImage[]>(() => this.product()?.images ?? []);
+  currentImage = computed<ProductImage | null>(() => {
+    const list = this.images();
+    if (list.length === 0) {
+      return null;
+    }
+    const selectedId = this.currentImageId();
+    return list.find((image) => image.id === selectedId) ?? list[0];
+  });
+  /** Ảnh lớn: ưu tiên ảnh chọn trong gallery, fallback `imageUrl` cũ của sản phẩm legacy. */
+  heroSrc = computed<string | null>(() => this.currentImage()?.url ?? this.product()?.imageUrl ?? null);
+  heroBroken = computed<boolean>(() => {
+    const image = this.currentImage();
+    return image ? this.brokenImageIds().has(image.id) : this.legacyImageBroken();
+  });
+
   productStatusLabelVi = productStatusLabelVi;
 
   constructor() {
@@ -79,6 +100,35 @@ export class ProductDetailComponent {
 
   isInactive(): boolean {
     return this.product()?.status === "INACTIVE";
+  }
+
+  selectImage(imageId: number): void {
+    this.currentImageId.set(imageId);
+  }
+
+  imageBroken(imageId: number): boolean {
+    return this.brokenImageIds().has(imageId);
+  }
+
+  onHeroError(): void {
+    const image = this.currentImage();
+    if (!image) {
+      this.legacyImageBroken.set(true);
+      return;
+    }
+    this.markImageBroken(image.id);
+  }
+
+  onThumbError(imageId: number): void {
+    this.markImageBroken(imageId);
+  }
+
+  private markImageBroken(imageId: number): void {
+    this.brokenImageIds.update((current) => {
+      const next = new Set(current);
+      next.add(imageId);
+      return next;
+    });
   }
 
   edit(): void {
@@ -250,6 +300,7 @@ export class ProductDetailComponent {
     this.productService.getProduct(id).pipe(takeUntilDestroyed()).subscribe({
       next: (product) => {
         this.product.set(product);
+        this.applyCurrentImage(product);
         this.loading.set(false);
       },
       error: () => {
@@ -257,5 +308,13 @@ export class ProductDetailComponent {
         this.router.navigate(["/products"]);
       },
     });
+  }
+
+  private applyCurrentImage(product: Product): void {
+    const images = product.images ?? [];
+    const primary = images.find((image) => image.primary);
+    this.currentImageId.set(primary ? primary.id : (images[0]?.id ?? null));
+    this.brokenImageIds.set(new Set<number>());
+    this.legacyImageBroken.set(false);
   }
 }

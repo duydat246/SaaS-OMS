@@ -4,11 +4,13 @@ import com.saasoms.common.exception.BusinessException;
 import com.saasoms.common.response.PageResponse;
 import com.saasoms.common.tenant.TenantContext;
 import com.saasoms.modules.product.dto.ProductRequest;
+import com.saasoms.modules.product.dto.ProductImageResponse;
 import com.saasoms.modules.product.dto.ProductResponse;
 import com.saasoms.modules.product.dto.ProductStatsResponse;
 import com.saasoms.modules.product.dto.SkuRequest;
 import com.saasoms.modules.product.dto.UpdateProductStatusRequest;
 import com.saasoms.modules.product.entity.Product;
+import com.saasoms.modules.product.entity.ProductImage;
 import com.saasoms.modules.product.entity.ProductStatus;
 import com.saasoms.modules.product.entity.Sku;
 import com.saasoms.modules.product.repository.ProductRepository;
@@ -47,6 +49,7 @@ public class ProductService {
     private final ProductRepository productRepository;
     private final SkuRepository skuRepository;
     private final ShopRepository shopRepository;
+    private final ProductImageService productImageService;
 
     // ------------------------------------------------------------------ READ
 
@@ -71,12 +74,19 @@ public class ProductService {
                 pageable);
 
         if (page.isEmpty()) {
-            return PageResponse.of(page.map(p -> ProductResponse.from(p, List.of())));
+            return PageResponse.of(page.map(p -> ProductResponse.from(p, List.of(), List.of())));
         }
 
         Map<Long, List<Sku>> skusByProduct = groupByProductId(loadSkus(tenantId, page.getContent()));
-        return PageResponse.of(page.map(p ->
-                ProductResponse.from(p, skusByProduct.getOrDefault(p.getId(), List.of()))));
+        Map<Long, List<ProductImage>> imagesByProduct = productImageService.findByProductIds(
+                tenantId,
+                page.getContent().stream().map(Product::getId).filter(Objects::nonNull).toList());
+
+        return PageResponse.of(page.map(p -> ProductResponse.from(
+                p,
+                skusByProduct.getOrDefault(p.getId(), List.of()),
+                productImageService.toResponses(
+                        tenantId, imagesByProduct.getOrDefault(p.getId(), List.of())))));
     }
 
     @Transactional(readOnly = true)
@@ -124,7 +134,7 @@ public class ProductService {
                 .description(trimToNull(req.getDescription()))
                 .category(trimToNull(req.getCategory()))
                 .platformSource(normalizePlatformSource(req.getPlatformSource()))
-                .imageUrl(trimToNull(req.getImageUrl()))
+                .imageUrl(legacyImageUrl(req, null))
                 .status(ProductStatus.ACTIVE)
                 .build();
 
@@ -149,7 +159,10 @@ public class ProductService {
             savedSkus.add(skuRepository.save(sku));
         }
 
-        return ProductResponse.from(savedProduct, savedSkus);
+        List<ProductImageResponse> images = productImageService.syncProductImages(
+                tenantId, savedProduct, req.getImageIds(), req.getPrimaryImageId());
+
+        return ProductResponse.from(savedProduct, savedSkus, images);
     }
 
     @Transactional
@@ -241,7 +254,7 @@ public class ProductService {
         product.setDescription(trimToNull(req.getDescription()));
         product.setCategory(trimToNull(req.getCategory()));
         product.setPlatformSource(normalizePlatformSource(req.getPlatformSource()));
-        product.setImageUrl(trimToNull(req.getImageUrl()));
+        product.setImageUrl(legacyImageUrl(req, product));
 
         List<Sku> touched = new ArrayList<>();
         for (RequestedSku item : requestedSkus) {
@@ -270,7 +283,11 @@ public class ProductService {
         skuRepository.flush();
 
         productRepository.save(product);
-        return toResponse(tenantId, product);
+
+        List<ProductImageResponse> images = productImageService.syncProductImages(
+                tenantId, product, req.getImageIds(), req.getPrimaryImageId());
+
+        return toResponse(tenantId, product, images);
     }
 
     @Transactional
@@ -334,8 +351,31 @@ public class ProductService {
     }
 
     private ProductResponse toResponse(Long tenantId, Product product) {
+        List<ProductImageResponse> images = productImageService.toResponses(
+                tenantId, productImageService.findByProductId(tenantId, product.getId()));
+        return toResponse(tenantId, product, images);
+    }
+
+    private ProductResponse toResponse(Long tenantId,
+                                       Product product,
+                                       List<ProductImageResponse> images) {
         List<Sku> skus = skuRepository.findByShopIdAndProductId(tenantId, product.getId());
-        return ProductResponse.from(product, skus);
+        return ProductResponse.from(product, skus, images);
+    }
+
+    /**
+     * Cột image_url cũ chỉ được ghi khi client không gửi danh sách ảnh (tương thích client cũ).
+     * Nếu client gửi danh sách rỗng mà sản phẩm còn URL ngoài cũ thì giữ nguyên,
+     * tránh xoá mất ảnh legacy khi người dùng chỉ sửa thông tin khác.
+     */
+    private static String legacyImageUrl(ProductRequest req, Product existing) {
+        if (req.getImageIds() == null) {
+            return trimToNull(req.getImageUrl());
+        }
+        if (req.getImageIds().isEmpty() && existing != null) {
+            return existing.getImageUrl();
+        }
+        return null;
     }
 
     private static String trimToNull(String value) {

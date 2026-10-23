@@ -1,3 +1,4 @@
+<p-confirmDialog />
 <div class="flex flex-column gap-3">
   <!-- Header -->
   <div class="flex align-items-center justify-content-between flex-wrap gap-2">
@@ -80,27 +81,99 @@
               </div>
             }
 
-            <div class="flex flex-column gap-1">
-              <label class="font-medium">URL ảnh</label>
-              <input
-                pInputText
-                formControlName="imageUrl"
-                placeholder="https://..."
-                class="w-full"
-              />
-            </div>
-
-            @if (form.get('imageUrl')?.value) {
-              <div class="flex flex-column gap-2">
-                <label class="font-medium">Xem trước ảnh</label>
-                <p-image
-                  [src]="form.get('imageUrl')?.value || ''"
-                  alt="Ảnh sản phẩm"
-                  width="160"
-                  [preview]="true"
-                />
+            <div class="flex flex-column gap-2">
+              <div class="flex align-items-center justify-content-between flex-wrap gap-2">
+                <label class="font-medium">Ảnh sản phẩm</label>
+                <span class="text-sm image-counter">
+                  {{ imageCount() }}/{{ maxImages }} ảnh
+                </span>
               </div>
-            }
+
+              <div class="flex align-items-center gap-2 flex-wrap">
+                <p-fileUpload
+                  #imageUploader
+                  mode="basic"
+                  [customUpload]="true"
+                  [multiple]="true"
+                  accept="image/jpeg,image/png,image/webp,image/gif"
+                  [auto]="true"
+                  [showUploadButton]="false"
+                  [showCancelButton]="false"
+                  [disabled]="uploading() || isImageLimitReached()"
+                  chooseLabel="Chọn ảnh"
+                  chooseIcon="pi pi-plus"
+                  invalidFileTypeMessageSummary="Tệp không hợp lệ: {0}"
+                  invalidFileTypeMessageDetail="Chỉ chấp nhận ảnh JPEG, PNG, WEBP hoặc GIF."
+                  (uploadHandler)="onUpload($event)"
+                />
+                @if (uploading()) {
+                  <span class="flex align-items-center gap-2 text-sm image-uploading">
+                    <i class="pi pi-spin pi-spinner"></i>
+                    Đang tải ảnh lên...
+                  </span>
+                }
+              </div>
+
+              <small class="image-hint">
+                Tối đa {{ maxImages }} ảnh · mỗi ảnh ≤ {{ maxImageSizeMb }}MB · JPEG/PNG/WEBP/GIF
+              </small>
+
+              @if (images().length === 0) {
+                <div class="image-empty text-center">
+                  <i class="pi pi-image"></i>
+                  <div>Chưa có ảnh nào</div>
+                </div>
+              } @else {
+                <div class="image-grid">
+                  @for (image of images(); track image.id) {
+                    <div class="image-item">
+                      @if (isBroken(image.id)) {
+                        <div class="image-thumb image-thumb-placeholder">
+                          <i class="pi pi-image"></i>
+                        </div>
+                      } @else {
+                        <img
+                          class="image-thumb"
+                          [src]="image.url"
+                          [alt]="image.fileName || 'Ảnh sản phẩm'"
+                          (error)="onImageError(image.id)"
+                        />
+                      }
+
+                      @if (isPrimary(image)) {
+                        <span class="image-primary-badge">Ảnh chính</span>
+                      }
+
+                      <div class="image-actions">
+                        <p-button
+                          [icon]="isPrimary(image) ? 'pi pi-star-fill' : 'pi pi-star'"
+                          [rounded]="true"
+                          [text]="true"
+                          size="small"
+                          severity="warning"
+                          [disabled]="isPrimary(image)"
+                          [ariaLabel]="'Đặt làm ảnh chính'"
+                          pTooltip="Đặt làm ảnh chính"
+                          tooltipPosition="top"
+                          (onClick)="setPrimary(image.id)"
+                        />
+                        <p-button
+                          icon="pi pi-trash"
+                          [rounded]="true"
+                          [text]="true"
+                          size="small"
+                          severity="danger"
+                          [ariaLabel]="'Xoá ảnh'"
+                          pTooltip="Xoá ảnh"
+                          tooltipPosition="top"
+                          (onClick)="confirmRemove(image)"
+                        />
+                      </div>
+                    </div>
+                  }
+                </div>
+              }
+            </div>
           </div>
         </p-card>
       </div>
@@ -109,7 +182,7 @@
       <div class="col-12 lg:col-6">
         <p-card header="Danh sách SKU">
           <div class="flex flex-column gap-3" formArrayName="skus">
-            @for (skuCtrl of skus.controls; track $index; let i = $index) {
+            @for (skuCtrl of skus.controls; track skuCtrl; let i = $index) {
               <div [formGroupName]="i" class="sku-row grid align-items-end">
                 <div class="col-12 md:col-6 flex flex-column gap-1">
                   <label class="font-medium text-sm">Mã SKU *</label>
@@ -225,7 +298,7 @@
         [label]="isEdit() ? 'Cập nhật' : 'Tạo sản phẩm'"
         icon="pi pi-check"
         [loading]="loading()"
-        [disabled]="form.invalid && form.touched"
+        [disabled]="uploading() || (form.invalid && form.touched)"
       />
     </div>
   </form>

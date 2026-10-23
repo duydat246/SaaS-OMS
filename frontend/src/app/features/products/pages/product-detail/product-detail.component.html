@@ -83,12 +83,44 @@
         <p-card header="Thông tin sản phẩm" styleClass="h-full">
           <div class="flex flex-column gap-3">
             <div class="flex gap-3 flex-column sm:flex-row">
-              <div class="product-image-wrapper">
-                @if (product()!.imageUrl) {
-                  <img [src]="product()!.imageUrl" alt="Ảnh sản phẩm" class="product-image" />
-                } @else {
-                  <div class="product-image-placeholder">
-                    <i class="pi pi-image"></i>
+              <div class="product-gallery">
+                <div class="product-image-wrapper">
+                  @if (heroSrc() && !heroBroken()) {
+                    <img
+                      [src]="heroSrc() ?? ''"
+                      alt="Ảnh chính sản phẩm"
+                      class="product-image"
+                      (error)="onHeroError()"
+                    />
+                  } @else {
+                    <div class="product-image-placeholder">
+                      <i class="pi pi-image"></i>
+                    </div>
+                  }
+                </div>
+
+                @if (images().length > 1) {
+                  <div class="gallery-thumbs">
+                    @for (image of images(); track image.id; let i = $index) {
+                      <button
+                        type="button"
+                        class="gallery-thumb"
+                        [class.gallery-thumb--active]="image.id === currentImage()?.id"
+                        [attr.aria-label]="'Xem ảnh ' + (i + 1) + (image.fileName ? ': ' + image.fileName : '')"
+                        [attr.aria-pressed]="image.id === currentImage()?.id"
+                        (click)="selectImage(image.id)"
+                      >
+                        @if (imageBroken(image.id)) {
+                          <i class="pi pi-image"></i>
+                        } @else {
+                          <img
+                            [src]="image.url"
+                            [alt]="image.fileName || 'Ảnh sản phẩm'"
+                            (error)="onThumbError(image.id)"
+                          />
+                        }
+                      </button>
+                    }
                   </div>
                 }
               </div>

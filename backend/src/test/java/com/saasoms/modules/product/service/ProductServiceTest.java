@@ -60,6 +60,9 @@ class ProductServiceTest {
     @Mock
     private ShopRepository shopRepository;
 
+    @Mock
+    private ProductImageService productImageService;
+
     @InjectMocks
     private ProductService productService;
 
@@ -391,6 +394,6 @@ class ProductServiceTest {
     }
 
     private ProductRequest request(String name, List<SkuRequest> skus) {
-        return new ProductRequest(name, "Mô tả", "Danh mục", "MANUAL", null, skus);
+        return new ProductRequest(name, "Mô tả", "Danh mục", "MANUAL", null, null, null, skus);
     }
 }

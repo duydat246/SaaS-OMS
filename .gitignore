@@ -1,6 +1,10 @@
 # Environment secrets
 .env
 
+# Ảnh upload khi chạy backend ngoài Docker
+uploads/
+backend/uploads/
+
 # Claude Code artifacts
 .claude/
 .history/

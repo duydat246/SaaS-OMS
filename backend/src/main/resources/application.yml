@@ -3,6 +3,10 @@ spring:
     active: dev
   application:
     name: saas-oms
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 6MB
   jpa:
     hibernate:
       ddl-auto: validate
@@ -22,6 +26,10 @@ app:
     secret: ${JWT_SECRET:dev-secret-key-must-be-at-least-32-chars-long}
     access-token-expiry-ms: 900000 # 15 minutes
     refresh-token-expiry-days: 7
+  media:
+    storage-dir: ${APP_MEDIA_DIR:uploads}
+    signing-secret: ${APP_MEDIA_SECRET:${JWT_SECRET:dev-secret-key-must-be-at-least-32-chars-long}}
+    url-ttl-seconds: 3600
 
 springdoc:
   api-docs:

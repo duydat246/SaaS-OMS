@@ -2,9 +2,11 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  DestroyRef,
   effect,
   inject,
   signal,
+  viewChild,
 } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import {
@@ -19,22 +21,38 @@ import {
 } from "@angular/forms";
 import { ActivatedRoute, Router, RouterLink } from "@angular/router";
 import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
+import { catchError, concatMap, EMPTY, finalize, from, startWith, tap } from "rxjs";
 import { CardModule } from "primeng/card";
 import { ButtonModule } from "primeng/button";
 import { InputTextModule } from "primeng/inputtext";
 import { InputNumberModule } from "primeng/inputnumber";
 import { DropdownModule } from "primeng/dropdown";
 import { InputTextareaModule } from "primeng/inputtextarea";
-import { ImageModule } from "primeng/image";
-import { MessageService } from "primeng/api";
+import { FileUpload, FileUploadHandlerEvent, FileUploadModule } from "primeng/fileupload";
+import { ConfirmDialogModule } from "primeng/confirmdialog";
+import { TooltipModule } from "primeng/tooltip";
+import { ConfirmationService, MessageService } from "primeng/api";
 import { ProductService } from "@features/products/services/product.service";
-import { Product, ProductRequest, SkuRequest } from "@features/products/models/product.model";
+import { ProductImageService } from "@features/products/services/product-image.service";
+import { Product, ProductImage, ProductRequest, SkuRequest } from "@features/products/models/product.model";
 import { PRODUCT_STATUS_OPTIONS } from "@features/products/constants/product.constants";
 
 type PlatformSourceOption = {
   label: string;
   value: string;
 };
+
+type SkuFormValue = {
+  id: number | null;
+  skuCode: string;
+  variant: string;
+  price: number | null;
+  stock: number | null;
+};
+
+const MAX_IMAGES = 10;
+const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
+const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
 
 @Component({
   selector: "app-product-form",
@@ -49,8 +67,11 @@ type PlatformSourceOption = {
     InputNumberModule,
     DropdownModule,
     InputTextareaModule,
-    ImageModule,
+    FileUploadModule,
+    ConfirmDialogModule,
+    TooltipModule,
   ],
+  providers: [ConfirmationService],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: "./product-form.component.html",
   styleUrls: ["./product-form.component.scss"],
@@ -58,15 +79,31 @@ type PlatformSourceOption = {
 export class ProductFormComponent {
   private readonly fb = inject(FormBuilder);
   private readonly productService = inject(ProductService);
+  private readonly productImageService = inject(ProductImageService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
   private readonly messageService = inject(MessageService);
+  private readonly confirmationService = inject(ConfirmationService);
+  private readonly destroyRef = inject(DestroyRef);
+
+  private readonly imageUploader = viewChild<FileUpload>("imageUploader");
 
   loading = signal(false);
   product = signal<Product | null>(null);
 
   isEdit = signal(false);
   productId = signal<number | null>(null);
+
+  /** Danh sách ảnh theo đúng thứ tự hiển thị = thứ tự gửi lên backend. */
+  images = signal<ProductImage[]>([]);
+  uploading = signal(false);
+  primaryImageId = signal<number | null>(null);
+  private readonly brokenImageIds = signal<ReadonlySet<number>>(new Set());
+
+  readonly maxImages = MAX_IMAGES;
+  readonly maxImageSizeMb = MAX_IMAGE_BYTES / (1024 * 1024);
+  readonly imageCount = computed(() => this.images().length);
+  readonly isImageLimitReached = computed(() => this.images().length >= MAX_IMAGES);
 
   platformSourceOptions: PlatformSourceOption[] = [
     { label: "Thủ công", value: "MANUAL" },
@@ -81,46 +118,27 @@ export class ProductFormComponent {
     description: [""],
     category: [""],
     platformSource: ["MANUAL", [Validators.required]],
-    imageUrl: [""],
     status: ["ACTIVE"],
     skus: this.fb.array([this.createSkuGroup()], [this.skuArrayValidator()]),
   });
 
-  skuCount = computed(() => this.skus.length);
-  totalStock = computed(() => {
-    let sum = 0;
-    for (let i = 0; i < this.skus.length; i++) {
-      const ctrl = this.skus.at(i);
-      const val = ctrl.get("stock")?.value;
-      if (typeof val === "number" && !isNaN(val)) {
-        sum += val;
-      }
-    }
-    return sum;
-  });
+  /** Ảnh chụp giá trị SKU, cập nhật mỗi khi form đổi để các computed bên dưới phản ứng. */
+  private readonly skuRows = signal<SkuFormValue[]>([]);
+
+  skuCount = computed(() => this.skuRows().length);
+  totalStock = computed(() =>
+    this.skuRows().reduce((sum, sku) => {
+      const stock = sku.stock;
+      return typeof stock === "number" && Number.isFinite(stock) ? sum + stock : sum;
+    }, 0),
+  );
   minPrice = computed(() => {
-    const prices: number[] = [];
-    for (let i = 0; i < this.skus.length; i++) {
-      const ctrl = this.skus.at(i);
-      const val = ctrl.get("price")?.value;
-      if (typeof val === "number" && !isNaN(val)) {
-        prices.push(val);
-      }
-    }
-    if (prices.length === 0) return null;
-    return Math.min(...prices);
+    const prices = this.collectPrices();
+    return prices.length === 0 ? null : Math.min(...prices);
   });
   maxPrice = computed(() => {
-    const prices: number[] = [];
-    for (let i = 0; i < this.skus.length; i++) {
-      const ctrl = this.skus.at(i);
-      const val = ctrl.get("price")?.value;
-      if (typeof val === "number" && !isNaN(val)) {
-        prices.push(val);
-      }
-    }
-    if (prices.length === 0) return null;
-    return Math.max(...prices);
+    const prices = this.collectPrices();
+    return prices.length === 0 ? null : Math.max(...prices);
   });
 
   get skus(): FormArray {
@@ -141,6 +159,8 @@ export class ProductFormComponent {
           this.isEdit.set(false);
           this.productId.set(null);
           this.product.set(null);
+          this.images.set([]);
+          this.primaryImageId.set(null);
           // ensure at least one SKU
           if (this.skus.length === 0) {
             this.skus.push(this.createSkuGroup());
@@ -148,11 +168,28 @@ export class ProductFormComponent {
         }
       });
 
+    // Đồng bộ giá trị SKU vào signal để phần "Tổng hợp" cập nhật theo form.
+    this.skus.valueChanges
+      .pipe(
+        startWith(this.skus.getRawValue() as SkuFormValue[]),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe((rows) => this.skuRows.set(rows as SkuFormValue[]));
+
     // Update array validator when values change
     effect(() => {
       // trigger revalidation
       this.skus.updateValueAndValidity({ onlySelf: false, emitEvent: false });
     });
+  }
+
+  private collectPrices(): number[] {
+    return this.skuRows()
+      .map((sku) => sku.price)
+      .filter(
+        (price): price is number =>
+          typeof price === "number" && Number.isFinite(price),
+      );
   }
 
   createSkuGroup(id?: number): FormGroup {
@@ -200,7 +237,10 @@ export class ProductFormComponent {
 
   loadProduct(id: number): void {
     this.loading.set(true);
-    this.productService.getProduct(id).subscribe({
+    this.productService
+      .getProduct(id)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
       next: (product) => {
         this.product.set(product);
         this.form.patchValue({
@@ -208,9 +248,9 @@ export class ProductFormComponent {
           description: product.description ?? "",
           category: product.category ?? "",
           platformSource: product.platformSource ?? "MANUAL",
-          imageUrl: product.imageUrl ?? "",
           status: product.status,
         });
+        this.applyProductImages(product);
         // rebuild skus
         this.skus.clear();
         if (product.skus && product.skus.length > 0) {
@@ -239,7 +279,237 @@ export class ProductFormComponent {
     });
   }
 
+  private applyProductImages(product: Product): void {
+    const images = product.images ?? [];
+    this.images.set(images);
+    this.brokenImageIds.set(new Set<number>());
+    const primary = images.find((image) => image.primary);
+    this.primaryImageId.set(primary ? primary.id : (images[0]?.id ?? null));
+  }
+
+  // --- Ảnh sản phẩm -------------------------------------------------------
+
+  onUpload(event: FileUploadHandlerEvent): void {
+    const selectedFiles: File[] = [...(event.files ?? [])];
+    // p-fileupload giữ file trong hàng đợi sau khi emit → xoá để chọn tiếp được.
+    this.imageUploader()?.clear();
+
+    if (selectedFiles.length === 0) {
+      return;
+    }
+    if (this.uploading()) {
+      this.messageService.add({
+        severity: "warning",
+        summary: "Đang tải ảnh",
+        detail: "Vui lòng đợi quá trình tải ảnh hiện tại hoàn tất.",
+      });
+      return;
+    }
+
+    const remaining = MAX_IMAGES - this.images().length;
+    if (remaining <= 0) {
+      this.messageService.add({
+        severity: "warning",
+        summary: "Đã đạt giới hạn",
+        detail: `Mỗi sản phẩm chỉ được tối đa ${MAX_IMAGES} ảnh.`,
+      });
+      return;
+    }
+
+    const accepted: File[] = [];
+    let invalidTypeCount = 0;
+    let tooLargeCount = 0;
+    let overflowCount = 0;
+
+    for (const file of selectedFiles) {
+      if (!ACCEPTED_IMAGE_TYPES.includes(file.type)) {
+        invalidTypeCount++;
+        continue;
+      }
+      if (file.size > MAX_IMAGE_BYTES) {
+        tooLargeCount++;
+        continue;
+      }
+      if (accepted.length >= remaining) {
+        overflowCount++;
+        continue;
+      }
+      accepted.push(file);
+    }
+
+    if (invalidTypeCount > 0) {
+      this.messageService.add({
+        severity: "error",
+        summary: "Tệp không hợp lệ",
+        detail: `${invalidTypeCount} tệp không phải ảnh hợp lệ (chỉ nhận JPEG, PNG, WEBP, GIF).`,
+      });
+    }
+    if (tooLargeCount > 0) {
+      this.messageService.add({
+        severity: "error",
+        summary: "Ảnh quá lớn",
+        detail: `${tooLargeCount} ảnh vượt quá ${this.maxImageSizeMb}MB.`,
+      });
+    }
+    if (overflowCount > 0) {
+      this.messageService.add({
+        severity: "warning",
+        summary: "Vượt giới hạn ảnh",
+        detail: `${overflowCount} ảnh chưa được thêm vì mỗi sản phẩm chỉ có tối đa ${MAX_IMAGES} ảnh.`,
+      });
+    }
+
+    if (accepted.length === 0) {
+      return;
+    }
+
+    this.uploadFiles(accepted);
+  }
+
+  private uploadFiles(files: File[]): void {
+    this.uploading.set(true);
+    let uploadedCount = 0;
+    let failedCount = 0;
+
+    from(files)
+      .pipe(
+        concatMap((file) =>
+          this.productImageService.upload(file).pipe(
+            tap({
+              next: (image) => {
+                uploadedCount++;
+                this.appendImage(image);
+              },
+              error: () => {
+                failedCount++;
+              },
+            }),
+            catchError(() => EMPTY),
+          ),
+        ),
+        finalize(() => this.uploading.set(false)),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe({
+        complete: () => {
+          if (uploadedCount > 0) {
+            this.messageService.add({
+              severity: "success",
+              summary: "Thành công",
+              detail: `Đã tải lên ${uploadedCount} ảnh.`,
+            });
+          }
+          if (failedCount > 0) {
+            this.messageService.add({
+              severity: "error",
+              summary: "Lỗi",
+              detail: `${failedCount} ảnh tải lên thất bại, vui lòng thử lại.`,
+            });
+          }
+        },
+        error: () => {
+          this.uploading.set(false);
+          this.messageService.add({
+            severity: "error",
+            summary: "Lỗi",
+            detail: "Không tải được ảnh lên, vui lòng thử lại.",
+          });
+        },
+      });
+  }
+
+  private appendImage(image: ProductImage): void {
+    this.images.update((list) => [...list, image]);
+    if (this.primaryImageId() === null) {
+      this.primaryImageId.set(image.id);
+    }
+  }
+
+  isPrimary(image: ProductImage): boolean {
+    return this.primaryImageId() === image.id;
+  }
+
+  setPrimary(imageId: number): void {
+    this.primaryImageId.set(imageId);
+  }
+
+  isBroken(imageId: number): boolean {
+    return this.brokenImageIds().has(imageId);
+  }
+
+  onImageError(imageId: number): void {
+    this.brokenImageIds.update((current) => {
+      const next = new Set(current);
+      next.add(imageId);
+      return next;
+    });
+  }
+
+  confirmRemove(image: ProductImage): void {
+    const name = image.fileName ?? "này";
+    this.confirmationService.confirm({
+      message: `Xoá ảnh "${name}" khỏi sản phẩm?`,
+      header: "Xác nhận xoá ảnh",
+      icon: "pi pi-exclamation-triangle",
+      acceptLabel: "Xoá ảnh",
+      rejectLabel: "Huỷ",
+      acceptButtonStyleClass: "p-button-danger",
+      accept: () => this.removeImage(image),
+    });
+  }
+
+  private removeImage(image: ProductImage): void {
+    const remaining = this.images().filter((item) => item.id !== image.id);
+    this.images.set(remaining);
+    if (this.primaryImageId() === image.id) {
+      this.primaryImageId.set(remaining.length > 0 ? remaining[0].id : null);
+    }
+    this.brokenImageIds.update((current) => {
+      if (!current.has(image.id)) {
+        return current;
+      }
+      const next = new Set(current);
+      next.delete(image.id);
+      return next;
+    });
+
+    // Ảnh đã thuộc sản phẩm đã lưu: backend xoá khi lưu form.
+    if (this.isPersistedImage(image.id)) {
+      return;
+    }
+
+    // Ảnh mới upload trong phiên: dọn ngay trên máy chủ.
+    this.productImageService
+      .delete(image.id)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        error: () => {
+          this.messageService.add({
+            severity: "warning",
+            summary: "Chưa dọn được ảnh",
+            detail: "Ảnh đã bỏ khỏi danh sách nhưng chưa xoá được trên máy chủ.",
+          });
+        },
+      });
+  }
+
+  private isPersistedImage(imageId: number): boolean {
+    const saved = this.product()?.images ?? [];
+    return saved.some((image) => image.id === imageId);
+  }
+
+  // --- Lưu ---------------------------------------------------------------
+
   onSubmit(): void {
+    if (this.uploading()) {
+      this.messageService.add({
+        severity: "warning",
+        summary: "Đang tải ảnh",
+        detail: "Vui lòng đợi tải ảnh xong trước khi lưu.",
+      });
+      return;
+    }
+
     if (this.form.invalid) {
       this.form.markAllAsTouched();
       this.skus.markAllAsTouched();
@@ -250,25 +520,37 @@ export class ProductFormComponent {
     this.loading.set(true);
 
     const formValue = this.form.getRawValue();
-    const skus: SkuRequest[] = (formValue.skus || []).map((s: any) => ({
-      id: s.id ?? undefined,
-      skuCode: (s.skuCode || "").toString().trim(),
-      variant: s.variant && s.variant.toString().trim() !== "" ? s.variant.toString().trim() : null,
-      price: Number(s.price ?? 0),
-      stock: Number(s.stock ?? 0),
+    const rawSkus = this.skus.getRawValue() as SkuFormValue[];
+    const skus: SkuRequest[] = rawSkus.map((sku) => ({
+      id: sku.id ?? undefined,
+      skuCode: (sku.skuCode ?? "").trim(),
+      variant: sku.variant && sku.variant.trim() !== "" ? sku.variant.trim() : null,
+      price: Number(sku.price ?? 0),
+      stock: Number(sku.stock ?? 0),
     }));
 
+    const imageIds = this.images().map((image) => image.id);
+    const selectedPrimaryId = this.primaryImageId();
+    const primaryImageId =
+      selectedPrimaryId !== null && imageIds.includes(selectedPrimaryId)
+        ? selectedPrimaryId
+        : (imageIds[0] ?? null);
+
     const req: ProductRequest = {
-      name: (formValue.name || "").toString().trim(),
-      description: formValue.description && formValue.description.toString().trim() !== "" ? formValue.description.toString().trim() : null,
-      category: formValue.category && formValue.category.toString().trim() !== "" ? formValue.category.toString().trim() : null,
+      name: (formValue.name ?? "").trim(),
+      description: formValue.description?.trim() || null,
+      category: formValue.category?.trim() || null,
       platformSource: formValue.platformSource || "MANUAL",
-      imageUrl: formValue.imageUrl && formValue.imageUrl.toString().trim() !== "" ? formValue.imageUrl.toString().trim() : null,
+      imageIds,
+      primaryImageId,
       skus,
     };
 
     if (this.isEdit() && this.productId()) {
-      this.productService.updateProduct(this.productId()!, req).subscribe({
+      this.productService
+        .updateProduct(this.productId()!, req)
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe({
         next: (product) => {
           this.messageService.add({
             severity: "success",
@@ -284,7 +566,10 @@ export class ProductFormComponent {
         },
       });
     } else {
-      this.productService.createProduct(req).subscribe({
+      this.productService
+        .createProduct(req)
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe({
         next: (product) => {
           this.messageService.add({
             severity: "success",

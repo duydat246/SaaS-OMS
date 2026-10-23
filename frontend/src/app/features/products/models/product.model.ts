@@ -11,6 +11,16 @@ export interface Sku {
   externalId: string | null;
 }
 
+export interface ProductImage {
+  id: number;
+  url: string;
+  fileName: string | null;
+  contentType: string;
+  fileSize: number;
+  sortOrder: number;
+  primary: boolean;
+}
+
 export interface Product {
   id: number;
   name: string;
@@ -19,6 +29,7 @@ export interface Product {
   platformSource: string;
   externalId: string | null;
   imageUrl: string | null;
+  images: ProductImage[];
   status: ProductStatus;
   createdAt: string;
   updatedAt: string;
@@ -59,6 +70,7 @@ export interface ProductRequest {
   description: string | null;
   category: string | null;
   platformSource: string;
-  imageUrl: string | null;
+  imageIds: number[];
+  primaryImageId: number | null;
   skus: SkuRequest[];
 }

@@ -30,6 +30,11 @@ public class ProductRequest {
     @Size(max = 500, message = "URL ảnh tối đa 500 ký tự")
     private String imageUrl;
 
+    @Size(max = 10, message = "Tối đa 10 ảnh mỗi sản phẩm")
+    private List<Long> imageIds;
+
+    private Long primaryImageId;
+
     @NotEmpty(message = "Sản phẩm phải có ít nhất 1 SKU")
     @Valid
     private List<SkuRequest> skus;

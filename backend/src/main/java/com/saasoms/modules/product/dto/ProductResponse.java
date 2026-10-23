@@ -31,6 +31,7 @@ public class ProductResponse {
     private BigDecimal maxPrice;
     private int totalStock;
     private List<SkuInfo> skus;
+    private List<ProductImageResponse> images;
 
     @Data
     @Builder
@@ -55,7 +56,14 @@ public class ProductResponse {
     }
 
     public static ProductResponse from(Product product, List<Sku> skus) {
+        return from(product, skus, List.of());
+    }
+
+    public static ProductResponse from(Product product,
+                                       List<Sku> skus,
+                                       List<ProductImageResponse> images) {
         List<Sku> safeSkus = skus == null ? List.of() : skus;
+        List<ProductImageResponse> safeImages = images == null ? List.of() : images;
 
         BigDecimal minPrice = safeSkus.stream()
                 .map(Sku::getPrice)
@@ -82,7 +90,7 @@ public class ProductResponse {
                 .category(product.getCategory())
                 .platformSource(product.getPlatformSource())
                 .externalId(product.getExternalId())
-                .imageUrl(product.getImageUrl())
+                .imageUrl(resolveImageUrl(product, safeImages))
                 .status(product.getStatus())
                 .createdAt(product.getCreatedAt())
                 .updatedAt(product.getUpdatedAt())
@@ -91,6 +99,22 @@ public class ProductResponse {
                 .maxPrice(maxPrice)
                 .totalStock(totalStock)
                 .skus(safeSkus.stream().map(ProductResponse::from).toList())
+                .images(safeImages)
                 .build();
+    }
+
+    /**
+     * URL ảnh chính: ưu tiên ảnh được đánh dấu primary, sau đó ảnh đầu tiên,
+     * cuối cùng fallback về cột image_url cũ của sản phẩm.
+     */
+    private static String resolveImageUrl(Product product, List<ProductImageResponse> images) {
+        if (!images.isEmpty()) {
+            return images.stream()
+                    .filter(ProductImageResponse::isPrimary)
+                    .map(ProductImageResponse::getUrl)
+                    .findFirst()
+                    .orElseGet(() -> images.get(0).getUrl());
+        }
+        return product.getImageUrl();
     }
 }
