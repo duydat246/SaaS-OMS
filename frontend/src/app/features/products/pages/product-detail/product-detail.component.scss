@@ -1,3 +1,13 @@
+// Dùng đúng bảng màu của shell (apollo-shell.scss), không dùng text-900/text-500
+// của PrimeFlex vì đó là màu chữ cho theme sáng → chữ tối trên nền card tối.
+.detail-value {
+  color: var(--apollo-text, #f1f5f9);
+}
+
+.detail-label {
+  color: var(--apollo-muted, #94a3b8);
+}
+
 .archived-banner {
   display: flex;
   align-items: center;
