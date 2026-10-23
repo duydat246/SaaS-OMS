@@ -125,6 +125,11 @@ export class TopbarComponent implements OnInit, OnDestroy {
       this.pageTitle.set("Đơn hàng");
     } else if (url.includes("/products/new")) {
       this.pageTitle.set("Tạo sản phẩm");
+    } else if (
+      url.includes("/products/") &&
+      /\/products\/\d+\/edit/.test(url)
+    ) {
+      this.pageTitle.set("Sửa sản phẩm");
     } else if (url.includes("/products/") && /\/products\/\d+/.test(url)) {
       this.pageTitle.set("Chi tiết sản phẩm");
     } else if (url.includes("/products")) {

@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Báo cáo phân tích dự án — SaaS OMS</title>
+<style>
+  :root{
+    --bg:#0f172a; --bg-soft:#1e293b; --card:#ffffff; --card-2:#f8fafc;
+    --ink:#0f172a; --ink-2:#334155; --ink-3:#64748b; --line:#e2e8f0;
+    --navy:#1e3a5f; --navy-2:#4f6a9e;
+    --brand:#2563eb; --brand-soft:#eff6ff;
+    --crit:#dc2626; --crit-bg:#fef2f2; --crit-line:#fecaca;
+    --high:#ea580c; --high-bg:#fff7ed; --high-line:#fed7aa;
+    --med:#d97706; --med-bg:#fffbeb; --med-line:#fde68a;
+    --low:#0891b2; --low-bg:#ecfeff; --low-line:#a5f3fc;
+    --ok:#059669; --ok-bg:#ecfdf5; --ok-line:#a7f3d0;
+    --radius:14px;
+    --shadow:0 1px 2px rgba(15,23,42,.06), 0 8px 24px -12px rgba(15,23,42,.18);
+    --mono:"JetBrains Mono","Fira Code",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font-family:"Segoe UI",-apple-system,BlinkMacSystemFont,Roboto,"Helvetica Neue",Arial,sans-serif;
+    font-size:15px; line-height:1.65; -webkit-font-smoothing:antialiased;
+  }
+
+  /* ─── HERO ─── */
+  .hero{
+    background:
+      radial-gradient(1100px 420px at 12% -10%, rgba(37,99,235,.35), transparent 60%),
+      radial-gradient(900px 380px at 92% 0%, rgba(79,106,158,.32), transparent 62%),
+      linear-gradient(160deg,#0b1220,#16213a 60%,#0f172a);
+    color:#e2e8f0; padding:46px 32px 38px; border-bottom:1px solid rgba(255,255,255,.08);
+  }
+  .hero-inner{max-width:1280px;margin:0 auto}
+  .hero .eyebrow{
+    display:inline-flex;align-items:center;gap:8px;font-size:11.5px;font-weight:700;
+    letter-spacing:.16em;text-transform:uppercase;color:#93c5fd;
+    background:rgba(37,99,235,.16);border:1px solid rgba(147,197,253,.28);
+    padding:6px 13px;border-radius:999px;
+  }
+  .hero h1{
+    margin:16px 0 6px;font-size:clamp(28px,4.4vw,44px);line-height:1.15;
+    color:#fff;letter-spacing:-.02em;font-weight:800;
+  }
+  .hero .sub{color:#94a3b8;font-size:15.5px;margin:0 0 26px;max-width:760px}
+  .meta-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:1px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.12);border-radius:12px;overflow:hidden}
+  .meta-grid div{background:rgba(11,18,32,.55);padding:13px 16px}
+  .meta-grid dt{font-size:11px;text-transform:uppercase;letter-spacing:.09em;color:#7c8ba1;font-weight:700;margin-bottom:3px}
+  .meta-grid dd{margin:0;font-size:13.5px;color:#e2e8f0;font-weight:600;word-break:break-word;font-family:var(--mono)}
+
+  /* ─── LAYOUT ─── */
+  .wrap{max-width:1280px;margin:0 auto;padding:34px 32px 70px;display:grid;grid-template-columns:246px minmax(0,1fr);gap:38px;align-items:start}
+  @media (max-width:1000px){ .wrap{grid-template-columns:1fr;padding:24px 18px 56px;gap:22px} }
+
+  /* ─── TOC ─── */
+  nav.toc{
+    position:sticky;top:22px;background:var(--card);border:1px solid var(--line);
+    border-radius:var(--radius);padding:20px 18px;box-shadow:var(--shadow);font-size:13.5px;
+  }
+  @media (max-width:1000px){ nav.toc{position:static} }
+  nav.toc h2{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);margin:0 0 12px;font-weight:800}
+  nav.toc a{display:block;padding:6px 10px;margin:1px 0;border-radius:8px;color:var(--ink-2);text-decoration:none;border-left:2px solid transparent;transition:.15s}
+  nav.toc a:hover{background:var(--brand-soft);color:var(--brand);border-left-color:var(--brand)}
+  nav.toc a.sub{padding-left:22px;color:var(--ink-3);font-size:12.8px}
+  .toc-hint{margin-top:14px;padding:11px 12px;background:#f1f5f9;border-radius:9px;font-size:11.5px;color:var(--ink-3);line-height:1.5}
+  .toc-hint kbd{background:#fff;border:1px solid var(--line);border-bottom-width:2px;border-radius:5px;padding:1px 6px;font-family:var(--mono);font-size:10.5px;color:var(--ink-2)}
+
+  /* ─── SECTIONS ─── */
+  section{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:28px 30px;margin-bottom:24px;box-shadow:var(--shadow);scroll-margin-top:20px}
+  h2.sec{
+    font-size:20px;margin:0 0 6px;color:var(--ink);letter-spacing:-.01em;font-weight:800;
+    display:flex;align-items:center;gap:11px;
+  }
+  h2.sec .num{
+    display:inline-flex;align-items:center;justify-content:center;min-width:31px;height:31px;
+    background:var(--navy);color:#fff;border-radius:9px;font-size:14px;font-weight:800;flex:none;
+  }
+  .lede{color:var(--ink-3);margin:0 0 22px;padding-bottom:16px;border-bottom:1px solid var(--line);font-size:14px}
+  h3{font-size:15.5px;margin:28px 0 12px;color:var(--ink);font-weight:800;display:flex;align-items:center;gap:9px}
+  h3::before{content:"";width:3px;height:16px;background:var(--navy-2);border-radius:2px;flex:none}
+  h4{font-size:13.8px;margin:20px 0 9px;color:var(--ink);font-weight:800}
+  p{margin:0 0 12px}
+  ul,ol{margin:0 0 14px;padding-left:21px}
+  li{margin:5px 0}
+  strong{font-weight:750;color:var(--ink)}
+
+  /* ─── TABLES ─── */
+  .tbl-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:10px;margin:0 0 18px;-webkit-overflow-scrolling:touch}
+  table{width:100%;border-collapse:collapse;font-size:13.3px;min-width:540px}
+  thead th{
+    background:var(--card-2);text-align:left;padding:10px 13px;font-weight:800;color:var(--ink-2);
+    border-bottom:1.5px solid var(--line);white-space:nowrap;font-size:12px;text-transform:uppercase;letter-spacing:.045em;
+  }
+  tbody td{padding:9px 13px;border-bottom:1px solid #eef2f7;vertical-align:top}
+  tbody tr:last-child td{border-bottom:none}
+  tbody tr:nth-child(even){background:#fcfdfe}
+  code{font-family:var(--mono);font-size:.88em;background:#f1f5f9;border:1px solid var(--line);border-radius:5px;padding:1.5px 6px;color:var(--navy);white-space:nowrap}
+  td code{font-size:11.8px}
+
+  /* ─── STAT CARDS ─── */
+  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(158px,1fr));gap:12px;margin:0 0 20px}
+  .stat{border:1px solid var(--line);border-radius:11px;padding:15px 16px;background:var(--card-2)}
+  .stat .v{font-size:25px;font-weight:800;color:var(--navy);line-height:1.15;letter-spacing:-.02em}
+  .stat .k{font-size:11.5px;text-transform:uppercase;letter-spacing:.07em;color:var(--ink-3);font-weight:700;margin-top:3px}
+  .stat.crit .v{color:var(--crit)} .stat.ok .v{color:var(--ok)} .stat.warn .v{color:var(--high)} .stat.info .v{color:var(--low)}
+
+  /* ─── BADGES ─── */
+  .badge{display:inline-block;padding:2.5px 9px;border-radius:999px;font-size:11px;font-weight:800;letter-spacing:.02em;white-space:nowrap;border:1px solid}
+  .b-crit{color:var(--crit);background:var(--crit-bg);border-color:var(--crit-line)}
+  .b-high{color:var(--high);background:var(--high-bg);border-color:var(--high-line)}
+  .b-med {color:var(--med); background:var(--med-bg); border-color:var(--med-line)}
+  .b-low {color:var(--low); background:var(--low-bg); border-color:var(--low-line)}
+  .b-ok  {color:var(--ok);  background:var(--ok-bg);  border-color:var(--ok-line)}
+  .b-neutral{color:var(--ink-3);background:var(--card-2);border-color:var(--line)}
+
+  /* ─── ISSUE CARD ─── */
+  .issue{border:1px solid var(--line);border-left:4px solid var(--ink-3);border-radius:11px;padding:16px 19px;margin:0 0 13px;background:#fff}
+  .issue.crit{border-left-color:var(--crit);background:linear-gradient(90deg,var(--crit-bg) 0%,#fff 22%)}
+  .issue.high{border-left-color:var(--high);background:linear-gradient(90deg,var(--high-bg) 0%,#fff 22%)}
+  .issue.med {border-left-color:var(--med); background:linear-gradient(90deg,var(--med-bg) 0%,#fff 22%)}
+  .issue.low {border-left-color:var(--low); background:linear-gradient(90deg,var(--low-bg) 0%,#fff 22%)}
+  .issue-h{display:flex;align-items:flex-start;gap:10px;margin-bottom:8px}
+  .issue-h .num{font-family:var(--mono);font-size:12px;font-weight:800;color:var(--ink-3);background:var(--card-2);border:1px solid var(--line);border-radius:6px;padding:2px 7px;flex:none;margin-top:1px}
+  .issue-h .t{font-size:14.5px;font-weight:800;color:var(--ink);line-height:1.45}
+  .issue p{margin:0 0 8px;font-size:13.4px;color:var(--ink-2)}
+  .issue p:last-child{margin-bottom:0}
+  .fix{margin-top:10px;padding:10px 13px;background:var(--ok-bg);border:1px solid var(--ok-line);border-radius:8px;font-size:13px;color:#065f46}
+  .fix b{color:#064e3b}
+
+  /* ─── CODE BLOCK ─── */
+  pre{
+    background:#0f172a;color:#cbd5e1;border-radius:10px;padding:14px 16px;overflow-x:auto;
+    font-family:var(--mono);font-size:12.4px;line-height:1.62;margin:0 0 14px;border:1px solid #1e293b;
+  }
+  pre .c{color:#64748b} pre .k{color:#7dd3fc} pre .s{color:#86efac} pre .f{color:#fbbf24} pre .p{color:#f0abfc}
+
+  /* ─── TREE ─── */
+  .tree{
+    background:#0f172a;color:#cbd5e1;border-radius:11px;padding:16px 18px;overflow-x:auto;
+    font-family:var(--mono);font-size:12.4px;line-height:1.75;border:1px solid #1e293b;margin:0 0 18px;
+  }
+  .tree .dir{color:#93c5fd;font-weight:700}
+  .tree .fn{color:#e2e8f0}
+  .tree .cm{color:#64748b}
+
+  /* ─── MISC ─── */
+  .grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(285px,1fr));gap:14px;margin:0 0 18px}
+  .mini{border:1px solid var(--line);border-radius:11px;padding:15px 17px;background:var(--card-2)}
+  .mini h4{margin:0 0 8px;font-size:13.4px;color:var(--navy)}
+  .mini p,.mini li{font-size:13px;color:var(--ink-2)}
+  .mini ul{padding-left:18px;margin:0}
+
+  .strengths{display:grid;grid-template-columns:repeat(auto-fit,minmax(310px,1fr));gap:12px;margin:0 0 18px}
+  .strength{border:1px solid var(--ok-line);background:var(--ok-bg);border-radius:11px;padding:14px 16px}
+  .strength .h{font-size:13.6px;font-weight:800;color:#065f46;margin-bottom:4px}
+  .strength p{margin:0;font-size:12.9px;color:#065f46;opacity:.92}
+
+  .sprint{border:1px solid var(--line);border-radius:12px;padding:17px 19px;margin:0 0 13px;background:var(--card-2)}
+  .sprint .sh{display:flex;align-items:center;gap:11px;margin-bottom:11px;flex-wrap:wrap}
+  .sprint .sn{background:var(--navy);color:#fff;border-radius:8px;padding:3px 11px;font-size:11.5px;font-weight:800}
+  .sprint .st{font-size:14.5px;font-weight:800;color:var(--ink)}
+  .sprint ol{margin:0;padding-left:20px}
+  .sprint li{font-size:13.3px;color:var(--ink-2);margin:4px 0}
+
+  .callout{border:1px solid var(--line);border-left:4px solid var(--brand);background:var(--brand-soft);border-radius:10px;padding:14px 17px;margin:0 0 18px;font-size:13.4px;color:#1e3a8a}
+  .callout b{color:#1e3a8a}
+
+  footer{text-align:center;color:#7c8ba1;font-size:12.4px;padding:26px 20px 40px;border-top:1px solid rgba(255,255,255,.08)}
+
+  /* ─── PRINT ─── */
+  @media print{
+    @page{size:A4;margin:13mm}
+    body{background:#fff;font-size:10.4pt;color:#000}
+    .hero{background:#fff!important;color:#000;border-bottom:2px solid #1e3a5f;padding:0 0 16px;margin-bottom:16px}
+    .hero .eyebrow{background:none;border:1px solid #94a3b8;color:#334155}
+    .hero h1{color:#0f172a;font-size:24pt}
+    .hero .sub{color:#475569;margin-bottom:14px}
+    .meta-grid{border-color:#cbd5e1;background:#cbd5e1}
+    .meta-grid div{background:#fff}
+    .meta-grid dt{color:#64748b} .meta-grid dd{color:#0f172a}
+    .wrap{display:block;max-width:none;padding:0}
+    nav.toc,.toc-hint,.noprint{display:none!important}
+    section{box-shadow:none;border:1px solid #d7dee8;border-radius:8px;padding:16px 18px;margin-bottom:14px;break-inside:avoid-page}
+    .issue,.sprint,.mini,.strength{break-inside:avoid-page}
+    h2.sec,h3,h4{break-after:avoid}
+    pre{background:#f4f6f9!important;color:#0f172a;border:1px solid #d7dee8;font-size:8.6pt}
+    pre .c{color:#64748b} pre .k{color:#1d4ed8} pre .s{color:#047857} pre .f{color:#b45309} pre .p{color:#7e22ce}
+    .tree{background:#f4f6f9!important;color:#0f172a;border:1px solid #d7dee8;font-size:8.4pt}
+    .tree .dir{color:#1d4ed8} .tree .cm{color:#64748b} .tree .fn{color:#0f172a}
+    .tbl-wrap{overflow:visible}
+    thead{display:table-header-group}
+    tbody tr{break-inside:avoid}
+    a{color:inherit;text-decoration:none}
+    footer{color:#64748b;border-top:1px solid #d7dee8;padding-top:14px}
+  }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="hero-inner">
+    <span class="eyebrow">◆ Báo cáo kỹ thuật · Phân tích mã nguồn</span>
+    <h1>SaaS OMS — Phân tích dự án</h1>
+    <p class="sub">Đánh giá toàn diện kiến trúc, mã nguồn backend/frontend, hạ tầng triển khai và các vấn đề kỹ thuật cần xử lý.</p>
+    <dl class="meta-grid">
+      <div><dt>Dự án</dt><dd>SaaS OMS</dd></div>
+      <div><dt>Đường dẫn</dt><dd>D:\code\learn\SaaS</dd></div>
+      <div><dt>Repository</dt><dd>github.com/duydat246/SaaS-OMS</dd></div>
+      <div><dt>Branch / Commit</dt><dd>dev · d575a8c</dd></div>
+      <div><dt>Ngày xuất báo cáo</dt><dd>22/10/2026</dd></div>
+      <div><dt>Phạm vi</dt><dd>Backend · Frontend · DevOps</dd></div>
+    </dl>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <!-- ══════════ TOC ══════════ -->
+  <nav class="toc">
+    <h2>Mục lục</h2>
+    <a href="#s1">1. Tổng quan dự án</a>
+    <a href="#s2">2. Kiến trúc Backend</a>
+    <a href="#s3">3. API hiện có</a>
+    <a href="#s4">4. Kiến trúc Frontend</a>
+    <a href="#s5">5. Hạ tầng &amp; Triển khai</a>
+    <a href="#s6">6. Điểm mạnh</a>
+    <a href="#s7">7. Vấn đề phát hiện</a>
+    <a href="#s7-1" class="sub">7.1 Mức độ Cao</a>
+    <a href="#s7-2" class="sub">7.2 Mức độ Trung bình</a>
+    <a href="#s7-3" class="sub">7.3 Mức độ Thấp</a>
+    <a href="#s8">8. Roadmap đề xuất</a>
+    <a href="#s9">9. Hướng dẫn chạy dev</a>
+    <a href="#s10">10. Kết luận</a>
+    <div class="toc-hint">💡 Xuất PDF: nhấn <kbd>Ctrl</kbd>+<kbd>P</kbd> → chọn <b>Save as PDF</b> → Paper <b>A4</b> → <b>Background graphics: On</b></div>
+  </nav>
+
+  <main>
+
+  <!-- ══════════ 1 ══════════ -->
+  <section id="s1">
+    <h2 class="sec"><span class="num">1</span> Tổng quan dự án</h2>
+    <p class="lede">SaaS Order Management System dành cho các shop TikTok Shop / Shopee — mô hình multi-tenant, mỗi <code>shops</code> là một tenant độc lập.</p>
+
+    <div class="stats">
+      <div class="stat"><div class="v">53</div><div class="k">File Java backend</div></div>
+      <div class="stat"><div class="v">58</div><div class="k">File frontend</div></div>
+      <div class="stat"><div class="v">9</div><div class="k">Bảng CSDL</div></div>
+      <div class="stat"><div class="v">10</div><div class="k">API endpoint</div></div>
+      <div class="stat crit"><div class="v">6</div><div class="k">Vấn đề mức Cao</div></div>
+      <div class="stat warn"><div class="v">15</div><div class="k">Vấn đề mức TB</div></div>
+    </div>
+
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>Hạng mục</th><th>Chi tiết</th></tr></thead>
+      <tbody>
+        <tr><td><b>Tên dự án</b></td><td>SaaS OMS — <i>Order Management System for TikTok/Shopee shops</i></td></tr>
+        <tr><td><b>Repository</b></td><td><code>github.com/duydat246/SaaS-OMS</code> · branch <code>dev</code> · commit <code>d575a8c feat: add feature products</code></td></tr>
+        <tr><td><b>Backend</b></td><td>Spring Boot <b>3.3.4</b> · Java <b>21</b> · Maven · Spring Data JPA/Hibernate 6 · Flyway · MySQL 8</td></tr>
+        <tr><td><b>Frontend</b></td><td>Angular <b>18.2</b> (standalone, signals) · PrimeNG <b>17</b> · PrimeFlex 3 · PrimeIcons 7 · Chart.js 4 · ExcelJS 4</td></tr>
+        <tr><td><b>Xác thực</b></td><td>JWT (jjwt 0.12.6) — access token 15 phút, refresh token 7 ngày · BCrypt · stateless</td></tr>
+        <tr><td><b>Tài liệu API</b></td><td>OpenAPI 3 / Swagger UI qua springdoc-openapi 2.6.0 → <code>/swagger-ui.html</code></td></tr>
+        <tr><td><b>Triển khai</b></td><td>Docker Compose → GitHub Actions → Docker Hub → VPS Ubuntu 24.04 → Cloudflare Tunnel</td></tr>
+        <tr><td><b>Domain production</b></td><td><code>app.darlynstore.com</code></td></tr>
+      </tbody>
+    </table></div>
+
+    <div class="callout">
+      <b>Phạm vi đã kiểm tra:</b> toàn bộ <code>backend/src</code> (53 file Java), <code>frontend/src</code> (58 file), migration SQL, cấu hình Docker/CI-CD, tài liệu triển khai. Đã chạy thử <code>npm run build</code> để xác thựn trạng thái build thực tế.
+    </div>
+  </section>
+
+  <!-- ══════════ 2 ══════════ -->
+  <section id="s2">
+    <h2 class="sec"><span class="num">2</span> Kiến trúc Backend</h2>
+    <p class="lede">Package gốc <code>com.saasoms</code>, tổ chức theo module nghiệp vụ, dùng Lombok + Bean Validation + springdoc.</p>
+
+    <div class="tree">
+<span class="dir">com.saasoms/</span>
+├── <span class="dir">common/</span>
+│   ├── <span class="dir">config/</span>       <span class="cm">SecurityConfig · JwtService · JwtFilter · JwtDetails · SwaggerConfig</span>
+│   ├── <span class="dir">exception/</span>    <span class="cm">BusinessException · GlobalExceptionHandler</span>
+│   ├── <span class="dir">response/</span>     <span class="cm">ApiResponse&lt;T&gt; · PageResponse&lt;T&gt;</span>
+│   ├── <span class="dir">tenant/</span>       <span class="cm">TenantContext (ThreadLocal)</span>
+│   └── <span class="dir">util/</span>         <span class="cm">SecurityUtils</span>
+└── <span class="dir">modules/</span>
+    ├── <span class="dir">auth/</span>         <span class="cm">controller · service · dto · entity · repository</span>
+    ├── <span class="dir">customer/</span>     <span class="cm">entity + repository</span> <span class="cm">← chưa có controller/service</span>
+    ├── <span class="dir">order/</span>        <span class="cm">controller · service · repository · entity · dto</span>
+    ├── <span class="dir">shop/</span>         <span class="cm">entity + repository (tenant)</span>
+    └── <span class="dir">user/</span>         <span class="cm">entity + repository · Role enum</span>
+    </div>
+
+    <h3>Cơ chế cách ly multi-tenant</h3>
+    <p>Chuỗi xử lý mỗi request có token hợp lệ:</p>
+    <pre><span class="k">JwtFilter</span> đọc claim <span class="s">"tenantId"</span> trong JWT
+   └─▶ <span class="k">TenantContext.set(tenantId)</span>            <span class="c">// ThreadLocal</span>
+       └─▶ <span class="k">OrderService</span>.getOrders() dùng <span class="f">TenantContext.get()</span>
+             └─▶ <span class="f">WHERE shop.id = :tenantId</span>   <span class="c">// mọi query đều scope theo shop</span>
+   └─▶ <span class="k">finally</span> { TenantContext.clear(); SecurityContextHolder.clearContext(); }</pre>
+
+    <div class="callout">
+      <b>Đánh giá tốt:</b> tenant id lấy từ JWT (không nhận từ request body/query), mọi truy vấn đều có điều kiện lọc tenant, và context luôn được giải phóng trong <code>finally</code> để không rò sang request kế tiếp trong cùng thread.
+    </div>
+
+    <h3>Schema CSDL — 9 bảng</h3>
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>Bảng</th><th>Vai trò</th><th>Ghi chú</th></tr></thead>
+      <tbody>
+        <tr><td><code>shops</code></td><td>Tenant (shop)</td><td><code>slug</code> unique, index theo status</td></tr>
+        <tr><td><code>users</code></td><td>Người dùng</td><td>role <code>OWNER</code>/<code>STAFF</code>, FK → shops</td></tr>
+        <tr><td><code>refresh_tokens</code></td><td>Refresh token</td><td>token unique, FK cascade delete</td></tr>
+        <tr><td><code>products</code></td><td>Sản phẩm</td><td><span class="badge b-crit">Chưa có code</span></td></tr>
+        <tr><td><code>skus</code></td><td>Biến thể / tồn kho</td><td><span class="badge b-crit">Chưa có code</span></td></tr>
+        <tr><td><code>customers</code></td><td>Khách hàng</td><td>upsert theo SĐT + tenant</td></tr>
+        <tr><td><code>orders</code></td><td>Đơn hàng</td><td>unique (tenant, platform_source, platform_order_id)</td></tr>
+        <tr><td><code>order_items</code></td><td>Chi tiết đơn</td><td>FK cascade, có <code>sku_id</code></td></tr>
+        <tr><td><code>platform_connections</code></td><td>Kết nối sàn TMĐT</td><td><span class="badge b-crit">Chưa có code</span></td></tr>
+      </tbody>
+    </table></div>
+    <p>Migration duy nhất: <code>V1__init_schema.sql</code>. Đặt <code>ddl-auto: validate</code> — schema do Flyway quản lý, Hibernate không tự sửa bảng.</p>
+  </section>
+
+  <!-- ══════════ 3 ══════════ -->
+  <section id="s3">
+    <h2 class="sec"><span class="num">3</span> API hiện có</h2>
+    <p class="lede">10 endpoint, tất cả trả về envelope <code>ApiResponse&lt;T&gt; { success, data, message }</code>; phân trang dùng <code>PageResponse&lt;T&gt; { content[], meta }</code>.</p>
+
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>Method</th><th>Endpoint</th><th>Quyền</th><th>Ghi chú</th></tr></thead>
+      <tbody>
+        <tr><td><code>POST</code></td><td><code>/auth/register</code></td><td><span class="badge b-ok">public</span></td><td>Tạo shop + tài khoản owner (role <code>OWNER</code>)</td></tr>
+        <tr><td><code>POST</code></td><td><code>/auth/login</code></td><td><span class="badge b-ok">public</span></td><td>Trả access token + refresh token</td></tr>
+        <tr><td><code>POST</code></td><td><code>/auth/refresh</code></td><td><span class="badge b-ok">public</span></td><td><b>Rotate</b> — xoá token cũ, cấp token mới</td></tr>
+        <tr><td><code>POST</code></td><td><code>/auth/logout</code></td><td><span class="badge b-ok">public</span></td><td>Thu hồi refresh token</td></tr>
+        <tr><td><code>GET</code></td><td><code>/api/orders</code></td><td><span class="badge b-neutral">auth</span></td><td>Phân trang + lọc <code>status</code> + <code>search</code></td></tr>
+        <tr><td><code>GET</code></td><td><code>/api/orders/stats</code></td><td><span class="badge b-neutral">auth</span></td><td>Tổng / pending / delivered / doanh thu</td></tr>
+        <tr><td><code>GET</code></td><td><code>/api/orders/{id}</code></td><td><span class="badge b-neutral">auth</span></td><td>Chi tiết đơn hàng</td></tr>
+        <tr><td><code>POST</code></td><td><code>/api/orders</code></td><td><span class="badge b-neutral">auth</span></td><td>Tạo đơn nhập tay, upsert khách theo SĐT</td></tr>
+        <tr><td><code>PATCH</code></td><td><code>/api/orders/{id}/status</code></td><td><span class="badge b-neutral">auth</span></td><td>Chuyển trạng thái theo state machine</td></tr>
+        <tr><td><code>DELETE</code></td><td><code>/api/orders/{id}</code></td><td><span class="badge b-high">OWNER</span></td><td>Thực chất là set trạng thái <code>CANCELLED</code></td></tr>
+      </tbody>
+    </table></div>
+
+    <h3>State machine chuyển trạng thái đơn</h3>
+    <pre>PENDING ──▶ CONFIRMED ──▶ SHIPPED ──▶ DELIVERED
+   │            │            │
+   └────────────┴────────────┴──────────▶ CANCELLED
+<span class="c">   (DELIVERED và CANCELLED là trạng thái cuối — không thể chuyển tiếp)</span></pre>
+    <p>Định nghĩa song song ở hai nơi: <code>OrderService.VALID_TRANSITIONS</code> (backend) và <code>ORDER_STATUS_TRANSITIONS</code> (frontend) — cần đồng bộ thủ công, xem vấn đề <b>#14</b>.</p>
+  </section>
+
+  <!-- ══════════ 4 ══════════ -->
+  <section id="s4">
+    <h2 class="sec"><span class="num">4</span> Kiến trúc Frontend</h2>
+    <p class="lede">Angular 18 hoàn toàn standalone, state bằng signals, không dùng thư viện quản lý state ngoài. Đường dẫn alias: <code>@core/*</code> <code>@shared/*</code> <code>@features/*</code> <code>@env/*</code>.</p>
+
+    <div class="tree">
+<span class="dir">src/app/</span>
+├── <span class="dir">core/</span>        <span class="cm">auth.service (signal) · auth.guard · jwt.interceptor · models</span>
+├── <span class="dir">layout/</span>      <span class="cm">shell · sidebar · topbar · shell-layout.service (signal) · apollo-shell.scss (22KB)</span>
+├── <span class="dir">features/</span>
+│   ├── <span class="dir">auth/</span>      <span class="cm">login · register</span>
+│   ├── <span class="dir">dashboard/</span> <span class="cm">stat cards · bar chart · doughnut · bảng đơn gần đây · export Excel</span>
+│   ├── <span class="dir">orders/</span>    <span class="cm">order-list · order-form (Reactive) · order-detail + transitions</span>
+│   └── <span class="dir">products/</span>  <span class="cm">product-list · product-form · product-detail</span> <span class="cm">⚠ placeholder</span>
+└── <span class="dir">shared/</span>     <span class="cm">excel-export.service (ExcelJS)</span>
+    </div>
+
+    <h3>Luồng xử lý request</h3>
+    <pre><span class="k">jwtInterceptor</span>
+  1. Gắn <span class="s">Authorization: Bearer &lt;accessToken&gt;</span> từ sessionStorage
+  2. Nhận lỗi 401 / 403 (trừ endpoint <span class="s">/auth/*</span>)
+  3. ▶ Gọi <span class="f">POST /auth/refresh</span>   <span class="c">// shareReplay chống refresh đồng thời</span>
+  4. Retry request gốc <b>1 lần</b> với token mới
+  5. Nếu vẫn lỗi ▶ <span class="k">auth.logout()</span> → chuyển hướng /auth/login</pre>
+
+    <h3>Trạng thái build (đã chạy thực tế)</h3>
+    <p><code>npm run build</code> → ✅ <b>thành công</b>, sinh cảnh báo (warning) không chặn build:</p>
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>Cảnh báo</th><th>Giá trị</th><th>Ngưỡng</th><th>Đánh giá</th></tr></thead>
+      <tbody>
+        <tr><td>Initial bundle vượt budget</td><td>900.27 kB</td><td>warn 512 kB / error 1024 kB</td><td><span class="badge b-med">Cần tối ưu</span></td></tr>
+        <tr><td>Component style vượt budget</td><td>3.67 kB</td><td>warn 2.05 kB / error 4.10 kB</td><td><span class="badge b-low">Chấp nhận được</span></td></tr>
+        <tr><td><code>exceljs</code> là CommonJS</td><td>—</td><td>—</td><td><span class="badge b-med">Optimization bailout</span></td></tr>
+      </tbody>
+    </table></div>
+    <p>Lazy chunk lớn nhất: <code>dashboard-component</code> 1.18 MB (chứa Chart.js). Chart.js và ExcelJS <b>đã</b> nằm trong lazy chunk — phần initial 900 kB chủ yếu đến từ PrimeNG.</p>
+
+    <h3>Đặc điểm UI</h3>
+    <div class="grid2">
+      <div class="mini">
+        <h4>Design system "Apollo"</h4>
+        <p>Dark theme tự viết tay (<code>apollo-shell.scss</code> 22 KB, <code>apollo-toast.scss</code>), responsive sidebar: rail thu gọn trên desktop, drawer trên mobile (≤ 767.98px), hỗ trợ phím Escape đóng drawer.</p>
+      </div>
+      <div class="mini">
+        <h4>Ngôn ngữ &amp; export</h4>
+        <p>UI tiếng Việt hardcode trong template (chưa i18n). Export Excel qua ExcelJS với thiết kế bảng chuyên nghiệp: merge title, header fill navy, border mảnh, zebra row.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════ 5 ══════════ -->
+  <section id="s5">
+    <h2 class="sec"><span class="num">5</span> Hạ tầng &amp; Triển khai</h2>
+    <p class="lede">Pipeline tự động: commit → build image → Docker Hub → VPS. Thiết kế tối ưu cho VPS 1 GB RAM.</p>
+
+    <h3>CI/CD — <code>.github/workflows/deploy.yml</code></h3>
+    <pre>push (main | dev)
+  └─▶ <span class="k">build-and-push</span>
+        ├─ build ./backend  → ${DOCKERHUB_USERNAME}/saasoms-backend:latest
+        └─ build ./frontend → ${DOCKERHUB_USERNAME}/saasoms-frontend:latest
+  └─▶ <span class="k">deploy</span>  <span class="c">(SSH vào VPS)</span>
+        ├─ docker compose -f docker-compose.prod.yml pull
+        ├─ docker compose -f docker-compose.prod.yml up -d
+        └─ docker image prune -f</pre>
+
+    <h3>Kiểm soát tài nguyên trên VPS</h3>
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>Service</th><th>Giới hạn RAM</th><th>Ghi chú</th></tr></thead>
+      <tbody>
+        <tr><td>OS + Docker</td><td>~200 MB</td><td>—</td></tr>
+        <tr><td>MySQL 8</td><td>256 MB</td><td>innodb-buffer-pool 128M, max-connections 50, performance-schema OFF</td></tr>
+        <tr><td>Backend (JVM)</td><td>320 MB</td><td><code>-Xms128m -Xmx256m</code></td></tr>
+        <tr><td>Nginx frontend</td><td>32 MB</td><td>—</td></tr>
+        <tr><td>Swap buffer</td><td>2 GB</td><td>Bắt buộc với VPS 1 GB</td></tr>
+      </tbody>
+    </table></div>
+    <p>Backend <b>không</b> expose ra host — chỉ nginx mở cổng 80, đi qua Cloudflare Tunnel phía trước. Tài liệu triển khai chi tiết 7 phần nằm trong <code>setup-vps.md</code> (UTF-8 hợp lệ).</p>
+  </section>
+
+  <!-- ══════════ 6 ══════════ -->
+  <section id="s6">
+    <h2 class="sec"><span class="num">6</span> Điểm mạnh</h2>
+    <p class="lede">Những điểm đã làm tốt, nên giữ nguyên khi refactor hoặc mở rộng.</p>
+
+    <div class="strengths">
+      <div class="strength"><div class="h">✓ Cách ly multi-tenant đúng cách</div><p>Tenant id lấy từ JWT (không nhận từ client), mọi truy vấn đều scope theo shop, context giải phóng trong <code>finally</code>.</p></div>
+      <div class="strength"><div class="h">✓ Refresh token rotation</div><p>Token cũ bị xoá ngay khi dùng, chống replay. Có thêm cơ chế <code>shareReplay</code> ở FE chống refresh đồng thời.</p></div>
+      <div class="strength"><div class="h">✓ Chuẩn hoá response toàn hệ thống</div><p><code>ApiResponse&lt;T&gt;</code> + <code>PageResponse&lt;T&gt;</code> + <code>GlobalExceptionHandler</code> trả đúng HTTP status, không lộ stack trace ra ngoài.</p></div>
+      <div class="strength"><div class="h">✓ Quản lý schema chuẩn</div><p>Flyway migration + <code>ddl-auto: validate</code> — không để Hibernate tự ý sửa bảng production.</p></div>
+      <div class="strength"><div class="h">✓ State machine rõ ràng</div><p>Chuyển trạng thái đơn hàng được định nghĩa tường minh ở cả backend và frontend, có xác thực chuyển hợp lệ.</p></div>
+      <div class="strength"><div class="h">✓ CI/CD hoàn chỉnh</div><p>Từ commit đến VPS tự động, có giới hạn tài nguyên cho máy yếu, tài liệu hướng dẫn chi tiết từng bước.</p></div>
+      <div class="strength"><div class="h">✓ Design system nhất quán</div><p>Dark theme "Apollo" tự viết, responsive đầy đủ, có export Excel thiết kế chuyên nghiệp.</p></div>
+      <div class="strength"><div class="h">✓ Đã chạy production thật</div><p>Đã deploy lên domain thật, đã có commit sửa CORS qua nginx — chứng tỏ pipeline hoạt động end-to-end.</p></div>
+    </div>
+  </section>
+
+  <!-- ══════════ 7 ══════════ -->
+  <section id="s7">
+    <h2 class="sec"><span class="num">7</span> Vấn đề phát hiện</h2>
+    <p class="lede">Tổng cộng <b>32 vấn đề</b> được phân loại theo mức độ ảnh hưởng.</p>
+
+    <div class="stats">
+      <div class="stat crit"><div class="v">6</div><div class="k">Mức Cao — ưu tiên ngay</div></div>
+      <div class="stat warn"><div class="v">15</div><div class="k">Mức Trung bình</div></div>
+      <div class="stat info"><div class="v">11</div><div class="k">Mức Thấp / vệ sinh</div></div>
+    </div>
+
+    <!-- 7.1 -->
+    <h3 id="s7-1">7.1 &nbsp;Mức độ Cao — nên xử lý ngay</h3>
+
+    <div class="issue crit">
+      <div class="issue-h"><span class="num">#01</span><span class="t">Production đang chạy profile <code>dev</code> → rò SQL và log nhạy cảm</span></div>
+      <p><code>docker-compose.prod.yml:32</code> đặt <code>SPRING_PROFILES_ACTIVE: dev</code> → kích hoạt <code>jpa.show-sql: true</code> và <code>logging.level.com.saasoms: DEBUG</code> trên production. Mọi câu SQL (chứa email, tên khách hàng) bị in ra log container.</p>
+      <div class="fix"><b>→</b> Tạo <code>application-prod.yml</code> riêng, đổi thành <code>SPRING_PROFILES_ACTIVE: prod</code>, tắt show-sql và giảm log level.</div>
+    </div>
+
+    <div class="issue crit">
+      <div class="issue-h"><span class="num">#02</span><span class="t">Lỗi 403 "Access Denied" khiến người dùng bị đăng xuất oan</span></div>
+      <p>Trong <code>jwt.interceptor.ts:47</code>: <code>const tryRefresh = (error.status === 401 || error.status === 403) &amp;&amp; !req.url.includes("/auth/")</code>. Nhân viên <code>STAFF</code> bấm xoá đơn → <code>DELETE /api/orders/{id}</code> có <code>@PreAuthorize("hasRole('OWNER')")</code> → Spring trả <b>403</b> → interceptor tưởng token hết hạn → gọi refresh → retry → vẫn 403 → <code>catchError</code> gọi <code>auth.logout()</code> → <b>mất phiên đăng nhập</b>. Mọi lỗi 403 hợp lệ đều dẫn tới đăng xuất ngoài ý muốn.</p>
+      <div class="fix"><b>→</b> Chỉ refresh khi <b>401</b>. Với 403 thì phân biệt <i>AccessDenied</i> (giữ nguyên, hiện toast lỗi) với token hết hạn.</div>
+    </div>
+
+    <div class="issue crit">
+      <div class="issue-h"><span class="num">#03</span><span class="t">Spring trả 403 thay vì 401 khi token hết hạn</span></div>
+      <p><code>SecurityConfig</code> không cấu hình <code>AuthenticationEntryPoint</code> → <code>ExceptionTranslationFilter</code> với anonymous access trả về 403. Đó là nguyên nhân gốc buộc code phải "nghe" cả 403 (vấn đề #02).</p>
+      <div class="fix"><b>→</b> Thêm <code>.exceptionHandling(e -&gt; e.authenticationEntryPoint((req, res, ex) -&gt; res.sendError(401)))</code> để trả 401 chuẩn khi thiếu/sai token.</div>
+    </div>
+
+    <div class="issue crit">
+      <div class="issue-h"><span class="num">#04</span><span class="t">CORS mở ở tầng nginx — reflect mọi origin</span></div>
+      <p><code>nginx.conf</code> dùng <code>add_header 'Access-Control-Allow-Origin' $http_origin always;</code> kèm <code>Access-Control-Allow-Credentials: true</code> → phản chiếu bất kỳ origin nào và cho phép credentials. Kèm <code>proxy_set_header Origin ""</code> để Spring bỏ qua check CORS. Mọi website đều có thể gọi API của bạn.</p>
+      <div class="fix"><b>→</b> Hardcode danh sách domain hợp lệ (<code>app.darlynstore.com</code>) thay vì reflect origin. Cân nhắc bỏ luôn <code>Allow-Credentials</code> vì token đặt trong header không dùng cookie.</div>
+    </div>
+
+    <div class="issue crit">
+      <div class="issue-h"><span class="num">#05</span><span class="t"><code>.gitignore</code> chặn <code>*.md</code> — tài liệu không được commit</span></div>
+      <p>Root <code>.gitignore</code> chứa dòng <code>*.md</code> → chặn mọi tài liệu Markdown mới (README, tài liệu API…). Hệ quả: <code>frontend/CLAUDE.md</code> và <code>frontend/PROMPT_TEMPLATE.md</code> <b>hiện không được track trong git</b> (chỉ <code>setup-vps.md</code> còn sót vì đã commit trước đó). File hướng dẫn cho AI và cho team không nằm trong repo.</p>
+      <div class="fix"><b>→</b> Xoá <code>*.md</code> khỏi <code>.gitignore</code>, chỉ ignore <code>.history/</code>, <code>node_modules/</code>, <code>dist/</code>. Commit lại <code>CLAUDE.md</code> + <code>PROMPT_TEMPLATE.md</code>.</div>
+    </div>
+
+    <div class="issue crit">
+      <div class="issue-h"><span class="num">#06</span><span class="t">Mật khẩu tối thiểu chỉ 6 ký tự</span></div>
+      <p><code>RegisterRequest</code> (<code>@Size(min = 6)</code>) và form đăng ký đều chỉ yêu cầu 6 ký tự — quá yếu cho một sản phẩm SaaS lưu trữ dữ liệu khách hàng và đơn hàng.</p>
+      <div class="fix"><b>→</b> Tối thiểu 8 ký tự, yêu cầu độ phức tạp, chặn danh sách mật khẩu phổ biến, thêm rate-limit cho <code>/auth/login</code>.</div>
+    </div>
+
+    <!-- 7.2 -->
+    <h3 id="s7-2">7.2 &nbsp;Mức độ Trung bình</h3>
+
+    <div class="issue med">
+      <div class="issue-h"><span class="num">#07</span><span class="t">Module "Sản phẩm" chỉ là demo placeholder, không phải chức năng thật</span></div>
+      <p><code>product-list.component.ts</code> là demo canvas pháo giấy hình tim với nội dung hardcode: <code>name = "vợ yêu"</code>, <code>message = "luôn xinh đẹp và yêu anh"</code>. Backend <b>không hề có</b> Product/Sku entity, controller, service — dù DB đã có sẵn bảng <code>products</code> và <code>skus</code>. Sidebar vẫn hiện mục "Sản phẩm" nên người dùng click vào sẽ thấy demo vui thay vì chức năng.</p>
+      <div class="fix"><b>→</b> Xây module Products/Skills đầy đủ (entity, repository, service, controller) hoặc ẩn mục menu cho tới khi sẵn sàng.</div>
+    </div>
+
+    <div class="issue med">
+      <div class="issue-h"><span class="num">#08</span><span class="t">Chưa có integration TikTok/Shopee — phần lõi giá trị sản phẩm chưa làm</span></div>
+      <p>Schema đã chuẩn bị đầy đủ: bảng <code>platform_connections</code> (access/refresh token), các cột <code>platform_source</code>, <code>platform_order_id</code>, <code>external_id</code> trên orders/products/customers, và <code>SecurityConfig</code> permit <code>/webhooks/**</code>. Nhưng <b>không có controller/service nào</b> dùng tới. Toàn bộ dữ liệu hiện là "Nhập tay".</p>
+      <div class="fix"><b>→</b> Xây module <code>platform_connections</code> (mã hoá token), OAuth cho TikTok Shop / Shopee, webhook upsert đơn theo <code>platform_order_id</code>.</div>
+    </div>
+
+    <div class="issue med">
+      <div class="issue-h"><span class="num">#09</span><span class="t">Dashboard sử dụng dữ liệu giả</span></div>
+      <p><code>barData</code> và <code>doughnutData</code> hardcode mảng số; <code>DASHBOARD_TOP_PRODUCTS</code> là hằng tĩnh. Dropdown "Tuần trước / Tháng này / Quý này" <b>không có tác dụng</b> — biến <code>selectedPeriod</code> không được binding vào query. <code>/api/orders/stats</code> chỉ trả tổng toàn hệ thống, không lọc theo kỳ.</p>
+      <div class="fix"><b>→</b> Bổ sung tham số date range cho <code>/api/orders/stats</code>, truyền <code>selectedPeriod</code> vào query, thay toàn bộ dữ liệu giả bằng dữ liệu thật.</div>
+    </div>
+
+    <div class="issue med">
+      <div class="issue-h"><span class="num">#10</span><span class="t">Không có test nào cả</span></div>
+      <p>Backend có <code>spring-boot-starter-test</code> trong pom nhưng <b>0 file test</b> (thư mục <code>src/test</code> không tồn tại). Frontend có 3 file <code>.spec.ts</code> là scaffold mặc định của <code>ng generate</code>, nhưng <b>không cài test runner</b> (không có karma/jest trong <code>package.json</code>) → không có lệnh <code>npm test</code>.</p>
+      <div class="fix"><b>→</b> Bật test runner (Vitest hoặc Karma+Jasmine) cho FE; thêm unit test cho <code>OrderService</code>, <code>AuthService</code>; integration test với Testcontainers MySQL cho BE.</div>
+    </div>
+
+    <div class="issue med">
+      <div class="issue-h"><span class="num">#11</span><span class="t">Tìm kiếm đơn hàng quá hẹp</span></div>
+      <p><code>OrderRepository.search</code> chỉ match <code>customer.fullName</code> và <code>CAST(o.id AS string)</code>. Không tìm theo SKU, tên sản phẩm hay số điện thoại. Dùng <code>CAST</code> nên không dùng được index → full scan khi bảng lớn.</p>
+      <div class="fix"><b>→</b> Bỏ <code>CAST</code>, so khớp <code>id</code> bằng kiểu số; bổ sung tìm theo SKU / tên sản phẩm / SĐT với index phù hợp.</div>
+    </div>
+
+    <div class="issue med">
+      <div class="issue-h"><span class="num">#12</span><span class="t">Memory leak trong <code>ProductListComponent</code></span></div>
+      <p><code>startShow()</code> dùng <code>setInterval</code> nhưng không lưu handle; <code>ngOnDestroy</code> chỉ <code>disconnect()</code> ResizeObserver, không <code>clearInterval</code> → timer chạy mãi, vẽ đè lên canvas đã bị huỷ.</p>
+      <div class="fix"><b>→</b> Lưu interval id và <code>clearInterval</code> trong <code>ngOnDestroy</code>.</div>
+    </div>
+
+    <div class="issue med">
+      <div class="issue-h"><span class="num">#13</span><span class="t">Tham số <code>sort</code> từ frontend bị backend bỏ qua</span></div>
+      <p>Frontend gửi <code>sort=createdAt,desc</code> nhưng backend hardcode <code>Sort.by("createdAt").descending()</code> → không thể sort theo cột khác (cũ nhất, giá trị đơn…).</p>
+      <div class="fix"><b>→</b> Nhận <code>sort</code> từ query string, whitelist tên cột trước khi áp dụng.</div>
+    </div>
+
+    <div class="issue med">
+      <div class="issue-h"><span class="num">#14</span><span class="t">Logic chuyển trạng thái lặp ở hai nơi</span></div>
+      <p><code>VALID_TRANSITIONS</code> (backend) và <code>ORDER_STATUS_TRANSITIONS</code> (frontend) phải đồng bộ thủ công → dễ lệch khi thêm trạng thái mới, gây lỗi UX (hiện nút bấm không hợp lệ) hoặc lỗi API.</p>
+      <div class="fix"><b>→</b> Trả danh sách trạng thái hợp lệ trong response của <code>GET /api/orders/{id}</code>, hoặc sinh cả hai từ một spec chung.</div>
+    </div>
+
+    <div class="issue med">
+      <div class="issue-h"><span class="num">#15</span><span class="t">Refresh token hết hạn không được dọn dẹp</span></div>
+      <p>Không có scheduled job xoá token đã hết hạn → bảng <code>refresh_tokens</code> phình vô hạn theo thời gian.</p>
+      <div class="fix"><b>→</b> Thêm <code>@Scheduled</code> job xoá token hết hạn hằng ngày, hoặc dọn rác ngay khi phát hiện hết hạn.</div>
+    </div>
+
+    <div class="issue med">
+      <div class="issue-h"><span class="num">#16</span><span class="t">Không rate-limit / lockout đăng nhập, không audit log</span></div>
+      <p><code>/auth/login</code> không có giới hạn số lần thử → dễ bị brute force. Đồng thời không ghi lại ai đã đổi trạng thái đơn hàng — rủi ro khi có tranh chấp nội bộ.</p>
+      <div class="fix"><b>→</b> Thêm rate-limit (Bucket4j / filter), khóa tài khoản tạm thời sau N lần sai, và bảng audit log cho thao tác trạng thái đơn.</div>
+    </div>
+
+    <div class="issue med">
+      <div class="issue-h"><span class="num">#17</span><span class="t">Export Excel giới hạn cứng 1.000 dòng</span></div>
+      <p><code>exportOrders()</code> gọi <code>getOrders({ size: 1000 })</code> một lần rồi nạp toàn bộ vào RAM trình duyệt và dựng workbook ExcelJS trong bộ nhớ. Dữ liệu lớn hơn sẽ bị cắt cụt mà không có cảnh báo.</p>
+      <div class="fix"><b>→</b> Xây API export riêng phía server (streaming/cursor) hoặc export theo lô có phân trang.</div>
+    </div>
+
+    <div class="issue med">
+      <div class="issue-h"><span class="num">#18</span><span class="t"><code>JwtFilter</code> cấp cả <code>ROLE_USER</code> cho mọi người dùng</span></div>
+      <p>Mọi token đều mang thêm authority <code>ROLE_USER</code> bất kể vai trò. Hiện chưa endpoint nào dùng <code>hasRole('USER')</code> nên chưa gây lỗi, nhưng rất dễ tạo lỗ hổng phân quyền khi mở rộng tính năng.</p>
+      <div class="fix"><b>→</b> Chỉ cấp <code>ROLE_&lt;role&gt;</code> thực sự. Bỏ <code>ROLE_USER</code> hoặc định nghĩa rõ nó là role mặc định của STAFF.</div>
+    </div>
+
+    <div class="issue med">
+      <div class="issue-h"><span class="num">#19</span><span class="t"><code>SecurityUtils.getDetails()</code> có thể ném ClassCastException</span></div>
+      <p>Ép kiểu thẳng <code>(JwtDetails) auth.getDetails()</code> mà không kiểm tra null/kiểu → nếu request không đi qua <code>JwtFilter</code> hoặc authentication là anonymous sẽ ném lỗi 500.</p>
+      <div class="fix"><b>→</b> Kiểm tra <code>instanceof JwtDetails</code> và trả <code>null</code>/ném <code>BusinessException.forbidden</code> khi không hợp lệ.</div>
+    </div>
+
+    <div class="issue med">
+      <div class="issue-h"><span class="num">#20</span><span class="t">Thiếu validation quan trọng ở <code>CreateOrderRequest</code></span></div>
+      <p>Ba lỗ hổng validation: (1) <code>items[].quantity</code> không có <code>@Min(1)</code> → tạo được đơn có số lượng 0 hoặc âm; (2) <code>discount</code> không kiểm tra ≤ <code>subtotal</code> → <b>tổng tiền có thể âm</b>; (3) <code>RegisterRequest.platform</code> không whitelist → gán bất kỳ chuỗi nào vào cột <code>VARCHAR(20)</code>.</p>
+      <div class="fix"><b>→</b> Thêm <code>@Min(1)</code> cho quantity, validate <code>discount ≤ subtotal</code> ở tầng service, và whitelist giá trị platform.</div>
+    </div>
+
+    <div class="issue med">
+      <div class="issue-h"><span class="num">#21</span><span class="t"><code>OrderItem</code> không map cột <code>sku_id</code></span></div>
+      <p>Bảng <code>order_items</code> có <code>sku_id</code> + foreign key tới <code>skus</code>, nhưng entity không khai báo trường này → mất liên kết SKU, không thể trừ tồn kho, không tra cứu giá/variant chuẩn hoá.</p>
+      <div class="fix"><b>→</b> Bổ sung trường <code>skuId</code> vào entity <code>OrderItem</code> và service tạo đơn.</div>
+    </div>
+
+    <div class="issue med">
+      <div class="issue-h"><span class="num">#22</span><span class="t"><code>orders.ordered_at</code> luôn NULL</span></div>
+      <p>Cột tồn tại trong schema nhưng <code>OrderService.createOrder()</code> không set giá trị → trường thời gian đặt hàng không bao giờ có dữ liệu, vô dụng cho báo cáo.</p>
+      <div class="fix"><b>→</b> Set <code>orderedAt</code> khi tạo đơn (mặc định <code>LocalDateTime.now()</code>).</div>
+    </div>
+
+    <!-- 7.3 -->
+    <h3 id="s7-3">7.3 &nbsp;Mức độ Thấp / Vệ sinh</h3>
+
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>#</th><th>Vấn đề</th><th>Đề xuất</th></tr></thead>
+      <tbody>
+        <tr><td><b>#23</b></td><td><code>frontend/CLAUDE.md</code> ghi session lưu ở <code>localStorage</code> nhưng code dùng <b><code>sessionStorage</code></b> → tài liệu lệch code</td><td>Cập nhật tài liệu</td></tr>
+        <tr><td><b>#24</b></td><td><code>.history/setup-vps_*.md</code> đang được track trong git dù <code>.gitignore</code> đã ignore <code>.history/</code></td><td><code>git rm --cached</code></td></tr>
+        <tr><td><b>#25</b></td><td>CI/CD dùng tag <code>:latest</code> → không rollback được, không truy vết phiên bản</td><td>Tag theo version / commit SHA</td></tr>
+        <tr><td><b>#26</b></td><td>CI/CD không cache Maven/npm, không chạy test hoặc lint trước khi deploy</td><td>Thêm bước cache + quality gate</td></tr>
+        <tr><td><b>#27</b></td><td><code>frontend/src/assets/images/picture.jpg</code> 818 KB không được dùng</td><td>Xoá hoặc nén</td></tr>
+        <tr><td><b>#28</b></td><td><code>index.html</code> để <code>lang="en"</code> trong khi UI tiếng Việt</td><td>Đổi thành <code>lang="vi"</code></td></tr>
+        <tr><td><b>#29</b></td><td>Chưa có <code>application-prod.yml.example</code> (chỉ có bản <code>dev</code>)</td><td>Tạo file mẫu cho prod</td></tr>
+        <tr><td><b>#30</b></td><td>Dockerfile build copy toàn bộ source trước <code>npm ci</code> → mất cache layer</td><td>Copy manifest trước, source sau</td></tr>
+        <tr><td><b>#31</b></td><td><code>csrf(disable)</code> đúng (stateless JWT) nhưng không có comment giải thích</td><td>Thêm comment để tránh người sau bật lại nhầm</td></tr>
+        <tr><td><b>#32</b></td><td><code>platform_connections</code> lưu access/refresh token dạng TEXT chưa mã hoá</td><td>Mã hoá at-rest trước khi tích hợp API thật</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <!-- ══════════ 8 ══════════ -->
+  <section id="s8">
+    <h2 class="sec"><span class="num">8</span> Roadmap đề xuất</h2>
+    <p class="lede">Kế hoạch 4 sprint, ưu tiên xử lý rủi ro bảo mật và hiện năng trước khi mở rộng tính năng.</p>
+
+    <div class="sprint">
+      <div class="sh"><span class="sn">SPRINT 1</span><span class="st">Ổn định &amp; bảo mật</span><span class="badge b-crit">1 tuần · ưu tiên cao</span></div>
+      <ol>
+        <li>Tạo profile <code>prod</code>, sửa <code>docker-compose.prod.yml</code> → tắt show-sql / DEBUG</li>
+        <li>Sửa interceptor: chỉ refresh khi <b>401</b>; thêm <code>AuthenticationEntryPoint</code> trả 401</li>
+        <li>Whitelist CORS domain trong <code>nginx.conf</code></li>
+        <li>Xoá <code>*.md</code> khỏi <code>.gitignore</code>, commit <code>CLAUDE.md</code> + <code>PROMPT_TEMPLATE.md</code></li>
+        <li>Thêm <code>@Min(1)</code> cho quantity, validate discount ≤ subtotal, whitelist platform</li>
+        <li>Nâng mật khẩu tối thiểu 8 ký tự</li>
+      </ol>
+    </div>
+
+    <div class="sprint">
+      <div class="sh"><span class="sn">SPRINT 2</span><span class="st">Bổ sung chức năng lõi</span><span class="badge b-high">2–3 tuần</span></div>
+      <ol>
+        <li>Xây module <b>Products / SKUs</b> (entity, repository, service, controller) — dùng bảng <code>products</code> / <code>skus</code> đã có sẵn</li>
+        <li>Nối <code>skuId</code> vào <code>OrderItem</code>, trừ tồn kho khi tạo đơn</li>
+        <li>Bổ sung date range cho <code>/api/orders/stats</code> → dashboard bỏ dữ liệu giả</li>
+        <li>Tìm kiếm đơn theo SKU / tên sản phẩm / SĐT, bỏ <code>CAST(id AS string)</code></li>
+        <li>Set <code>orderedAt</code> khi tạo đơn</li>
+      </ol>
+    </div>
+
+    <div class="sprint">
+      <div class="sh"><span class="sn">SPRINT 3</span><span class="st">Tích hợp sàn TMĐT</span><span class="badge b-high">3–4 tuần</span></div>
+      <ol>
+        <li>Module <code>platform_connections</code> (mã hoá access/refresh token)</li>
+        <li>OAuth TikTok Shop và Shopee</li>
+        <li>Webhook <code>/webhooks/tiktok</code>, <code>/webhooks/shopee</code> → upsert đơn theo <code>platform_order_id</code></li>
+        <li>Đồng bộ sản phẩm &amp; tồn kho từ sàn</li>
+      </ol>
+    </div>
+
+    <div class="sprint">
+      <div class="sh"><span class="sn">SPRINT 4</span><span class="st">Chất lượng &amp; vận hành</span><span class="badge b-med">song song</span></div>
+      <ol>
+        <li>Bật test runner FE (Vitest / Karma) + unit test cho <code>OrderService</code>, <code>AuthService</code></li>
+        <li>Integration test backend với Testcontainers MySQL</li>
+        <li>Rate-limit đăng nhập, audit log, scheduled cleanup refresh token</li>
+        <li>Tách tag version cho CI/CD + cơ chế rollback + cache Maven/npm</li>
+        <li>Lazy-load ExcelJS / Chart.js, giảm initial bundle xuống dưới 512 kB</li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- ══════════ 9 ══════════ -->
+  <section id="s9">
+    <h2 class="sec"><span class="num">9</span> Hướng dẫn chạy dev</h2>
+    <p class="lede">Lệnh để dựng lại môi trường phát triển cục bộ.</p>
+
+    <h3>Chạy tách riêng</h3>
+    <pre><span class="c"># Backend — cần MySQL ở :3306, database "saasoms"</span>
+<span class="k">cd</span> D:\code\learn\SaaS\backend
+<span class="f">mvn</span> spring-boot:run
+<span class="c"># → http://localhost:8080   ·   Swagger: /swagger-ui.html</span>
+
+<span class="c"># Frontend — proxy /api và /auth → :8080</span>
+<span class="k">cd</span> D:\code\learn\SaaS\frontend
+<span class="f">npm</span> install &amp;&amp; <span class="f">npm</span> start
+<span class="c"># → http://localhost:4200</span></pre>
+
+    <h3>Chạy full stack bằng Docker</h3>
+    <pre><span class="k">cd</span> D:\code\learn\SaaS
+<span class="f">docker</span> compose up -d
+<span class="c"># MySQL :3307  ·  Backend :8080  ·  Frontend :4200</span></pre>
+
+    <div class="callout">
+      <b>Lưu ý cấu hình:</b> file <code>backend/src/main/resources/application-dev.yml</code> đã bị <code>.gitignore</code> loại trừ — cần copy từ <code>application-dev.yml.example</code> rồi điền thông tin MySQL. Nếu muốn chạy độc lập không cần MySQL, hãy dùng <code>docker compose up</code> để MySQL được dựng sẵn.
+    </div>
+  </section>
+
+  <!-- ══════════ 10 ══════════ -->
+  <section id="s10">
+    <h2 class="sec"><span class="num">10</span> Kết luận</h2>
+    <p class="lede">Đánh giá tổng thể và khuyến nghị hành động.</p>
+
+    <div class="grid2">
+      <div class="mini">
+        <h4>✔ Điểm đáng giữ</h4>
+        <ul>
+          <li>Nền tảng kỹ thu khá chắc: multi-tenant đúng, auth chuẩn, CI/CD hoàn chỉnh</li>
+          <li>UI đẹp, nhất quán, responsive, đã chạy trên production thật</li>
+          <li>Cấu trúc code sạch, phân tầng rõ, dễ tiếp tục phát triển</li>
+        </ul>
+      </div>
+      <div class="mini">
+        <h4>⚠ Điểm cần khắc phục</h4>
+        <ul>
+          <li>Profile <code>dev</code> đang chạy trên production — rò SQL/log</li>
+          <li>Logic 403 khiến người dùng bị logout oan</li>
+          <li>Hai module thương mại cốt lõi (Sản phẩm &amp; tích hợp sàn) chưa được xây</li>
+          <li>Chưa có test nào, dashboard còn dùng dữ liệu giả</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="callout">
+      <b>Kết luận:</b> nền tảng kỹ thu đủ tốt để mở rộng, nhưng cần xử lý <b>6 vấn đề mức cao</b> trước khi đưa vào vận hành thương mại. Hoàn thành Sprint 1 (~1 tuần) là đủ để lên production an toàn. Sprint 2 và Sprint 3 mới biến nó thành một sản phẩm SaaS thực sự — vì hiện tại toàn bộ dữ liệu vẫn là nhập tay, chưa kết nối được với TikTok/Shopee.
+    </div>
+
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>Ưu tiên</th><th>Hạng mục</th><th>Effort</th><th>Ảnh hưởng</th></tr></thead>
+      <tbody>
+        <tr><td><span class="badge b-crit">P0</span></td><td>Profile prod + CORS + interceptor 403 + mật khẩu + .gitignore</td><td>~1 tuần</td><td>Bảo mật &amp; ổn định</td></tr>
+        <tr><td><span class="badge b-high">P1</span></td><td>Module Sản phẩm/SKU + stats theo kỳ + tìm kiếm</td><td>2–3 tuần</td><td>Hoàn thiện nghiệp vụ cốt lõi</td></tr>
+        <tr><td><span class="badge b-high">P1</span></td><td>Tích hợp TikTok Shop / Shopee</td><td>3–4 tuần</td><td>Giá trị sản phẩm</td></tr>
+        <tr><td><span class="badge b-med">P2</span></td><td>Test, rate-limit, audit log, CI/CD nâng cao</td><td>Song song</td><td>Chất lượng dài hạn</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  </main>
+</div>
+
+<footer>
+  Báo cáo phân tích kỹ thuật · Dự án <strong style="color:#cbd5e1">SaaS OMS</strong> · Đường dẫn <code style="background:rgba(255,255,255,.07);border-color:rgba(255,255,255,.14);color:#cbd5e1">D:\code\learn\SaaS</code> · Ngày 22/10/2026
+</footer>
+
+</body>
+</html>

@@ -1,3 +1,232 @@
-<p>
-  product-form works!
-</p>
+<div class="flex flex-column gap-3">
+  <!-- Header -->
+  <div class="flex align-items-center justify-content-between flex-wrap gap-2">
+    <div class="flex align-items-center gap-2">
+      <a routerLink="/products">
+        <p-button
+          icon="pi pi-arrow-left"
+          [rounded]="true"
+          [text]="true"
+          severity="secondary"
+        />
+      </a>
+      <h2 class="m-0">{{ isEdit() ? "Sửa sản phẩm" : "Thêm sản phẩm" }}</h2>
+    </div>
+  </div>
+
+  <form [formGroup]="form" (ngSubmit)="onSubmit()">
+    <div class="grid">
+      <!-- Thông tin chung -->
+      <div class="col-12 lg:col-6">
+        <p-card header="Thông tin chung">
+          <div class="flex flex-column gap-3">
+            <div class="flex flex-column gap-1">
+              <label class="font-medium">Tên sản phẩm *</label>
+              <input
+                pInputText
+                formControlName="name"
+                placeholder="Nhập tên sản phẩm"
+                class="w-full"
+              />
+              @if (form.get('name')?.touched && form.get('name')?.invalid) {
+                <small class="text-red-500">Tên sản phẩm là bắt buộc.</small>
+              }
+            </div>
+
+            <div class="flex flex-column gap-1">
+              <label class="font-medium">Mô tả</label>
+              <textarea
+                pInputTextarea
+                formControlName="description"
+                rows="3"
+                placeholder="Mô tả sản phẩm"
+                class="w-full"
+              ></textarea>
+            </div>
+
+            <div class="grid">
+              <div class="col-12 md:col-6 flex flex-column gap-1">
+                <label class="font-medium">Danh mục</label>
+                <input
+                  pInputText
+                  formControlName="category"
+                  placeholder="Ví dụ: Áo, Giày"
+                  class="w-full"
+                />
+              </div>
+              <div class="col-12 md:col-6 flex flex-column gap-1">
+                <label class="font-medium">Nguồn nền tảng</label>
+                <p-dropdown
+                  formControlName="platformSource"
+                  [options]="platformSourceOptions"
+                  optionLabel="label"
+                  optionValue="value"
+                  placeholder="Chọn nguồn"
+                  styleClass="w-full"
+                />
+              </div>
+            </div>
+
+            @if (isEdit()) {
+              <div class="flex flex-column gap-1">
+                <label class="font-medium">Trạng thái</label>
+                <p-dropdown
+                  formControlName="status"
+                  [options]="statusOptions"
+                  optionLabel="label"
+                  optionValue="value"
+                  styleClass="w-full"
+                />
+              </div>
+            }
+
+            <div class="flex flex-column gap-1">
+              <label class="font-medium">URL ảnh</label>
+              <input
+                pInputText
+                formControlName="imageUrl"
+                placeholder="https://..."
+                class="w-full"
+              />
+            </div>
+
+            @if (form.get('imageUrl')?.value) {
+              <div class="flex flex-column gap-2">
+                <label class="font-medium">Xem trước ảnh</label>
+                <p-image
+                  [src]="form.get('imageUrl')?.value || ''"
+                  alt="Ảnh sản phẩm"
+                  width="160"
+                  [preview]="true"
+                />
+              </div>
+            }
+          </div>
+        </p-card>
+      </div>
+
+      <!-- SKU -->
+      <div class="col-12 lg:col-6">
+        <p-card header="Danh sách SKU">
+          <div class="flex flex-column gap-3" formArrayName="skus">
+            @for (skuCtrl of skus.controls; track $index; let i = $index) {
+              <div [formGroupName]="i" class="sku-row grid align-items-end">
+                <div class="col-12 md:col-6 flex flex-column gap-1">
+                  <label class="font-medium text-sm">Mã SKU *</label>
+                  <input
+                    pInputText
+                    formControlName="skuCode"
+                    placeholder="SKU-001"
+                    class="w-full"
+                  />
+                  @if (getSkuGroup(i).get('skuCode')?.touched && getSkuGroup(i).get('skuCode')?.invalid) {
+                    <small class="text-red-500">Mã SKU là bắt buộc.</small>
+                  }
+                </div>
+                <div class="col-12 md:col-6 flex flex-column gap-1">
+                  <label class="font-medium text-sm">Biến thể</label>
+                  <input
+                    pInputText
+                    formControlName="variant"
+                    placeholder="Màu/Size"
+                    class="w-full"
+                  />
+                </div>
+                <div class="col-12 md:col-5 flex flex-column gap-1">
+                  <label class="font-medium text-sm">Giá (₫) *</label>
+                  <p-inputNumber
+                    formControlName="price"
+                    [min]="0"
+                    mode="decimal"
+                    styleClass="w-full"
+                    inputStyleClass="w-full"
+                  />
+                  @if (getSkuGroup(i).get('price')?.touched && getSkuGroup(i).get('price')?.invalid) {
+                    <small class="text-red-500">Giá phải >= 0.</small>
+                  }
+                </div>
+                <div class="col-12 md:col-5 flex flex-column gap-1">
+                  <label class="font-medium text-sm">Tồn kho *</label>
+                  <p-inputNumber
+                    formControlName="stock"
+                    [min]="0"
+                    styleClass="w-full"
+                    inputStyleClass="w-full"
+                  />
+                  @if (getSkuGroup(i).get('stock')?.touched && getSkuGroup(i).get('stock')?.invalid) {
+                    <small class="text-red-500">Tồn kho phải >= 0.</small>
+                  }
+                </div>
+                <div class="col-12 md:col-2 flex justify-content-end">
+                  <p-button
+                    icon="pi pi-trash"
+                    [rounded]="true"
+                    [text]="true"
+                    severity="danger"
+                    (click)="removeSku(i)"
+                    [disabled]="skus.length === 1"
+                  />
+                </div>
+              </div>
+            }
+          </div>
+
+          @if (skus.errors?.['duplicateSku'] && skus.touched) {
+            <small class="text-red-500 mt-2 block">Mã SKU không được trùng lặp (không phân biệt hoa thường).</small>
+          }
+          @if (skus.errors?.['requiredSku'] && skus.touched) {
+            <small class="text-red-500 mt-2 block">Cần ít nhất 1 SKU.</small>
+          }
+
+          <div class="mt-3">
+            <p-button
+              label="Thêm dòng SKU"
+              icon="pi pi-plus"
+              severity="secondary"
+              size="small"
+              (click)="addSku()"
+            />
+          </div>
+        </p-card>
+
+        <p-card header="Tổng hợp" styleClass="mt-3">
+          <div class="flex flex-column gap-2">
+            <div class="flex align-items-center justify-content-between">
+              <span>Số SKU</span>
+              <span class="font-medium">{{ skuCount() }}</span>
+            </div>
+            <div class="flex align-items-center justify-content-between">
+              <span>Tổng tồn</span>
+              <span class="font-medium">{{ totalStock() }}</span>
+            </div>
+            <div class="flex align-items-center justify-content-between">
+              <span>Khoảng giá</span>
+              <span class="font-medium">
+                @if (minPrice() === null) {
+                  —
+                } @else if (minPrice() === maxPrice()) {
+                  {{ formatPrice(minPrice()) }}
+                } @else {
+                  {{ formatPrice(minPrice()) }} - {{ formatPrice(maxPrice()) }}
+                }
+              </span>
+            </div>
+          </div>
+        </p-card>
+      </div>
+    </div>
+
+    <div class="flex gap-2 justify-content-end mt-3">
+      <a routerLink="/products">
+        <p-button label="Huỷ" severity="secondary" [outlined]="true" />
+      </a>
+      <p-button
+        type="submit"
+        [label]="isEdit() ? 'Cập nhật' : 'Tạo sản phẩm'"
+        icon="pi pi-check"
+        [loading]="loading()"
+        [disabled]="form.invalid && form.touched"
+      />
+    </div>
+  </form>
+</div>

@@ -1,200 +1,252 @@
 import {
-  AfterViewInit,
+  ChangeDetectionStrategy,
   Component,
-  ElementRef,
-  HostListener,
-  OnDestroy,
   OnInit,
-  ViewChild,
+  inject,
+  signal,
 } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
+import { Router, RouterLink } from "@angular/router";
+import { TableModule, TablePageEvent } from "primeng/table";
+import { ButtonModule } from "primeng/button";
+import { InputTextModule } from "primeng/inputtext";
+import { TagModule } from "primeng/tag";
+import { DropdownModule } from "primeng/dropdown";
+import { CardModule } from "primeng/card";
+import { ImageModule } from "primeng/image";
+import { Product, ProductFilters, ProductStatus } from "@features/products/models/product.model";
+import { productStatusLabelVi } from "@features/products/models/product-status";
+import { ProductService } from "@features/products/services/product.service";
+import {
+  PRODUCT_ROWS_PER_PAGE,
+  PRODUCT_STATUS_SEVERITY,
+} from "@features/products/constants/product.constants";
+import { PageMeta } from "@core/models/api.model";
+import { ExcelExportService } from "@shared/services/excel-export.service";
+import { platformSourceLabelVi } from "@features/orders/models/platform-source";
 
-interface HeartParticle {
-  x: number;
-  y: number;
-  dx: number;
-  dy: number;
-  life: number;
-  h: number;
-  s: number;
-  l: number;
-}
+type TagSeverity =
+  | "success"
+  | "info"
+  | "secondary"
+  | "contrast"
+  | "warning"
+  | "danger";
 
-/** Điểm trên đường cong trái tim (tham số t ∈ [0, 2π]). Trục y hướng lên trong toán học. */
-function heartOutline(t: number): { hx: number; hy: number } {
-  const hx = 16 * Math.pow(Math.sin(t), 3);
-  const hy = -(
-    13 * Math.cos(t) -
-    5 * Math.cos(2 * t) -
-    2 * Math.cos(3 * t) -
-    Math.cos(4 * t)
-  );
-  return { hx, hy };
-}
-
-function randomPinkParts(): { h: number; s: number; l: number } {
-  return {
-    h: 320 + Math.random() * 38,
-    s: 72 + Math.random() * 22,
-    l: 62 + Math.random() * 22,
-  };
+interface FilterOption {
+  label: string;
+  value: string | null;
 }
 
 @Component({
   selector: "app-product-list",
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [
+    CommonModule,
+    RouterLink,
+    FormsModule,
+    TableModule,
+    ButtonModule,
+    InputTextModule,
+    TagModule,
+    DropdownModule,
+    CardModule,
+    ImageModule,
+  ],
   templateUrl: "./product-list.component.html",
   styleUrls: ["./product-list.component.scss"],
 })
-export class ProductListComponent implements OnInit, AfterViewInit, OnDestroy {
-  @ViewChild("viewport", { static: false })
-  viewportRef!: ElementRef<HTMLElement>;
+export class ProductListComponent implements OnInit {
+  private readonly productService = inject(ProductService);
+  private readonly excelExportService = inject(ExcelExportService);
+  private readonly router = inject(Router);
 
-  @ViewChild("canvas", { static: false })
-  canvasRef!: ElementRef<HTMLCanvasElement>;
+  products = signal<Product[]>([]);
+  meta = signal<PageMeta>({
+    page: 0,
+    size: 20,
+    totalElements: 0,
+    totalPages: 0,
+  });
+  loading = signal(false);
 
-  private ctx!: CanvasRenderingContext2D;
-  private fireworks: HeartParticle[][] = [];
-  private resizeObserver?: ResizeObserver;
+  searchText = "";
+  selectedCategory: string | null = null;
+  selectedStatus: string | null = null;
+  selectedPlatform: string | null = null;
 
-  name = "vợ yêu";
-  message = "luôn xinh đẹp và yêu anh";
+  categoryOptions: FilterOption[] = [{ label: "Tất cả danh mục", value: null }];
+  statusOptions: FilterOption[] = [
+    { label: "Tất cả", value: null },
+    { label: "Đang bán", value: "ACTIVE" },
+    { label: "Ngừng bán", value: "INACTIVE" },
+    { label: "Đã xoá", value: "ARCHIVED" },
+  ];
+  platformOptions: FilterOption[] = [
+    { label: "Tất cả nền tảng", value: null },
+    { label: "Nhập tay", value: "MANUAL" },
+    { label: "TikTok Shop", value: "TIKTOK" },
+    { label: "Shopee", value: "SHOPEE" },
+  ];
+  rowsPerPageOptions = PRODUCT_ROWS_PER_PAGE;
+
+  productStatusLabelVi = productStatusLabelVi;
+  platformSourceLabelVi = platformSourceLabelVi;
+  PRODUCT_STATUS_SEVERITY = PRODUCT_STATUS_SEVERITY;
+
+  getStatusSeverity(status: ProductStatus): "success" | "secondary" | "info" | "warning" | "danger" | "contrast" {
+    return (PRODUCT_STATUS_SEVERITY as any)[status];
+  }
 
   ngOnInit(): void {
-    this.startShow();
+    this.loadCategories();
+    this.load();
   }
 
-  ngAfterViewInit(): void {
-    const canvas = this.canvasRef.nativeElement;
-    this.ctx = canvas.getContext("2d")!;
-
-    this.resizeObserver = new ResizeObserver(() => this.syncCanvasSize());
-    this.resizeObserver.observe(this.viewportRef.nativeElement);
-
-    this.syncCanvasSize();
-    this.animate();
+  loadCategories(): void {
+    this.productService.getCategories().subscribe({
+      next: (categories) => {
+        const options: FilterOption[] = [{ label: "Tất cả danh mục", value: null }];
+        for (const category of categories ?? []) {
+          if (category && category.trim()) {
+            options.push({ label: category, value: category });
+          }
+        }
+        this.categoryOptions = options;
+      },
+      error: () => {
+        this.categoryOptions = [{ label: "Tất cả danh mục", value: null }];
+      },
+    });
   }
 
-  ngOnDestroy(): void {
-    this.resizeObserver?.disconnect();
+  load(page = 0): void {
+    this.loading.set(true);
+    const filters: ProductFilters = {
+      page,
+      size: this.meta().size,
+      search: this.searchText?.trim() || undefined,
+      category: this.selectedCategory ?? undefined,
+      status: (this.selectedStatus as any) ?? undefined,
+      platformSource: this.selectedPlatform ?? undefined,
+    };
+
+    this.productService.getProducts(filters).subscribe({
+      next: (res) => {
+        this.products.set(res.content ?? []);
+        this.meta.set(res.meta);
+        this.loading.set(false);
+      },
+      error: () => this.loading.set(false),
+    });
   }
 
-  @HostListener("window:resize")
-  onWindowResize(): void {
-    this.syncCanvasSize();
+  applyFilters(): void {
+    this.load(0);
   }
 
-  /** Kích thước buffer = khung nội dung (không phủ sidebar). */
-  private syncCanvasSize(): void {
-    const canvas = this.canvasRef?.nativeElement;
-    const vp = this.viewportRef?.nativeElement;
-    if (!canvas || !vp) return;
-
-    const w = Math.max(1, Math.round(vp.clientWidth));
-    const h = Math.max(1, Math.round(vp.clientHeight));
-
-    if (canvas.width === w && canvas.height === h) return;
-
-    canvas.width = w;
-    canvas.height = h;
+  clearFilters(): void {
+    this.searchText = "";
+    this.selectedCategory = null;
+    this.selectedStatus = null;
+    this.selectedPlatform = null;
+    this.load(0);
   }
 
-  private get canvasW(): number {
-    return this.canvasRef?.nativeElement?.width ?? 0;
-  }
+  onPage(event: TablePageEvent): void {
+    const nextSize = event.rows ?? this.meta().size;
+    const nextPage = Math.floor((event.first ?? 0) / nextSize);
 
-  private get canvasH(): number {
-    return this.canvasRef?.nativeElement?.height ?? 0;
-  }
-
-  createFirework(): void {
-    if (!this.canvasRef?.nativeElement) return;
-
-    const w = this.canvasW;
-    const h = this.canvasH;
-
-    const cx = w * (0.38 + Math.random() * 0.24);
-    const cy = h * (0.22 + Math.random() * 0.28);
-    const scale = Math.min(w, h) / 52;
-
-    const particleCount = 96;
-    const particles: HeartParticle[] = [];
-
-    for (let i = 0; i < particleCount; i++) {
-      const t = (Math.PI * 2 * i) / particleCount + (Math.random() - 0.5) * 0.08;
-      const { hx, hy } = heartOutline(t);
-      const mag = Math.hypot(hx, hy) + 1e-4;
-      const speed = (2.2 + Math.random() * 2.8) * scale * 0.18;
-      const jitter = 0.88 + Math.random() * 0.24;
-
-      const { h, s, l } = randomPinkParts();
-      particles.push({
-        x: cx,
-        y: cy,
-        dx: (hx / mag) * speed * jitter,
-        dy: (hy / mag) * speed * jitter,
-        life: 85 + Math.floor(Math.random() * 45),
-        h,
-        s,
-        l,
-      });
+    if (nextSize !== this.meta().size) {
+      this.meta.update((meta) => ({ ...meta, size: nextSize }));
     }
 
-    this.fireworks.push(particles);
+    this.load(nextPage);
   }
 
-  startShow(): void {
-    setInterval(() => this.createFirework(), 500);
+  goToDetail(id: number): void {
+    this.router.navigate(["/products", id]);
   }
 
-  animate(): void {
-    requestAnimationFrame(() => this.animate());
+  goToEdit(id: number): void {
+    this.router.navigate(["/products", id, "edit"]);
+  }
 
-    const w = this.canvasW;
-    const h = this.canvasH;
-    if (!this.ctx || w === 0 || h === 0) return;
-
-    this.ctx.fillStyle = "rgba(0,0,0,0.18)";
-    this.ctx.fillRect(0, 0, w, h);
-
-    this.fireworks.forEach((particles, index) => {
-      particles.forEach((p) => {
-        p.x += p.dx;
-        p.y += p.dy;
-        p.dy += 0.035;
-        p.life--;
-
-        const alpha = Math.min(1, p.life / 40);
-        this.ctx.beginPath();
-        this.ctx.arc(p.x, p.y, 2.2, 0, Math.PI * 2);
-        this.ctx.fillStyle = `hsla(${p.h.toFixed(0)}, ${p.s.toFixed(0)}%, ${p.l.toFixed(0)}%, ${alpha.toFixed(3)})`;
-        this.ctx.fill();
-      });
-
-      this.fireworks[index] = particles.filter((p) => p.life > 0);
+  archiveProduct(product: Product): void {
+    const confirmed = window.confirm(
+      `Bạn có chắc chắn muốn lưu trữ sản phẩm "${product.name}"?`,
+    );
+    if (!confirmed) {
+      return;
+    }
+    this.productService.archiveProduct(product.id).subscribe({
+      next: () => {
+        this.load(this.meta().page);
+      },
     });
-
-    this.drawText();
   }
 
-  drawText(): void {
-    if (!this.name && !this.message) return;
-    if (!this.ctx) return;
+  exportExcel(): void {
+    this.excelExportService.exportProducts(this.products());
+  }
 
-    const w = this.canvasW;
-    const h = this.canvasH;
-    const titlePx = Math.max(14, Math.min(36, w * 0.065));
-    const msgPx = Math.max(12, Math.min(22, w * 0.038));
+  getStockSeverity(totalStock: number): TagSeverity {
+    if (totalStock <= 0) {
+      return "danger";
+    }
+    if (totalStock <= 5) {
+      return "warning";
+    }
+    return "success";
+  }
 
-    this.ctx.fillStyle = "white";
-    this.ctx.textAlign = "center";
+  getStockLabel(totalStock: number): string {
+    if (totalStock <= 0) {
+      return "Hết hàng";
+    }
+    if (totalStock <= 5) {
+      return "Sắp hết";
+    }
+    return "Còn hàng";
+  }
 
-    this.ctx.font = `${Math.round(titlePx)}px Arial, sans-serif`;
-    this.ctx.fillText(`Chúc ${this.name}`, w / 2, h / 2);
+  getPriceLabel(product: Product): string {
+    const minPrice = product.minPrice;
+    const maxPrice = product.maxPrice;
+    if (minPrice == null && maxPrice == null) {
+      return "—";
+    }
+    if (minPrice != null && maxPrice != null && minPrice === maxPrice) {
+      return this.formatCurrency(minPrice);
+    }
+    if (minPrice != null && maxPrice != null) {
+      return `${this.formatCurrency(minPrice)} – ${this.formatCurrency(maxPrice)}`;
+    }
+    if (minPrice != null) {
+      return this.formatCurrency(minPrice);
+    }
+    if (maxPrice != null) {
+      return this.formatCurrency(maxPrice);
+    }
+    return "—";
+  }
 
-    this.ctx.font = `${Math.round(msgPx)}px Arial, sans-serif`;
-    this.ctx.fillText(this.message, w / 2, h / 2 + titlePx * 0.9);
+  private formatCurrency(value: number): string {
+    return new Intl.NumberFormat("vi-VN", {
+      style: "currency",
+      currency: "VND",
+      maximumFractionDigits: 0,
+    }).format(value);
+  }
+
+  getImageSrc(product: Product): string {
+    return product.imageUrl || "assets/images/placeholder.svg";
+  }
+
+  onImageError(event: Event): void {
+    const target = event.target as HTMLImageElement;
+    target.src = "assets/images/placeholder.svg";
   }
 }

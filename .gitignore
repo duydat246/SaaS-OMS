@@ -6,3 +6,7 @@
 .history/
 *.md
 skills-lock.json
+
+# Đội agent OpenCode + kế hoạch phát triển (cần commit dù có *.md)
+!.opencode/agents/*.md
+!docs/ke-hoach-san-pham.md

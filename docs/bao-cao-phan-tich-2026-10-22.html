@@ -1,0 +1,953 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Báo cáo phân tích dự án — SaaS OMS (22/10/2026)</title>
+<style>
+  :root{
+    --bg:#0f172a; --bg-soft:#1e293b; --card:#ffffff; --card-2:#f8fafc;
+    --ink:#0f172a; --ink-2:#334155; --ink-3:#64748b; --line:#e2e8f0;
+    --navy:#1e3a5f; --navy-2:#4f6a9e;
+    --brand:#2563eb; --brand-soft:#eff6ff;
+    --crit:#dc2626; --crit-bg:#fef2f2; --crit-line:#fecaca;
+    --high:#ea580c; --high-bg:#fff7ed; --high-line:#fed7aa;
+    --med:#d97706; --med-bg:#fffbeb; --med-line:#fde68a;
+    --low:#0891b2; --low-bg:#ecfeff; --low-line:#a5f3fc;
+    --ok:#059669; --ok-bg:#ecfdf5; --ok-line:#a7f3d0;
+    --radius:14px;
+    --shadow:0 1px 2px rgba(15,23,42,.06), 0 8px 24px -12px rgba(15,23,42,.18);
+    --mono:"JetBrains Mono","Fira Code",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font-family:"Segoe UI",-apple-system,BlinkMacSystemFont,Roboto,"Helvetica Neue",Arial,sans-serif;
+    font-size:15px; line-height:1.65; -webkit-font-smoothing:antialiased;
+  }
+
+  /* ─── HERO ─── */
+  .hero{
+    background:
+      radial-gradient(1100px 420px at 12% -10%, rgba(37,99,235,.35), transparent 60%),
+      radial-gradient(900px 380px at 92% 0%, rgba(79,106,158,.32), transparent 62%),
+      linear-gradient(160deg,#0b1220,#16213a 60%,#0f172a);
+    color:#e2e8f0; padding:46px 32px 38px; border-bottom:1px solid rgba(255,255,255,.08);
+  }
+  .hero-inner{max-width:1280px;margin:0 auto}
+  .hero .eyebrow{
+    display:inline-flex;align-items:center;gap:8px;font-size:11.5px;font-weight:700;
+    letter-spacing:.16em;text-transform:uppercase;color:#93c5fd;
+    background:rgba(37,99,235,.16);border:1px solid rgba(147,197,253,.28);
+    padding:6px 13px;border-radius:999px;
+  }
+  .hero h1{
+    margin:16px 0 6px;font-size:clamp(28px,4.4vw,44px);line-height:1.15;
+    color:#fff;letter-spacing:-.02em;font-weight:800;
+  }
+  .hero .sub{color:#94a3b8;font-size:15.5px;margin:0 0 26px;max-width:820px}
+  .meta-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:1px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.12);border-radius:12px;overflow:hidden}
+  .meta-grid div{background:rgba(11,18,32,.55);padding:13px 16px}
+  .meta-grid dt{font-size:11px;text-transform:uppercase;letter-spacing:.09em;color:#7c8ba1;font-weight:700;margin-bottom:3px}
+  .meta-grid dd{margin:0;font-size:13.5px;color:#e2e8f0;font-weight:600;word-break:break-word;font-family:var(--mono)}
+
+  /* ─── LAYOUT ─── */
+  .wrap{max-width:1280px;margin:0 auto;padding:34px 32px 70px;display:grid;grid-template-columns:246px minmax(0,1fr);gap:38px;align-items:start}
+  @media (max-width:1000px){ .wrap{grid-template-columns:1fr;padding:24px 18px 56px;gap:22px} }
+
+  /* ─── TOC ─── */
+  nav.toc{
+    position:sticky;top:22px;background:var(--card);border:1px solid var(--line);
+    border-radius:var(--radius);padding:20px 18px;box-shadow:var(--shadow);font-size:13.5px;
+  }
+  @media (max-width:1000px){ nav.toc{position:static} }
+  nav.toc h2{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);margin:0 0 12px;font-weight:800}
+  nav.toc a{display:block;padding:6px 10px;margin:1px 0;border-radius:8px;color:var(--ink-2);text-decoration:none;border-left:2px solid transparent;transition:.15s}
+  nav.toc a:hover{background:var(--brand-soft);color:var(--brand);border-left-color:var(--brand)}
+  nav.toc a.sub{padding-left:22px;color:var(--ink-3);font-size:12.8px}
+  .toc-hint{margin-top:14px;padding:11px 12px;background:#f1f5f9;border-radius:9px;font-size:11.5px;color:var(--ink-3);line-height:1.5}
+  .toc-hint kbd{background:#fff;border:1px solid var(--line);border-bottom-width:2px;border-radius:5px;padding:1px 6px;font-family:var(--mono);font-size:10.5px;color:var(--ink-2)}
+
+  /* ─── SECTIONS ─── */
+  section{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:28px 30px;margin-bottom:24px;box-shadow:var(--shadow);scroll-margin-top:20px}
+  h2.sec{
+    font-size:20px;margin:0 0 6px;color:var(--ink);letter-spacing:-.01em;font-weight:800;
+    display:flex;align-items:center;gap:11px;
+  }
+  h2.sec .num{
+    display:inline-flex;align-items:center;justify-content:center;min-width:31px;height:31px;
+    background:var(--navy);color:#fff;border-radius:9px;font-size:14px;font-weight:800;flex:none;
+  }
+  .lede{color:var(--ink-3);margin:0 0 22px;padding-bottom:16px;border-bottom:1px solid var(--line);font-size:14px}
+  h3{font-size:15.5px;margin:28px 0 12px;color:var(--ink);font-weight:800;display:flex;align-items:center;gap:9px}
+  h3::before{content:"";width:3px;height:16px;background:var(--navy-2);border-radius:2px;flex:none}
+  h4{font-size:13.8px;margin:20px 0 9px;color:var(--ink);font-weight:800}
+  p{margin:0 0 12px}
+  ul,ol{margin:0 0 14px;padding-left:21px}
+  li{margin:5px 0}
+  strong{font-weight:750;color:var(--ink)}
+
+  /* ─── TABLES ─── */
+  .tbl-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:10px;margin:0 0 18px;-webkit-overflow-scrolling:touch}
+  table{width:100%;border-collapse:collapse;font-size:13.3px;min-width:540px}
+  thead th{
+    background:var(--card-2);text-align:left;padding:10px 13px;font-weight:800;color:var(--ink-2);
+    border-bottom:1.5px solid var(--line);white-space:nowrap;font-size:12px;text-transform:uppercase;letter-spacing:.045em;
+  }
+  tbody td{padding:9px 13px;border-bottom:1px solid #eef2f7;vertical-align:top}
+  tbody tr:last-child td{border-bottom:none}
+  tbody tr:nth-child(even){background:#fcfdfe}
+  code{font-family:var(--mono);font-size:.88em;background:#f1f5f9;border:1px solid var(--line);border-radius:5px;padding:1.5px 6px;color:var(--navy);white-space:nowrap}
+  td code{font-size:11.8px}
+
+  /* ─── STAT CARDS ─── */
+  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(158px,1fr));gap:12px;margin:0 0 20px}
+  .stat{border:1px solid var(--line);border-radius:11px;padding:15px 16px;background:var(--card-2)}
+  .stat .v{font-size:25px;font-weight:800;color:var(--navy);line-height:1.15;letter-spacing:-.02em}
+  .stat .k{font-size:11.5px;text-transform:uppercase;letter-spacing:.07em;color:var(--ink-3);font-weight:700;margin-top:3px}
+  .stat.crit .v{color:var(--crit)} .stat.ok .v{color:var(--ok)} .stat.warn .v{color:var(--high)} .stat.info .v{color:var(--low)}
+
+  /* ─── BADGES ─── */
+  .badge{display:inline-block;padding:2.5px 9px;border-radius:999px;font-size:11px;font-weight:800;letter-spacing:.02em;white-space:nowrap;border:1px solid}
+  .b-crit{color:var(--crit);background:var(--crit-bg);border-color:var(--crit-line)}
+  .b-high{color:var(--high);background:var(--high-bg);border-color:var(--high-line)}
+  .b-med {color:var(--med); background:var(--med-bg); border-color:var(--med-line)}
+  .b-low {color:var(--low); background:var(--low-bg); border-color:var(--low-line)}
+  .b-ok  {color:var(--ok);  background:var(--ok-bg); border-color:var(--ok-line)}
+  .b-neutral{color:var(--ink-3);background:var(--card-2);border-color:var(--line)}
+
+  /* ─── ISSUE CARD ─── */
+  .issue{border:1px solid var(--line);border-left:4px solid var(--ink-3);border-radius:11px;padding:16px 19px;margin:0 0 13px;background:#fff}
+  .issue.crit{border-left-color:var(--crit);background:linear-gradient(90deg,var(--crit-bg) 0%,#fff 22%)}
+  .issue.high{border-left-color:var(--high);background:linear-gradient(90deg,var(--high-bg) 0%,#fff 22%)}
+  .issue.med {border-left-color:var(--med); background:linear-gradient(90deg,var(--med-bg) 0%,#fff 22%)}
+  .issue.low {border-left-color:var(--low); background:linear-gradient(90deg,var(--low-bg) 0%,#fff 22%)}
+  .issue-h{display:flex;align-items:flex-start;gap:10px;margin-bottom:8px}
+  .issue-h .num{font-family:var(--mono);font-size:12px;font-weight:800;color:var(--ink-3);background:var(--card-2);border:1px solid var(--line);border-radius:6px;padding:2px 7px;flex:none;margin-top:1px}
+  .issue-h .t{font-size:14.5px;font-weight:800;color:var(--ink);line-height:1.45}
+  .issue p{margin:0 0 8px;font-size:13.4px;color:var(--ink-2)}
+  .issue p:last-child{margin-bottom:0}
+  .issue .loc{font-family:var(--mono);font-size:12px;color:var(--ink-3);background:var(--card-2);border:1px solid var(--line);border-radius:6px;padding:1px 7px;display:inline-block}
+  .fix{margin-top:10px;padding:10px 13px;background:var(--ok-bg);border:1px solid var(--ok-line);border-radius:8px;font-size:13px;color:#065f46}
+  .fix b{color:#064e3b}
+
+  /* ─── CODE BLOCK ─── */
+  pre{
+    background:#0f172a;color:#cbd5e1;border-radius:10px;padding:14px 16px;overflow-x:auto;
+    font-family:var(--mono);font-size:12.4px;line-height:1.62;margin:0 0 14px;border:1px solid #1e293b;
+  }
+  pre .c{color:#64748b} pre .k{color:#7dd3fc} pre .s{color:#86efac} pre .f{color:#fbbf24} pre .p{color:#f0abfc}
+
+  /* ─── TREE ─── */
+  .tree{
+    background:#0f172a;color:#cbd5e1;border-radius:11px;padding:16px 18px;overflow-x:auto;
+    font-family:var(--mono);font-size:12.4px;line-height:1.75;border:1px solid #1e293b;margin:0 0 18px;
+  }
+  .tree .dir{color:#93c5fd;font-weight:700}
+  .tree .fn{color:#e2e8f0}
+  .tree .cm{color:#64748b}
+
+  /* ─── MISC ─── */
+  .grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(285px,1fr));gap:14px;margin:0 0 18px}
+  .mini{border:1px solid var(--line);border-radius:11px;padding:15px 17px;background:var(--card-2)}
+  .mini h4{margin:0 0 8px;font-size:13.4px;color:var(--navy)}
+  .mini p,.mini li{font-size:13px;color:var(--ink-2)}
+  .mini ul{padding-left:18px;margin:0}
+
+  .strengths{display:grid;grid-template-columns:repeat(auto-fit,minmax(310px,1fr));gap:12px;margin:0 0 18px}
+  .strength{border:1px solid var(--ok-line);background:var(--ok-bg);border-radius:11px;padding:14px 16px}
+  .strength .h{font-size:13.6px;font-weight:800;color:#065f46;margin-bottom:4px}
+  .strength p{margin:0;font-size:12.9px;color:#065f46;opacity:.92}
+
+  .sprint{border:1px solid var(--line);border-radius:12px;padding:17px 19px;margin:0 0 13px;background:var(--card-2)}
+  .sprint .sh{display:flex;align-items:center;gap:11px;margin-bottom:11px;flex-wrap:wrap}
+  .sprint .sn{background:var(--navy);color:#fff;border-radius:8px;padding:3px 11px;font-size:11.5px;font-weight:800}
+  .sprint .st{font-size:14.5px;font-weight:800;color:var(--ink)}
+  .sprint ol{margin:0;padding-left:20px}
+  .sprint li{font-size:13.3px;color:var(--ink-2);margin:4px 0}
+
+  .callout{border:1px solid var(--line);border-left:4px solid var(--brand);background:var(--brand-soft);border-radius:10px;padding:14px 17px;margin:0 0 18px;font-size:13.4px;color:#1e3a8a}
+  .callout b{color:#1e3a8a}
+
+  footer{text-align:center;color:#7c8ba1;font-size:12.4px;padding:26px 20px 40px;border-top:1px solid rgba(255,255,255,.08)}
+
+  /* ─── PRINT ─── */
+  @media print{
+    @page{size:A4;margin:13mm}
+    body{background:#fff;font-size:10.4pt;color:#000}
+    .hero{background:#fff!important;color:#000;border-bottom:2px solid #1e3a5f;padding:0 0 16px;margin-bottom:16px}
+    .hero .eyebrow{background:none;border:1px solid #94a3b8;color:#334155}
+    .hero h1{color:#0f172a;font-size:24pt}
+    .hero .sub{color:#475569;margin-bottom:14px}
+    .meta-grid{border-color:#cbd5e1;background:#cbd5e1}
+    .meta-grid div{background:#fff}
+    .meta-grid dt{color:#64748b} .meta-grid dd{color:#0f172a}
+    .wrap{display:block;max-width:none;padding:0}
+    nav.toc,.toc-hint,.noprint{display:none!important}
+    section{box-shadow:none;border:1px solid #d7dee8;border-radius:8px;padding:16px 18px;margin-bottom:14px;break-inside:avoid-page}
+    .issue,.sprint,.mini,.strength{break-inside:avoid-page}
+    h2.sec,h3,h4{break-after:avoid}
+    pre{background:#f4f6f9!important;color:#0f172a;border:1px solid #d7dee8;font-size:8.6pt}
+    pre .c{color:#64748b} pre .k{color:#1d4ed8} pre .s{color:#047857} pre .f{color:#b45309} pre .p{color:#7e22ce}
+    .tree{background:#f4f6f9!important;color:#0f172a;border:1px solid #d7dee8;font-size:8.4pt}
+    .tree .dir{color:#1d4ed8} .tree .cm{color:#64748b} .tree .fn{color:#0f172a}
+    .tbl-wrap{overflow:visible}
+    thead{display:table-header-group}
+    tbody tr{break-inside:avoid}
+    a{color:inherit;text-decoration:none}
+    footer{color:#64748b;border-top:1px solid #d7dee8;padding-top:14px}
+  }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="hero-inner">
+    <span class="eyebrow">◆ Báo cáo kỹ thuật · Phân tích mã nguồn</span>
+    <h1>SaaS OMS — Phân tích dự án</h1>
+    <p class="sub">Đánh giá toàn diện kiến trúc, mã nguồn backend/frontend, hạ tầng triển khai và các vấn đề kỹ thuật cần xử lý — gồm 34 phát hiện đã được đối chiếu trực tiếp với mã nguồn.</p>
+    <dl class="meta-grid">
+      <div><dt>Dự án</dt><dd>SaaS OMS</dd></div>
+      <div><dt>Đường dẫn</dt><dd>D:\code\learn\SaaS</dd></div>
+      <div><dt>Repository</dt><dd>github.com/duydat246/SaaS-OMS</dd></div>
+      <div><dt>Branch / Commit</dt><dd>dev · d575a8c</dd></div>
+      <div><dt>Ngày xuất báo cáo</dt><dd>22/10/2026</dd></div>
+      <div><dt>Phạm vi</dt><dd>Backend · Frontend · DevOps</dd></div>
+    </dl>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <!-- ══════════ TOC ══════════ -->
+  <nav class="toc">
+    <h2>Mục lục</h2>
+    <a href="#s1">1. Tổng quan dự án</a>
+    <a href="#s2">2. Kiến trúc Backend</a>
+    <a href="#s3">3. API hiện có</a>
+    <a href="#s4">4. Kiến trúc Frontend</a>
+    <a href="#s5">5. Hạ tầng &amp; Triển khai</a>
+    <a href="#s6">6. Điểm mạnh</a>
+    <a href="#s7">7. Vấn đề phát hiện</a>
+    <a href="#s7-1" class="sub">7.1 Mức độ Cao — P0</a>
+    <a href="#s7-2" class="sub">7.2 Mức độ Trung bình — P1</a>
+    <a href="#s7-3" class="sub">7.3 Mức độ Thấp — P2</a>
+    <a href="#s8">8. Roadmap đề xuất</a>
+    <a href="#s9">9. Hướng dẫn chạy dev</a>
+    <a href="#s10">10. Kết luận</a>
+    <div class="toc-hint">💡 Xuất PDF: nhấn <kbd>Ctrl</kbd>+<kbd>P</kbd> → chọn <b>Save as PDF</b> → Paper <b>A4</b> → <b>Background graphics: On</b></div>
+  </nav>
+
+  <main>
+
+  <!-- ══════════ 1 ══════════ -->
+  <section id="s1">
+    <h2 class="sec"><span class="num">1</span> Tổng quan dự án</h2>
+    <p class="lede">SaaS Order Management System dành cho các shop TikTok Shop / Shopee — mô hình multi-tenant, mỗi bảng <code>shops</code> là một tenant độc lập.</p>
+
+    <div class="stats">
+      <div class="stat"><div class="v">39</div><div class="k">File Java backend</div></div>
+      <div class="stat"><div class="v">60</div><div class="k">File TS/HTML frontend</div></div>
+      <div class="stat"><div class="v">9</div><div class="k">Bảng CSDL</div></div>
+      <div class="stat"><div class="v">10</div><div class="k">API endpoint</div></div>
+      <div class="stat crit"><div class="v">9</div><div class="k">Lỗi mức Cao</div></div>
+      <div class="stat warn"><div class="v">16</div><div class="k">Lỗi mức TB</div></div>
+      <div class="stat info"><div class="v">9</div><div class="k">Lỗi mức Thấp</div></div>
+      <div class="stat crit"><div class="v">0</div><div class="k">Test tự động</div></div>
+    </div>
+
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>Hạng mục</th><th>Chi tiết</th></tr></thead>
+        <tbody>
+          <tr><td><b>Tên</b></td><td>SaaS OMS — quản lý đơn hàng đa-tenant cho shop TikTok/Shopee</td></tr>
+          <tr><td><b>Repository</b></td><td><code>github.com/duydat246/SaaS-OMS</code> — branch <code>dev</code> (có <code>main</code>), HEAD = <code>d575a8c</code></td></tr>
+          <tr><td><b>Backend</b></td><td>Spring Boot 3.3.4 · Java 21 · Maven · Spring Data JPA / Hibernate 6 · Flyway · springdoc-openapi</td></tr>
+          <tr><td><b>Frontend</b></td><td>Angular 18 (standalone + signals) · PrimeNG 17 · PrimeFlex 3 · Chart.js · exceljs</td></tr>
+          <tr><td><b>CSDL</b></td><td>MySQL 8.0, schema <code>saasoms</code>, quản lý bằng Flyway</td></tr>
+          <tr><td><b>Hạ tầng</b></td><td>Docker multi-stage · Docker Compose · GitHub Actions CI/CD · Cloudflare Tunnel · VPS Ubuntu 24.04 (1GB RAM + 2GB swap)</td></tr>
+          <tr><td><b>Ngôn ngữ UI</b></td><td>Tiếng Việt</td></tr>
+          <tr><td><b>Kiến trúc tổng thể</b></td><td>Monorepo 2 app (không có monorepo tooling), giao tiếp REST với wrapper thống nhất <code>ApiResponse&lt;T&gt; { success, data, message }</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Cấu trúc thư mục</h3>
+    <div class="tree">
+<span class="dir">SaaS/</span>
+├── <span class="dir">backend/</span>                    <span class="cm"># Spring Boot 3.3.4 · Java 21 · Maven</span>
+│   ├── <span class="dir">src/main/java/com/saasoms/</span>
+│   │   ├── <span class="dir">common/</span>            <span class="cm">config · exception · response · tenant · util</span>
+│   │   └── <span class="dir">modules/</span>           <span class="cm">auth · user · shop · customer · order</span>
+│   ├── <span class="dir">src/main/resources/</span>
+│   │   ├── application.yml          <span class="cm"># cấu hình chung + profile mặc định: dev</span>
+│   │   ├── application-dev.yml      <span class="cm"># datasource, show-sql: true</span>
+│   │   └── <span class="dir">db/migration/</span>
+│   │       └── V1__init_schema.sql  <span class="cm"># 9 bảng</span>
+│   ├── Dockerfile                   <span class="cm"># multi-stage maven → temurin-21-jre-alpine</span>
+│   └── pom.xml
+├── <span class="dir">frontend/</span>                   <span class="cm"># Angular 18 + PrimeNG 17</span>
+│   ├── <span class="dir">src/app/</span>
+│   │   ├── <span class="dir">core/</span>              <span class="cm">auth · interceptors · models</span>
+│   │   ├── <span class="dir">features/</span>          <span class="cm">auth · dashboard · orders · products</span>
+│   │   ├── <span class="dir">layout/</span>            <span class="cm">shell · sidebar · topbar</span>
+│   │   └── <span class="dir">shared/</span>            <span class="cm">excel-export.service</span>
+│   ├── nginx.conf                   <span class="cm"># proxy /api + /auth → backend:8080</span>
+│   ├── Dockerfile                   <span class="cm"># node:20-alpine → nginx:alpine</span>
+│   └── CLAUDE.md                    <span class="cm"># hướng dẫn cho AI agent (chưa commit — xem #06)</span>
+├── <span class="dir">.github/workflows/</span>
+│   └── deploy.yml                   <span class="cm"># build → push Docker Hub → SSH VPS → up -d</span>
+├── docker-compose.yml               <span class="cm"># dev: mysql:3307 · backend:8080 · frontend:4200</span>
+├── docker-compose.prod.yml          <span class="cm"># prod: memory limits, healthcheck, network riêng</span>
+├── setup-vps.md                     <span class="cm"># hướng dẫn triển khai VPS đầy đủ</span>
+└── <span class="dir">docs/</span>                      <span class="cm"># báo cáo phân tích (HTML)</span>
+    </div>
+  </section>
+
+  <!-- ══════════ 2 ══════════ -->
+  <section id="s2">
+    <h2 class="sec"><span class="num">2</span> Kiến trúc Backend</h2>
+    <p class="lede">Spring Boot 3.3.4 tổ chức theo module nghiệp vụ, hạ tầng dùng chung gói trong <code>common/</code>. Mô hình multi-tenant được áp dụng xuyên suốt từ tầng bảo mật xuống tầng repository.</p>
+
+    <h3>Cơ chế cách ly multi-tenant</h3>
+    <p>Luồng xác định tenant <b>không bao giờ nhận giá trị từ client</b>:</p>
+    <pre><span class="k">JWT</span> (claim <span class="s">tenantId</span>)
+  → <span class="f">JwtFilter</span>.<span class="p">set</span>(SecurityContext, JwtDetails)
+  → <span class="f">TenantContext</span>.set(tenantId)   <span class="c">// ThreadLocal</span>
+  → <span class="f">OrderService</span> đọc <span class="k">Long</span> tenantId = TenantContext.get()
+  → Repository query <span class="k">WHERE</span> o.shop.id = :shopId</pre>
+    <p>Đây là cách làm đúng: client không thể dùng IDOR để đọc dữ liệu của shop khác, vì mọi truy vấn đều gắn cứng <code>shopId</code> lấy từ token đã ký. <code>TenantContext</code> được <code>clear()</code> trong <code>finally</code> của filter để tránh rò rỉ sang request kế tiếp trong cùng thread.</p>
+
+    <h3>Cấu hình bảo mật</h3>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>Thành phần</th><th>Cấu hình</th><th>Vị trí</th></tr></thead>
+        <tbody>
+          <tr><td>Session</td><td><code>STATELESS</code></td><td><code>SecurityConfig.java:40</code></td></tr>
+          <tr><td>Access token</td><td>JWT HS256, hạn <b>15 phút</b>, chứa userId / tenantId / role / email</td><td><code>JwtService.java:29-39</code></td></tr>
+          <tr><td>Refresh token</td><td>UUID lưu DB, hạn <b>7 ngày</b>, <b>rotation</b> (xoá token cũ khi refresh)</td><td><code>AuthService.java:80-93</code></td></tr>
+          <tr><td>Mật khẩu</td><td>BCrypt</td><td><code>SecurityConfig.java:54-56</code></td></tr>
+          <tr><td>Vai trò</td><td><code>OWNER</code> / <code>STAFF</code> — <code>DELETE /api/orders/{id}</code> giới hạn OWNER</td><td><code>OrderController.java:68</code></td></tr>
+          <tr><td>Whitelist</td><td><code>/auth/**</code>, <code>/webhooks/**</code>, Swagger, mọi <code>OPTIONS</code></td><td><code>SecurityConfig.java:41-47</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Schema CSDL — 9 bảng</h3>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>Bảng</th><th>Vai trò</th><th>Trạng thái</th></tr></thead>
+        <tbody>
+          <tr><td><code>shops</code></td><td>Tenant — mỗi shop là 1 khách hàng SaaS</td><td><span class="badge b-ok">Có code</span></td></tr>
+          <tr><td><code>users</code></td><td>Tài khoản thuộc shop (FK <code>tenant_id</code>)</td><td><span class="badge b-ok">Có code</span></td></tr>
+          <tr><td><code>refresh_tokens</code></td><td>Refresh token + hạn dùng</td><td><span class="badge b-ok">Có code</span></td></tr>
+          <tr><td><code>customers</code></td><td>Khách hàng, upsert theo số điện thoại</td><td><span class="badge b-ok">Có code</span></td></tr>
+          <tr><td><code>orders</code></td><td>Đơn hàng, unique <code>(tenant_id, platform_source, platform_order_id)</code></td><td><span class="badge b-ok">Có code</span></td></tr>
+          <tr><td><code>order_items</code></td><td>Chi tiết đơn, cascade delete</td><td><span class="badge b-ok">Có code</span></td></tr>
+          <tr><td><code>products</code></td><td>Catalog sản phẩm + <code>platform_source</code> / <code>external_id</code></td><td><span class="badge b-crit">Chưa có code</span></td></tr>
+          <tr><td><code>skus</code></td><td>Biến thể sản phẩm, giá, tồn kho</td><td><span class="badge b-crit">Chưa có code</span></td></tr>
+          <tr><td><code>platform_connections</code></td><td>Token kết nối TikTok/Shopee, unique <code>(tenant_id, platform)</code></td><td><span class="badge b-crit">Chưa có code</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="callout"><b>Nhận xét:</b> 3 bảng cuối đã có schema và index đầy đủ nhưng chưa có entity / repository / service / controller nào đọc tới. Đây chính là phần "đường mở rộng" của sản phẩm (đồng bộ sàn thương mại điện tử) và là nơi cần đầu tư tiếp theo.</p>
+
+    <h3>State machine chuyển trạng thái đơn</h3>
+    <pre><span class="k">PENDING</span>   → <span class="k">CONFIRMED</span> | <span class="k">CANCELLED</span>
+<span class="k">CONFIRMED</span> → <span class="k">SHIPPED</span>   | <span class="k">CANCELLED</span>
+<span class="k">SHIPPED</span>   → <span class="k">DELIVERED</span> | <span class="k">CANCELLED</span>
+<span class="k">DELIVERED</span> → <span class="cm">(kết thúc)</span>
+<span class="k">CANCELLED</span> → <span class="cm">(kết thúc)</span></pre>
+    <p>Bảng transition khai báo tường minh trong <code>OrderService.java:34-40</code>, mọi chuyển tiếp không hợp lệ bị từ chối bằng <code>BusinessException.badRequest</code>. Đây là thiết kế tốt — trạng thái được kiểm ở tầng service chứ không phải ở controller.</p>
+
+    <h3>Lớp phản hồi &amp; xử lý lỗi</h3>
+    <div class="grid2">
+      <div class="mini">
+        <h4>ApiResponse&lt;T&gt;</h4>
+        <p><code>{ success, data, message }</code> — <code>@JsonInclude(NON_NULL)</code> nên <code>message</code> bị ẩn khi null. Tất cả controller đều trả về wrapper này, frontend map theo <code>r.data</code>.</p>
+      </div>
+      <div class="mini">
+        <h4>PageResponse&lt;T&gt;</h4>
+        <p><code>{ content[], meta: { page, size, totalElements, totalPages } }</code> — bọc trực tiếp <code>Page</code> của Spring Data.</p>
+      </div>
+      <div class="mini">
+        <h4>GlobalExceptionHandler</h4>
+        <p>5 handler: <code>BusinessException</code> (theo status), <code>MethodArgumentNotValidException</code> (gộp message field), <code>BadCredentialsException</code>, <code>AccessDeniedException</code>, và fallback 500.</p>
+      </div>
+      <div class="mini">
+        <h4>BusinessException</h4>
+        <p>Factory helpers <code>conflict / forbidden / badRequest / notFound</code> giúp mã lỗi nhất quán và trả HTTP status đúng (409, 403, 400, 404).</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════ 3 ══════════ -->
+  <section id="s3">
+    <h2 class="sec"><span class="num">3</span> API hiện có</h2>
+    <p class="lede">10 endpoint được frontend sử dụng. Tài liệu OpenAPI tự sinh tại <code>/api-docs</code> và <code>/swagger-ui.html</code>.</p>
+
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>Method</th><th>Path</th><th>Quyền</th><th>Mô tả</th></tr></thead>
+        <tbody>
+          <tr><td><code>POST</code></td><td><code>/auth/register</code></td><td><span class="badge b-neutral">public</span></td><td>Tạo shop + tài khoản OWNER, sinh slug duy nhất</td></tr>
+          <tr><td><code>POST</code></td><td><code>/auth/login</code></td><td><span class="badge b-neutral">public</span></td><td>Đăng nhập, trả access + refresh token</td></tr>
+          <tr><td><code>POST</code></td><td><code>/auth/refresh</code></td><td><span class="badge b-neutral">public</span></td><td>Xoá token cũ, cấp cặp token mới</td></tr>
+          <tr><td><code>POST</code></td><td><code>/auth/logout</code></td><td><span class="badge b-neutral">public</span></td><td>Thu hồi refresh token</td></tr>
+          <tr><td><code>GET</code></td><td><code>/api/orders</code></td><td><span class="badge b-low">JWT</span></td><td>Phân trang + lọc <code>status</code>, tìm <code>search</code></td></tr>
+          <tr><td><code>GET</code></td><td><code>/api/orders/stats</code></td><td><span class="badge b-low">JWT</span></td><td>Tổng / chờ / đã giao / doanh thu của shop hiện tại</td></tr>
+          <tr><td><code>GET</code></td><td><code>/api/orders/{id}</code></td><td><span class="badge b-low">JWT</span></td><td>Chi tiết đơn (đã lọc theo tenant)</td></tr>
+          <tr><td><code>POST</code></td><td><code>/api/orders</code></td><td><span class="badge b-low">JWT</span></td><td>Tạo đơn thủ công, upsert khách theo SĐT</td></tr>
+          <tr><td><code>PATCH</code></td><td><code>/api/orders/{id}/status</code></td><td><span class="badge b-low">JWT</span></td><td>Chuyển trạng thái, có validate transition</td></tr>
+          <tr><td><code>DELETE</code></td><td><code>/api/orders/{id}</code></td><td><span class="badge b-high">OWNER</span></td><td>Hủy đơn (chuyển sang CANCELLED)</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p class="callout"><b>Chưa có API:</b> products, SKUs, customers (danh sách), users (quản lý thành viên), platform connections, webhooks (đã mở <code>permitAll</code> trong SecurityConfig nhưng chưa có controller). Vì vậy menu "Sản phẩm" ở sidebar hiện không thể hoạt động với dữ liệu thật.</p>
+  </section>
+
+  <!-- ══════════ 4 ══════════ -->
+  <section id="s4">
+    <h2 class="sec"><span class="num">4</span> Kiến trúc Frontend</h2>
+    <p class="lede">Angular 18 hoàn toàn standalone — không có NgModule, không có thư viện quản lý state bên ngoài; trạng thái đi qua Angular signals và RxJS.</p>
+
+    <h3>Luồng xử lý request</h3>
+    <pre>Component (signal / Observable)
+  → Service (HttpClient + HttpParams)
+  → <span class="f">jwtInterceptor</span>
+      1. gắn header <span class="k">Authorization</span>: Bearer &lt;accessToken&gt;
+      2. lỗi 401/403 &amp; URL khác /auth → <span class="k">POST</span> /auth/refresh
+      3. retry request gốc 1 lần với token mới
+      4. refresh thất bại → logout + chuyển về /auth/login
+  → Backend</pre>
+    <p>Interceptor được đăng ký qua <code>provideHttpClient(withInterceptors([jwtInterceptor]))</code>. Cơ chế <code>shareReplay(1)</code> + biến <code>refreshInFlight$</code> trong <code>AuthService</code> chống gọi refresh song song khi nhiều request cùng gặp 401.</p>
+
+    <h3>Auth &amp; phiên làm việc</h3>
+    <ul>
+      <li><code>AuthService</code> giữ <code>currentUser</code> (signal), <code>isLoggedIn</code> và <code>isOwner</code> (computed).</li>
+      <li><b>Session lưu trong <code>sessionStorage</code></b> — không phải <code>localStorage</code>. (Tài liệu <code>CLAUDE.md</code> đang ghi sai, xem #25.)</li>
+      <li><code>authGuard</code> bảo vệ toàn bộ route dưới shell layout; <code>/auth/**</code> nằm ngoài guard.</li>
+    </ul>
+
+    <h3>Cấu trúc routing</h3>
+    <pre><span class="k">/auth/**</span>            → lazy  <span class="c">(không guard)</span>
+<span class="k">/</span>                   → ShellComponent  <span class="c">(authGuard)</span>
+  ├── <span class="k">/dashboard</span>       → lazy
+  ├── <span class="k">/orders</span>          → lazy
+  │     ├── <span class="k">/orders/new</span>    → OrderFormComponent
+  │     └── <span class="k">/orders/:id</span>    → OrderDetailComponent  <span class="c">(id nhận qua @Input)</span>
+  └── <span class="k">/products</span>        → lazy  <span class="c">⚠ demo placeholder</span></pre>
+    <p><code>withComponentInputBinding()</code> cho phép <code>OrderDetailComponent</code> nhận <code>@Input() id</code> trực tiếp từ tham số route. <code>TopbarComponent</code> tự dựng <code>pageTitle</code> từ URL qua <code>setTitleFromUrl()</code> — cần cập nhật hàm này mỗi khi thêm route mới.</p>
+
+    <h3>Path aliases</h3>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>Alias</th><th>Trỏ tới</th></tr></thead>
+        <tbody>
+          <tr><td><code>@core/*</code></td><td><code>src/app/core/*</code></td></tr>
+          <tr><td><code>@shared/*</code></td><td><code>src/app/shared/*</code></td></tr>
+          <tr><td><code>@features/*</code></td><td><code>src/app/features/*</code></td></tr>
+          <tr><td><code>@env/*</code></td><td><code>src/environments/*</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>Không có alias <code>@layout/*</code> — các import nội bộ layout vẫn dùng đường dẫn tương đối.</p>
+
+    <h3>Điểm UI</h3>
+    <ul>
+      <li>Layout "Apollo": sidebar + topbar, CSS class <code>apollo-layout</code>, hỗ trợ thu gọn sidebar và overlay điều hướng trên mobile (<code>ShellLayoutService</code>).</li>
+      <li>Bảng dữ liệu dùng <code>p-table</code> lazy + paginator, có custom paginator cho dashboard (1 … 2 3 4 … 10).</li>
+      <li>Biểu đồ dùng <code>ChartModule</code> (Chart.js): bar doanh thu/lợi nhuận + doughnut theo nhóm hàng.</li>
+      <li>Export Excel bằng <code>exceljs</code> (<code>ExcelExportService</code>).</li>
+      <li>Chuẩn PrimeNG: <code>[style]</code> nhận object, <code>[severity]</code> của <code>p-tag</code> phải đúng union <code>'success'|'info'|'secondary'|'contrast'|'warning'|'danger'</code>.</li>
+    </ul>
+  </section>
+
+  <!-- ══════════ 5 ══════════ -->
+  <section id="s5">
+    <h2 class="sec"><span class="num">5</span> Hạ tầng &amp; Triển khai</h2>
+    <p class="lede">Docker Compose cho cả dev lẫn prod, CI/CD tự động build và đẩy lên VPS qua SSH, Cloudflare Tunnel làm lớp trước (edge) thay cho expose trực tiếp.</p>
+
+    <div class="grid2">
+      <div class="mini">
+        <h4>docker-compose.yml (dev)</h4>
+        <ul>
+          <li>MySQL <code>mysql:8.0</code> — port <b>3307</b> (tránh đụng MySQL local), volume <code>mysqldata</code>, healthcheck <code>mysqladmin ping</code></li>
+          <li>Backend build từ <code>./backend</code> — port <b>8080</b>, profile <code>dev</code></li>
+          <li>Frontend build từ <code>./frontend</code> — port <b>4200</b></li>
+          <li>Backend <code>depends_on: mysql (service_healthy)</code></li>
+        </ul>
+      </div>
+      <div class="mini">
+        <h4>docker-compose.prod.yml</h4>
+        <ul>
+          <li>Dùng image từ Docker Hub (<code>${DOCKERHUB_USERNAME}/saasoms-*</code>), không build tại VPS</li>
+          <li>Giới hạn RAM: MySQL <b>256M</b>, JVM <b>320M</b> (<code>-Xmx256m</code>), nginx <b>32M</b></li>
+          <li>MySQL tune: buffer pool 128M, max-connections 50, tắt performance-schema, skip-name-resolve</li>
+          <li>Network riêng <code>saasoms-net</code> — chỉ nginx publish ra ngoài (port 80)</li>
+          <li>Secrets lấy từ <code>.env</code> trên VPS</li>
+        </ul>
+      </div>
+    </div>
+
+    <h3>nginx.conf — reverse proxy</h3>
+    <p>Proxy <code>/api/</code> và <code>/auth/</code> → <code>http://backend:8080</code>, phần còn lại là SPA fallback <code>try_files $uri $uri/ /index.html</code>. Vì frontend và API cùng origin qua nginx, <b>CORS không cần thiết</b> — nhưng cấu hình hiện tại lại bật CORS theo kiểu reflect Origin (xem #01).</p>
+
+    <h3>CI/CD — <code>.github/workflows/deploy.yml</code></h3>
+    <pre><span class="k">push</span> (main | dev)
+  → checkout
+  → docker login (DOCKERHUB_USERNAME / DOCKERHUB_TOKEN)
+  → build &amp; push <span class="f">saasoms-backend:latest</span>
+  → build &amp; push <span class="f">saasoms-frontend:latest</span>
+  → SSH VPS:
+      cd /var/www/saasoms
+      docker compose -f docker-compose.prod.yml pull
+      docker compose -f docker-compose.prod.yml up -d
+      docker image prune -f</pre>
+
+    <h3>Kiểm soát tài nguyên trên VPS</h3>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>Service</th><th>RAM tối đa</th><th>Ghi chú</th></tr></thead>
+        <tbody>
+          <tr><td>OS + Docker</td><td>~200MB</td><td>Ubuntu 24.04</td></tr>
+          <tr><td>MySQL</td><td>256MB</td><td><code>--innodb-buffer-pool-size=128M</code></td></tr>
+          <tr><td>Backend (JVM)</td><td>320MB</td><td><code>-Xms128m -Xmx256m</code></td></tr>
+          <tr><td>Nginx Frontend</td><td>32MB</td><td>—</td></tr>
+          <tr><td>Swap buffer</td><td>2GB</td><td>Bắt buộc với RAM 1GB</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p><code>setup-vps.md</code> mô tả trọn quy trình: tạo Docker Hub PAT, khai báo 5 GitHub Secrets, tạo SSH key, cài Docker + swap, dựng Cloudflare Tunnel, và mục xử lý sự cố (Error 1033, xem logs, restart thủ công).</p>
+  </section>
+
+  <!-- ══════════ 6 ══════════ -->
+  <section id="s6">
+    <h2 class="sec"><span class="num">6</span> Điểm mạnh</h2>
+    <p class="lede">Nền tảng kiến trúc và vận hành khá tốt so với mức độ trưởng thành của dự án — phần lớn rủi ro nằm ở cấu hình triển khai và các tính năng chưa hoàn thiện, không phải ở thiết kế nền tảng.</p>
+
+    <div class="strengths">
+      <div class="strength"><div class="h">✓ Cách ly multi-tenant chặt chẽ</div><p>Tenant lấy từ JWT đã ký, không bao giờ từ client; mọi query đều gắn <code>shop.id</code>. Loại bỏ hoàn toàn lớp lỗi IDOR.</p></div>
+      <div class="strength"><div class="h">✓ Refresh token rotation</div><p>Token cũ bị xoá khi refresh, bị thu hồi khi logout. Cơ chế quay vòng token đúng chuẩn, giảm rủi ro replay token.</p></div>
+      <div class="strength"><div class="h">✓ State machine đơn hàng</div><p>Bảng transition khai báo tường minh, validate ở tầng service, có hỗ trợ chuyển sang CANCELLED từ mọi trạng thái trung gian.</p></div>
+      <div class="strength"><div class="h">✓ Schema có versioning</div><p>Flyway migration <code>V1__init_schema.sql</code> — deploy không lo mất dữ liệu, thêm bảng sau này bằng <code>V2__</code>.</p></div>
+      <div class="strength"><div class="h">✓ Docker image nhỏ &amp; an toàn cho VPS 1GB</div><p>Multi-stage build (alpine), memory limit cho từng container, healthcheck MySQL, swap 2GB — thiết kế đúng bài toán hạ tầng thực tế.</p></div>
+      <div class="strength"><div class="h">✓ Tài liệu vận hành đầy đủ</div><p><code>setup-vps.md</code> bao phủ từ tạo token, khai báo secrets đến xử lý sự cố — giảm rào cản cho người triển khai mới.</p></div>
+      <div class="strength"><div class="h">✓ Hợp đồng API nhất quán</div><p><code>ApiResponse</code> / <code>PageResponse</code> thống nhất hai đầu, có OpenAPI tự sinh, frontend map theo <code>r.data</code> xuyên suốt.</p></div>
+      <div class="strength"><div class="h">✓ Frontend hiện đại &amp; nhất quán về signal</div><p>Standalone components, lazy routes, <code>shareReplay</code> chống refresh trùng, <code>takeUntilDestroyed</code> thay cho manual unsubscribe.</p></div>
+    </div>
+  </section>
+
+  <!-- ══════════ 7 ══════════ -->
+  <section id="s7">
+    <h2 class="sec"><span class="num">7</span> Vấn đề phát hiện</h2>
+    <p class="lede">34 phát hiện đã được đối chiếu trực tiếp với mã nguồn. Phân loại theo mức độ ảnh hưởng: <b>Cao</b> = lỗ hổng bảo mật / sự cố chắc chắn xảy ra · <b>Trung bình</b> = sai lệch chức năng / rủi ro vận hành · <b>Thấp</b> = nợ kỹ thuật, cải thiện chất lượng.</p>
+
+    <!-- 7.1 -->
+    <h3 id="s7-1">7.1 &nbsp;Mức độ Cao — cần xử lý ngay (P0)</h3>
+
+    <div class="issue crit">
+      <div class="issue-h"><span class="num">#01</span><span class="t">nginx phản chiếu Origin không kiểm tra allowlist — mọi website đều gọi được API kèm credentials</span></div>
+      <p>Cấu hình dùng <code>add_header 'Access-Control-Allow-Origin' $http_origin always</code> — biến <code>Origin</code> của request thành giá trị trả về, không đối chiếu danh sách cho phép. Kết hợp <code>Access-Control-Allow-Credentials: true</code>, bất kỳ website nào cũng có thể gọi API bằng cookie/credential của người dùng.</p>
+      <p><span class="loc">nginx.conf:10, 25, 35, 46</span></p>
+      <div class="fix"><b>Cách sửa:</b> App và API đã cùng origin qua nginx nên <b>bỏ hẳn</b> khối CORS trong <code>nginx.conf</code> (kể cả block OPTIONS), đồng thời xoá <code>proxy_set_header Origin ""</code> — cả hai đều là hack lách CORS của Spring và không còn cần thiết.</div>
+    </div>
+
+    <div class="issue crit">
+      <div class="issue-h"><span class="num">#02</span><span class="t">Production đang chạy profile <code>dev</code> — bật <code>show-sql</code>, log toàn bộ SQL và log file</span></div>
+      <p><code>SPRING_PROFILES_ACTIVE: dev</code> trong compose prod kích hoạt <code>application-dev.yml</code> với <code>spring.jpa.show-sql: true</code> và log level <code>com.saasoms: DEBUG</code>. Trên VPS, mọi câu SQL (kèm dữ liệu khách hàng) đều bị in ra stdout → rò rỉ dữ liệu và nghẽn I/O.</p>
+      <p><span class="loc">docker-compose.prod.yml:33 · application-dev.yml:8,12</span></p>
+      <div class="fix"><b>Cách sửa:</b> Tạo <code>application-prod.yml</code> (<code>show-sql: false</code>, log level <code>INFO</code>), đổi compose prod sang <code>SPRING_PROFILES_ACTIVE=prod</code>.</div>
+    </div>
+
+    <div class="issue crit">
+      <div class="issue-h"><span class="num">#03</span><span class="t"><code>shippingFee</code> / <code>discount</code> / <code>unitPrice</code> thiếu <code>@NotNull</code> → NullPointerException trả về HTTP 500</span></div>
+      <p>Các field có default <code>BigDecimal.ZERO</code> khi <i>khong</i> được gửi, nhưng nếu client gửi tường minh <code>"shippingFee": null</code> thì Jackson ghi đè giá trị null → <code>subtotal.add(req.getShippingFee())</code> ném NPE. Tương tự <code>unitPrice</code> bị null sẽ làm <code>multiply(null)</code> lỗi.</p>
+      <p><span class="loc">CreateOrderRequest.java · OrderService.java:89, 103-105</span></p>
+      <div class="fix"><b>Cách sửa:</b> Thêm <code>@NotNull</code> cho <code>shippingFee</code>, <code>discount</code>, <code>unitPrice</code> (kèm <code>@PositiveOrZero</code> sẵn có).</div>
+    </div>
+
+    <div class="issue crit">
+      <div class="issue-h"><span class="num">#04</span><span class="t"><code>quantity</code> không giới hạn dương → tạo đơn với số lượng âm làm tổng tiền âm</span></div>
+      <p><code>OrderItemRequest.quantity</code> là <code>int</code> mặc định 1 nhưng không có <code>@Positive</code>. Gửi <code>quantity: -5</code> với <code>unitPrice: 100000</code> sẽ tạo <code>totalPrice = -500000</code>, kéo <code>subtotal</code> và <code>totalAmount</code> âm — thao túng số liệu doanh thu.</p>
+      <p><span class="loc">CreateOrderRequest.OrderItemRequest · OrderService.java:88-101</span></p>
+      <div class="fix"><b>Cách sửa:</b> <code>@Positive(message = "Quantity must be at least 1")</code> và kiểm tra <code>totalAmount &gt;= 0</code> trước khi lưu.</div>
+    </div>
+
+    <div class="issue crit">
+      <div class="issue-h"><span class="num">#05</span><span class="t">Feature "Sản phẩm" là trang demo vẽ pháo hoa Canvas — không phải chức năng quản lý sản phẩm</span></div>
+      <p>Toàn bộ <code>features/products/</code> không liên quan gì tới sản phẩm: <code>ProductListComponent</code> vẽ pháo hoa hình trái tim bằng Canvas với dòng chữ <code>name = "vợ yêu"</code>, <code>message = "luôn xinh đẹp và yêu anh"</code>. <code>ProductFormComponent</code> và <code>ProductDetailComponent</code> là component rỗng (template 3 dòng). Backend hoàn toàn không có module products/skus dù DB đã có bảng.</p>
+      <p>Sidebar đang dẫn người dùng tới menu "Sản phẩm" giả, và commit <code>d575a8c feat: add feature products</code> gây hiểu nhầm về trạng thái tính năng.</p>
+      <p><span class="loc">features/products/** · modules/ (thiếu product) · sidebar.component.ts:58</span></p>
+      <div class="fix"><b>Cách sửa:</b> <b>Ẩn menu "Sản phẩm"</b> cho tới khi có API thật; viết backend module <code>products</code> + <code>skus</code> trước rồi mới làm lại UI.</div>
+    </div>
+
+    <div class="issue crit">
+      <div class="issue-h"><span class="num">#06</span><span class="t"><code>.gitignore</code> chứa <code>*.md</code> — mọi tài liệu Markdown đều không được commit</span></div>
+      <p>Quy tắc <code>*.md</code> ở thư mục gốc chặn toàn bộ file Markdown ở mọi cấp. Hệ quả quan sát được: <code>frontend/CLAUDE.md</code> và <code>frontend/PROMPT_TEMPLATE.md</code> bị ignore dù đã tạo và dùng; tài liệu API / README mới cũng sẽ biến mất khi commit.</p>
+      <p><span class="loc">.gitignore:7</span></p>
+      <div class="fix"><b>Cách sửa:</b> Xoá dòng <code>*.md</code>, thay bằng danh sách cụ thể (<code>.history/</code>, <code>.claude/</code>, <code>skills-lock.json</code>); sau đó <code>git add -f</code> cho các file md đáng giữ.</div>
+    </div>
+
+    <div class="issue crit">
+      <div class="issue-h"><span class="num">#07</span><span class="t">Swagger UI và <code>/api-docs</code> mở công khai ở production</span></div>
+      <p><code>permitAll()</code> cho <code>/swagger-ui/**</code>, <code>/api-docs/**</code> giúp dev nhưng ở production làm lộ toàn bộ API contract, mô hình dữ liệu và các endpoint quản trị — giúp kẻ tấn công lập bản đồ API.</p>
+      <p><span class="loc">SecurityConfig.java:44</span></p>
+      <div class="fix"><b>Cách sửa:</b> Tách danh sách whitelist theo profile — chỉ cho phép ở <code>dev</code>, ở <code>prod</code> chặn hoặc bảo vệ bằng role.</div>
+    </div>
+
+    <div class="issue crit">
+      <div class="issue-h"><span class="num">#08</span><span class="t">Secrets mặc định nằm trong mã nguồn</span></div>
+      <p><code>JWT_SECRET</code> có sẵn giá trị cố định <code>dev-secret-key-must-be-at-least-32-chars-long</code>; mật khẩu MySQL <code>dev/dev</code> và <code>root/123456</code> nằm trong compose và <code>application-dev.yml</code>. Nếu biến môi trường không được override, production sẽ chạy bằng secret mặc định.</p>
+      <p><span class="loc">docker-compose.yml:26-29 · application-dev.yml:5</span></p>
+      <div class="fix"><b>Cách sửa:</b> Bỏ giá trị default khỏi mã nguồn (bắt buộc truyền qua env), tách <code>application-prod.yml</code> không chứa secret, dùng <code>.env</code> (đã có trong <code>.gitignore</code>).</div>
+    </div>
+
+    <div class="issue crit">
+      <div class="issue-h"><span class="num">#09</span><span class="t">Không rate-limit cho <code>/auth/login</code> — dễ bị brute force mật khẩu</span></div>
+      <p>Endpoint login không có giới hạn số lần thử, không có khóa tài khoản tạm thời, không có delay tăng dần. <code>application-dev.yml</code> còn bật <code>show-sql</code> nên mọi lần thử sai đều để lại dấu vết trong log — thuận tiện cho việc dò mật khẩu.</p>
+      <p><span class="loc">AuthController.java:31 · AuthService.java:63-77</span></p>
+      <div class="fix"><b>Cách sửa:</b> Thêm rate-limit theo IP/email (Bucket4j hoặc filter đếm số lần), khóa tạm thời sau N lần thất bại, ghi log audit các lần thử.</div>
+    </div>
+
+    <!-- 7.2 -->
+    <h3 id="s7-2">7.2 &nbsp;Mức độ Trung bình — nên xử lý trong sprint tới (P1)</h3>
+
+    <div class="issue med">
+      <div class="issue-h"><span class="num">#10</span><span class="t">Dashboard dùng số liệu giả cho toàn bộ biểu đồ</span></div>
+      <p>Bar chart (doanh thu/lợi nhuận theo T2–CN) và doughnut (Điện tử/Thời trang/Gia dụng) đều là mảng số hardcode trong component. Bộ lọc <code>selectedPeriod</code> / <code>DASHBOARD_PERIOD_OPTIONS</code> không có tác dụng — đổi lựa chọn không làm gì. Người dùng dễ tưởng đây là số liệu thật.</p>
+      <p><span class="loc">dashboard.component.ts:113-179</span></p>
+      <div class="fix"><b>Cách sửa:</b> Thêm API <code>GET /api/orders/stats?from&amp;to</code> trả dữ liệu theo kỳ và theo nhóm hàng, thay toàn bộ số liệu giả.</div>
+    </div>
+
+    <div class="issue med">
+      <div class="issue-h"><span class="num">#11</span><span class="t">Không có test tự động nào — backend không có <code>src/test</code>, frontend chỉ có spec rỗng, CI không chạy test</span></div>
+      <p>Ba file spec frontend là template mặc định do CLI sinh ra (chỉ assert title). Backend hoàn toàn không có thư mục test dù <code>pom.xml</code> đã khai báo <code>spring-boot-starter-test</code> và <code>spring-security-test</code>. Workflow CI chỉ build Docker image, không chạy test — mọi hồi quy lên production đều không bị chặn.</p>
+      <p><span class="loc">backend/src/test (không tồn tại) · frontend/**/*.spec.ts · deploy.yml</span></p>
+      <div class="fix"><b>Cách sửa:</b> Ưu tiên test cho các luồng rủi ro cao: tenant isolation (user A không đọc được data shop B), state machine chuyển trạng thái, refresh token rotation, interceptor 401/403. Thêm bước <code>mvn test</code> + <code>npm test</code> vào CI trước khi build image.</div>
+    </div>
+
+    <div class="issue med">
+      <div class="issue-h"><span class="num">#12</span><span class="t"><code>setInterval</code> không được huỷ trong <code>ProductListComponent</code> → memory leak</span></div>
+      <p><code>startShow()</code> gọi <code>setInterval(() =&gt; this.createFirework(), 500)</code> nhưng <code>ngOnDestroy()</code> chỉ <code>disconnect()</code> ResizeObserver, không <code>clearInterval</code>. Mỗi lần vào lại route là thêm một interval sống mãi, mỗi tick lại sinh thêm particle — bộ nhớ và CPU tăng dần. <code>requestAnimationFrame</code> cũng không được huỷ.</p>
+      <p><span class="loc">product-list.component.ts:148-149, 80-82</span></p>
+      <div class="fix"><b>Cách sửa:</b> Lưu id interval và frame id vào field, <code>clearInterval()</code> + <code>cancelAnimationFrame()</code> trong <code>ngOnDestroy</code>. (Kèm #05 — trang này nên bị gỡ bỏ.)</div>
+    </div>
+
+    <div class="issue med">
+      <div class="issue-h"><span class="num">#13</span><span class="t">Spring trả <b>403</b> thay vì <b>401</b> khi token thiếu/hết hạn</span></div>
+      <p>Không cấu hình <code>AuthenticationEntryPoint</code> nên request không có token tới endpoint yêu cầu xác thực nhận 403 (AccessDenied) thay vì 401 (Unauthorized) — sai ngữ nghĩa HTTP và làm client khó phân biệt "chưa đăng nhập" với "không đủ quyền". Frontend hiện phải bắt cả 401 lẫn 403 mới kịp refresh.</p>
+      <p><span class="loc">SecurityConfig.java:36-51 · jwt.interceptor.ts:33-35</span></p>
+      <div class="fix"><b>Cách sửa:</b> Thêm bean <code>AuthenticationEntryPoint</code> trả 401 với body <code>ApiResponse</code> thống nhất; phân biệt rõ 401 (chưa xác thực) và 403 (đã xác thực nhưng thiếu quyền).</div>
+    </div>
+
+    <div class="issue med">
+      <div class="issue-h"><span class="num">#14</span><span class="t"><code>generateSlug</code> có race condition khi hai shop trùng tên đăng ký đồng thời</span></div>
+      <p>Vòng lặp <code>while (shopRepository.existsBySlug(slug))</code> rồi <code>save</code> — hai request đồng thời cùng tên shop đều thấy slug chưa tồn tại, cùng insert, một trong hai vi phạm unique constraint và nhận HTTP 500 thay vì lỗi business thân thiện.</p>
+      <p><span class="loc">AuthService.java:125-138</span></p>
+      <div class="fix"><b>Cách sửa:</b> Bắt <code>DataIntegrityViolationException</code> để trả 409, hoặc sinh slug có hậu tố ngẫu nhiên (nanoID) để không cần kiểm tra vòng lặp.</div>
+    </div>
+
+    <div class="issue med">
+      <div class="issue-h"><span class="num">#15</span><span class="t">Tham số <code>size</code> phân trang không được giới hạn</span></div>
+      <p><code>GET /api/orders?size=1000000</code> được Spring chấp nhận và tải toàn bộ bảng vào RAM rồi map sang DTO — rủi ro DoS và OOM trên VPS 1GB (JVM chỉ có 256MB heap).</p>
+      <p><span class="loc">OrderController.java:35</span></p>
+      <div class="fix"><b>Cách sửa:</b> Validate <code>size</code> trong khoảng 1–100, hoặc dùng <code>Pageable</code> với <code>@Max(100)</code> / <code>setMaxPageSize()</code>.</div>
+    </div>
+
+    <div class="issue med">
+      <div class="issue-h"><span class="num">#16</span><span class="t">Export Excel giới hạn cứng 1000 dòng, không cảnh báo khi bị cắt</span></div>
+      <p>Dashboard gọi <code>getOrders({ page: 0, size: 1000 })</code> rồi xuất Excel. Với shop có hơn 1000 đơn, file xuất ra bị thiếu dữ liệu mà người dùng không hề được báo.</p>
+      <p><span class="loc">dashboard.component.ts:322</span></p>
+      <div class="fix"><b>Cách sửa:</b> Thêm endpoint export chuyên biệt stream dữ liệu, hoặc phân trang vòng lặp và ghi báo "đã xuất N/M đơn" khi vượt giới hạn.</div>
+    </div>
+
+    <div class="issue med">
+      <div class="issue-h"><span class="num">#17</span><span class="t">Tìm kiếm đơn hàng quá hẹp — chỉ khớp tên khách hàng hoặc mã đơn</span></div>
+      <p>Query chỉ có <code>LOWER(o.customer.fullName) LIKE ...</code> hoặc <code>CAST(o.id AS string) LIKE ...</code>. Không tìm được theo số điện thoại, mã đơn sàn, hay tên sản phẩm trong đơn — ba nhu cầu tra cứu phổ biến nhất khi xử lý đơn hàng.</p>
+      <p><span class="loc">OrderRepository.java:22-34</span></p>
+      <div class="fix"><b>Cách sửa:</b> Bổ sung <code>o.customer.phone</code>, <code>o.platformOrderId</code> và <code>EXISTS</code> trên <code>order_items.productName</code>.</div>
+    </div>
+
+    <div class="issue med">
+      <div class="issue-h"><span class="num">#18</span><span class="t">Tham số <code>sort</code> gửi từ frontend bị backend bỏ qua</span></div>
+      <p>Frontend luôn gửi <code>sort=createdAt,desc</code> nhưng controller không khai báo tham số <code>sort</code> và luôn cố định <code>Sort.by("createdAt").descending()</code>. Hiện tại vô hại vì giá trị trùng khớp, nhưng giao diện "sắp xếp theo cột" sẽ không bao giờ hoạt động.</p>
+      <p><span class="loc">order.service.ts:23 · OrderController.java:36</span></p>
+      <div class="fix"><b>Cách sửa:</b> Nhận <code>sort</code> và whitelist các trường được phép sắp xếp (chống sort injection), hoặc bỏ gửi tham số thừa.</div>
+    </div>
+
+    <div class="issue med">
+      <div class="issue-h"><span class="num">#19</span><span class="t">Chính sách mật khẩu quá yếu — tối thiểu 6 ký tự, không có kiểm tra độ mạnh</span></div>
+      <p><code>RegisterRequest</code> chỉ yêu cầu <code>@Size(min = 6)</code>, không có yêu cầu hoa/thường/số/ký tự đặc biệt, không chặn mật khẩu phổ biến. Đây là điểm vào đầu tiên của brute force (#09).</p>
+      <p><span class="loc">RegisterRequest.java</span></p>
+      <div class="fix"><b>Cách sửa:</b> Nâng tối thiểu lên 8–10 ký tự, kiểm tra độ mạnh, và thêm giới hạn độ dài tối đa (chống DoS qua BCrypt với chuỗi cực dài).</div>
+    </div>
+
+    <div class="issue med">
+      <div class="issue-h"><span class="num">#20</span><span class="t">CI/CD deploy cả <code>main</code> lẫn <code>dev</code> ra cùng một VPS, không có môi trường staging</span></div>
+      <p>Workflow trigger trên cả hai nhánh đều dẫn tới cùng lệnh SSH triển khai. Một lần push nhầm lên <code>dev</code> cũng lên production. Không có bước kiểm tra sau deploy, không có rollback.</p>
+      <p><span class="loc">deploy.yml:5, 33-47</span></p>
+      <div class="fix"><b>Cách sửa:</b> <code>dev</code> chỉ build + chạy test; chỉ <code>main</code> mới deploy. Thêm bước healthcheck sau <code>up -d</code> và script rollback về tag image trước.</div>
+    </div>
+
+    <div class="issue med">
+      <div class="issue-h"><span class="num">#21</span><span class="t">Image tag <code>:latest</code> — không rollback được và không truy vết được phiên bản</span></div>
+      <p>Cả hai image đều gắn <code>:latest</code>. Khi deploy lỗi không có image phiên bản cũ để quay lại, và không xác định được server đang chạy mã nguồn nào.</p>
+      <p><span class="loc">deploy.yml:24, 31</span></p>
+      <div class="fix"><b>Cách sửa:</b> Gắn tag theo commit SHA (<code>:${{ github.sha }}</code> hoặc <code>:v1.2.3</code>), giữ tag <code>latest</code> làm alias trỏ tới bản mới nhất.</div>
+    </div>
+
+    <div class="issue med">
+      <div class="issue-h"><span class="num">#22</span><span class="t">Container chạy với quyền root và không có <code>.dockerignore</code></span></div>
+      <p>Cả backend (JRE) và frontend (nginx) đều chạy root. Thêm nữa, <code>frontend/Dockerfile</code> dùng <code>COPY . .</code> mà không có <code>.dockerignore</code> → có thể đóng gói <code>node_modules</code>, <code>dist</code>, <code>.angular</code>, <code>.history</code> vào build context, làm build chậm và image nặng.</p>
+      <p><span class="loc">backend/Dockerfile · frontend/Dockerfile</span></p>
+      <div class="fix"><b>Cách sửa:</b> Thêm user không phảm root trong cả hai image, thêm <code>.dockerignore</code> cho từng app (<code>node_modules</code>, <code>dist</code>, <code>.angular</code>, <code>.history</code>, <code>.git</code>).</div>
+    </div>
+
+    <div class="issue med">
+      <div class="issue-h"><span class="num">#23</span><span class="t"><code>orders.ordered_at</code> không bao giờ được ghi → trường luôn <code>null</code></span></div>
+      <p>Cột <code>ordered_at TIMESTAMP NULL</code> tồn tại trong schema và được trả về trong <code>OrderResponse</code>, nhưng <code>OrderService.createOrder()</code> không gọi <code>setOrderedAt(...)</code> — mọi đơn đều có <code>orderedAt = null</code>, kể cả đơn mới tạo.</p>
+      <p><span class="loc">Order.java:69 · OrderService.java:107-116 · OrderResponse.java:25,65</span></p>
+      <div class="fix"><b>Cách sửa:</b> Set <code>orderedAt = LocalDateTime.now()</code> khi tạo đơn (hoặc dùng <code>@CreationTimestamp</code> nếu bỏ cột khỏi migration).</div>
+    </div>
+
+    <div class="issue med">
+      <div class="issue-h"><span class="num">#24</span><span class="t">Chưa có tích hợp TikTok/Shopee dù schema đã sẵn sàng</span></div>
+      <p>Bảng <code>platform_connections</code> (token, refresh token, thời hạn, unique theo tenant+platform) đã được thiết kế đầy đủ nhưng không có entity hay service nào dùng tới. Các cột <code>platform_source</code> / <code>platform_order_id</code> / <code>external_id</code> trên orders, products, customers cũng đang để trống — hệ thống hiện chỉ quản lý đơn nhập tay.</p>
+      <p><span class="loc">V1__init_schema.sql:126-139</span></p>
+      <div class="fix"><b>Cách sửa:</b> Xem đây là hướng mở rộng chính của sản phẩm: viết module <code>platform</code> đọc/ghi <code>platform_connections</code>, rồi thêm job đồng bộ đơn hàng theo lịch.</div>
+    </div>
+
+    <div class="issue med">
+      <div class="issue-h"><span class="num">#25</span><span class="t">Tài liệu <code>CLAUDE.md</code> lệch với mã nguồn</span></div>
+      <p>Tài liệu ghi session lưu ở <code>localStorage</code> nhưng code dùng <code>sessionStorage</code>; mục "Routing structure" không liệt kê route <code>/products</code> đã tồn tại; mục "Order status" mô tả <code>TagSeverity</code> nên định nghĩa ở một chỗ nhưng thực tế khai báo 3 nơi (xem #26). Tài liệu sai dẫn tới agent sửa nhầm hướng.</p>
+      <p><span class="loc">frontend/CLAUDE.md:34, 36-44, 64</span></p>
+      <div class="fix"><b>Cách sửa:</b> Cập nhật <code>CLAUDE.md</code> cho khớp code thực tế (và nhớ commit file này sau khi sửa #06).</div>
+    </div>
+
+    <!-- 7.3 -->
+    <h3 id="s7-3">7.3 &nbsp;Mức độ Thấp — nợ kỹ thuật (P2)</h3>
+
+    <div class="issue low">
+      <div class="issue-h"><span class="num">#26</span><span class="t">Kiểu <code>TagSeverity</code> bị khai báo lặp 3 lần</span></div>
+      <p>Cùng một union <code>'success'|'info'|'secondary'|'contrast'|'warning'|'danger'</code> xuất hiện ở <code>dashboard.component.ts:48</code>, <code>order-list.component.ts:26</code>, <code>order-detail.component.ts:19</code> — trong khi <code>CLAUDE.md</code> lại nói nên định nghĩa tại một chỗ.</p>
+      <p><span class="loc">3 component trong features/orders và features/dashboard</span></p>
+      <div class="fix"><b>Cách sửa:</b> Export <code>TagSeverity</code> từ <code>features/orders/constants/order.constants.ts</code> (nơi đã có <code>ORDER_STATUS_SEVERITY</code>) rồi import ở mọi nơi.</div>
+    </div>
+
+    <div class="issue low">
+      <div class="issue-h"><span class="num">#27</span><span class="t">Phong cách component không nhất quán — inline template 290 dòng và constructor DI xen kẽ <code>inject()</code></span></div>
+      <p><code>OrderListComponent</code> nhét toàn bộ template + styles vào decorator (~290 dòng) trong khi các component khác tách file <code>.html</code>/<code>.scss</code>. Về DI: <code>ShellComponent</code> và <code>TopbarComponent</code> dùng constructor injection còn phần lớn code còn lại dùng <code>inject()</code> — trong khi <code>PROMPT_TEMPLATE.md</code> quy định "Prefer <code>inject()</code> over constructor DI".</p>
+      <p><span class="loc">order-list.component.ts:48-292 · shell.component.ts:44-53 · topbar.component.ts:76-84</span></p>
+      <div class="fix"><b>Cách sửa:</b> Tách template của <code>OrderListComponent</code> ra file riêng; chuẩn hoá về <code>inject()</code> toàn bộ.</div>
+    </div>
+
+    <div class="issue low">
+      <div class="issue-h"><span class="num">#28</span><span class="t">Bảng <code>refresh_tokens</code> không có index hạn dùng và không có job dọn dẹp</span></div>
+      <p>Token hết hạn vẫn nằm trong bảng vô thời hạn; truy vấn <code>findByToken</code> dựa vào unique index của cột <code>token</code> nên không chậm, nhưng bảng phình dần theo số phiên đăng nhập và tốn dung lượng VPS.</p>
+      <p><span class="loc">V1__init_schema.sql:27-34</span></p>
+      <div class="fix"><b>Cách sửa:</b> Thêm index <code>expires_at</code> và một scheduled job xoá token đã hết hạn (hoặc xoá theo lô trong lúc refresh).</div>
+    </div>
+
+    <div class="issue low">
+      <div class="issue-h"><span class="num">#29</span><span class="t"><code>JwtFilter</code> được Spring Boot đăng ký thêm một lần ngoài security chain</span></div>
+      <p><code>JwtFilter</code> là <code>@Component</code> extends <code>OncePerRequestFilter</code> nên Boot tự đăng ký nó vào servlet chain ở <code>LOWEST_PRECEDENCE</code>, song song với vị trí đã khai trong <code>SecurityConfig</code>. <code>OncePerRequestFilter</code> chặn lần chạy thứ hai trong cùng request, nhưng vì attribute bị xoá khi lần đầu kết thúc, filter thực tế vẫn chạy 2 lần → JWT được parse 2 lần cho mọi request.</p>
+      <p><span class="loc">JwtFilter.java:22 · SecurityConfig.java:48</span></p>
+      <div class="fix"><b>Cách sửa:</b> Đăng ký <code>FilterRegistrationBean</code> với <code>setEnabled(false)</code> để vô hiệu hoá bản đăng ký tự động, hoặc bỏ <code>@Component</code> và khai báo <code>@Bean</code> trong <code>SecurityConfig</code>.</div>
+    </div>
+
+    <div class="issue low">
+      <div class="issue-h"><span class="num">#30</span><span class="t">Refresh token rotation gây mất session khi hai tab refresh đồng thời</span></div>
+      <p>Luồng refresh xoá token cũ rồi cấp token mới. Nếu hai tab cùng refresh một lúc, tab thứ hai dùng token đã bị xoá → nhận "Invalid refresh token" → logout, dù tab thứ nhất vẫn hoạt động bình thường.</p>
+      <p><span class="loc">AuthService.java:80-93</span></p>
+      <div class="fix"><b>Cách sửa:</b> Cho phép tái sử dụng token cũ trong một khoảng ngắn (grace period) hoặc dùng mô hình refresh token family với cơ chế phát hiện tái sử dụng.</div>
+    </div>
+
+    <div class="issue low">
+      <div class="issue-h"><span class="num">#31</span><span class="t"><code>order_items</code> không ghi <code>sku_id</code> / <code>sku_code</code> dù schema đã có</span></div>
+      <p>Schema có <code>sku_id</code> (FK <code>skus</code>) và <code>sku_code</code>, nhưng khi tạo đơn, <code>OrderItem</code> chỉ lưu <code>productName</code> / <code>variant</code> dạng text tự do. Không thể thống kê doanh thu theo SKU, theo tồn kho, hay trừ kho khi bán.</p>
+      <p><span class="loc">OrderService.java:88-97</span></p>
+      <div class="fix"><b>Cách sửa:</b> Cho phép truyền <code>skuId</code> khi tạo đơn và validate thuộc tenant; đồng thời bổ sung cơ chế trừ tồn kho.</div>
+    </div>
+
+    <div class="issue low">
+      <div class="issue-h"><span class="num">#32</span><span class="t">Ô tìm kiếm ở topbar không gắn handler — UI chết</span></div>
+      <p>Thanh tìm kiếm trong topbar chỉ là <code>input</code> trang trí, không có model, không có sự kiện, không dẫn tới kết quả nào. Người dùng có thể gõ và tưởng đang tìm kiếm.</p>
+      <p><span class="loc">topbar.component.ts:43-49</span></p>
+      <div class="fix"><b>Cách sửa:</b> Nối vào tìm kiếm đơn hàng (điều hướng tới <code>/orders?search=...</code>) hoặc bỏ hẳn cho tới khi có chức năng tra cứu toàn cục.</div>
+    </div>
+
+    <div class="issue low">
+      <div class="issue-h"><span class="num">#33</span><span class="t">Thiếu lớp Entity / DTO / Service / Repository cho products và skus</span></div>
+      <p>Ba bảng <code>products</code>, <code>skus</code>, <code>platform_connections</code> đã có trong migration nhưng không có bất kỳ class Java nào tương ứng — nghĩa là phần lớn giá trị thiết kế dữ liệu của dự án chưa được khai thác.</p>
+      <p><span class="loc">backend/src/main/java/com/saasoms/modules/</span></p>
+      <div class="fix"><b>Cách sửa:</b> Xem #05 và #24 — đây là hai đầu việc lớn tiếp theo.</div>
+    </div>
+
+    <div class="issue low">
+      <div class="issue-h"><span class="num">#34</span><span class="t">Không có audit log cho thao tác nhạy cảm</span></div>
+      <p>Không ghi lại ai đã đổi trạng thái đơn, ai đã đăng nhập, ai đã hủy đơn. Khi có khiếu nại về đơn hàng thì không có dữ liệu để đối chiếu — đặc biệt quan trọng với hệ thống xử lý tiền thật.</p>
+      <p><span class="loc">toàn bộ modules/</span></p>
+      <div class="fix"><b>Cách sửa:</b> Thêm bảng <code>audit_logs</code> ghi actor (userId), action, entity, dữ liệu trước/sau, timestamp; bật cho các thao tác thay đổi trạng thái đơn và quản lý người dùng.</div>
+    </div>
+  </section>
+
+  <!-- ══════════ 8 ══════════ -->
+  <section id="s8">
+    <h2 class="sec"><span class="num">8</span> Roadmap đề xuất</h2>
+    <p class="lede">Sắp xếp theo thứ tự ưu tiên: xử lý rủi ro bảo mật và sự cố chắc chắn xảy ra trước, sau đó mới mở rộng tính năng.</p>
+
+    <div class="sprint">
+      <div class="sh"><span class="sn">P0</span><span class="st">Làm ngay — rủi ro bảo mật &amp; lỗi chắc chắn xảy ra</span></div>
+      <ol>
+        <li>Bỏ khối CORS trong <code>nginx.conf</code> + xoá <code>proxy_set_header Origin ""</code> — đóng lỗ hổng phản chiếu Origin (#01)</li>
+        <li>Tạo <code>application-prod.yml</code>, đổi compose prod sang profile <code>prod</code>, tắt <code>show-sql</code> (#02)</li>
+        <li>Thêm <code>@NotNull</code> cho <code>shippingFee</code>/<code>discount</code>/<code>unitPrice</code>, <code>@Positive</code> cho <code>quantity</code> (#03, #04)</li>
+        <li>Xoá <code>*.md</code> khỏi <code>.gitignore</code>, commit lại <code>CLAUDE.md</code> + <code>PROMPT_TEMPLATE.md</code> (#06)</li>
+        <li>Ẩn menu "Sản phẩm" khỏi sidebar cho tới khi có API thật (#05)</li>
+        <li>Bỏ secrets mặc định khỏi mã nguồn, bắt buộc truyền qua biến môi trường (#08)</li>
+        <li>Chặn Swagger ở production (#07)</li>
+        <li>Thêm rate-limit cho <code>/auth/login</code> + nâng yêu cầu mật khẩu (#09, #19)</li>
+      </ol>
+    </div>
+
+    <div class="sprint">
+      <div class="sh"><span class="sn">P1</span><span class="st">Sprint 1–2 — chất lượng sản phẩm &amp; vận hành</span></div>
+      <ol>
+        <li>Viết backend module <code>products</code> + <code>skus</code> (CRUD tenant-scoped), rồi mới xây lại UI <code>/products</code> (#05, #33)</li>
+        <li>Thêm API thống kê theo kỳ và thay toàn bộ số liệu giả trên dashboard (#10)</li>
+        <li>Viết test cho tenant isolation, state machine, refresh rotation, interceptor 401/403; bật <code>mvn test</code> + <code>npm test</code> trong CI (#11)</li>
+        <li>Sửa <code>setInterval</code> leak trong <code>ProductListComponent</code> (#12)</li>
+        <li>Thêm <code>AuthenticationEntryPoint</code> trả 401 chuẩn (#13)</li>
+        <li>Giới hạn <code>size</code> phân trang, sửa export Excel giới hạn 1000 dòng (#15, #16)</li>
+        <li>Mở rộng tìm kiếm: SĐT khách, mã đơn sàn, tên sản phẩm (#17)</li>
+        <li>Set <code>orderedAt</code> khi tạo đơn; ghi <code>skuId</code>/<code>skuCode</code> cho item (#23, #31)</li>
+        <li>Tách workflow: <code>dev</code> chỉ build + test, <code>main</code> mới deploy; đổi tag image theo SHA; thêm healthcheck + rollback (#20, #21)</li>
+        <li>Thêm user không phảm root cho container và <code>.dockerignore</code> (#22)</li>
+        <li>Cập nhật <code>CLAUDE.md</code> cho khớp code (#25)</li>
+      </ol>
+    </div>
+
+    <div class="sprint">
+      <div class="sh"><span class="sn">P2</span><span class="st">Sprint 3+ — mở rộng sản phẩm</span></div>
+      <ol>
+        <li>Module <code>platform_connections</code> + đồng bộ đơn hàng TikTok Shop / Shopee theo lịch (#24)</li>
+        <li>Quản lý tồn kho: trừ kho theo SKU khi tạo đơn, cảnh báo hết hàng</li>
+        <li>Quản lý thành viên shop: thêm STAFF, phân quyền theo vai trò, audit log (#34)</li>
+        <li>Module khách hàng: danh sách, lịch sử mua, phân khúc</li>
+        <li>Webhooks đồng bộ hai chiều (đã mở <code>permitAll</code> sẵn trong SecurityConfig)</li>
+        <li>Dọn nợ kỹ thuật: gom <code>TagSeverity</code>, tách inline template, chuẩn hoá <code>inject()</code> (#26, #27)</li>
+        <li>Index <code>refresh_tokens.expires_at</code> + job dọn token hết hạn (#28)</li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- ══════════ 9 ══════════ -->
+  <section id="s9">
+    <h2 class="sec"><span class="num">9</span> Hướng dẫn chạy dev</h2>
+    <p class="lede">Yêu cầu: JDK 21, Maven 3.9+, Node 20+, Docker (tuỳ chọn).</p>
+
+    <h3>Chạy bằng Docker Compose (đơn giản nhất)</h3>
+    <pre><span class="c"># toàn bộ stack: mysql:3307 · backend:8080 · frontend:4200</span>
+docker compose up -d
+
+<span class="c"># theo dõi log</span>
+docker compose logs -f backend
+
+<span class="c"># dừng (giữ dữ liệu trong volume mysqldata)</span>
+docker compose down</pre>
+
+    <h3>Chạy tách biệt để debug</h3>
+    <pre><span class="c"># Backend — cần MySQL sẵn có ở localhost:3306</span>
+cd backend
+mvn spring-boot:run
+<span class="c"># mặc định profile dev: root/123456 @ localhost:3306/saasoms</span>
+
+<span class="c"># Frontend — dev server + proxy</span>
+cd frontend
+npm install
+npm start
+<span class="c"># http://localhost:4200, proxy /api và /auth → localhost:8080</span></pre>
+    <p class="callout"><b>Lưu ý proxy dev:</b> <code>proxy.conf.js</code> chỉ proxy <code>/auth</code> với method <b>POST</b>; các request <code>GET /auth/*</code> bị bypass về <code>/index.html</code> để không bị backend trả lỗi 500 — vì <code>/auth/login</code> và <code>/auth/register</code> còn là route Angular ở màn hình đăng nhập/đăng ký.</p>
+
+    <h3>Build production</h3>
+    <pre><span class="c"># backend</span>
+cd backend &amp;&amp; mvn package -DskipTests
+<span class="c"># → target/saas-oms-0.0.1-SNAPSHOT.jar</span>
+
+<span class="c"># frontend</span>
+cd frontend &amp;&amp; npm run build
+<span class="c"># → dist/saas-oms-frontend/browser</span></pre>
+
+    <h3>Tài liệu API</h3>
+    <pre>http://localhost:8080/swagger-ui.html   <span class="c"># giao diện Swagger</span>
+http://localhost:8080/api-docs        <span class="c"># định dạng OpenAPI JSON</span></pre>
+
+    <h3>Tài khoản mẫu</h3>
+    <p>Chưa có seed dữ liệu. Tạo tài khoản qua <code>POST /auth/register</code> (tự sinh shop + user OWNER), hoặc đăng ký trực tiếp trên giao diện tại <code>/auth/register</code>.</p>
+  </section>
+
+  <!-- ══════════ 10 ══════════ -->
+  <section id="s10">
+    <h2 class="sec"><span class="num">10</span> Kết luận</h2>
+    <p class="lede">Dự án có nền tảng kiến trúc tốt và đã đi tới mức triển khai production thực tế — vấn đề không nằm ở thiết kế mà nằm ở các cấu hình chưa được siết lại và những tính năng đang ở trạng thái demo.</p>
+
+    <h3>Đánh giá tổng thể</h3>
+    <div class="grid2">
+      <div class="mini">
+        <h4>Backend — chắc chắn về mặt kiến trúc</h4>
+        <ul>
+          <li>Tenant isolation + JWT rotation + state machine đều đúng cách làm</li>
+          <li>Phân tầng rõ ràng, entity/DTO/service tách biệt</li>
+          <li>Điểm cần gấp: cấu hình prod, validation đầu vào, endpoint quản trị</li>
+        </ul>
+      </div>
+      <div class="mini">
+        <h4>Frontend — chất lượng tốt, có dữ liệu giả</h4>
+        <ul>
+          <li>Signal-first, lazy routes, interceptor xử lý refresh chuẩn</li>
+          <li>PrimeNG dùng đúng chuẩn, layout responsive có mobile nav</li>
+          <li>Điểm cần gấp: feature "Sản phẩm" là demo, dashboard dùng số giả</li>
+        </ul>
+      </div>
+      <div class="mini">
+        <h4>DevOps — chạy được nhưng chưa an toàn</h4>
+        <ul>
+          <li>CI/CD + tài liệu VPS rất đầy đủ</li>
+          <li>Điểm cần gấp: CORS mở, profile dev ở prod, tag <code>:latest</code>, chưa có test</li>
+        </ul>
+      </div>
+      <div class="mini">
+        <h4>Sản phẩm — còn thiếu phần lõi</h4>
+        <ul>
+          <li>Đơn hàng thủ công: hoàn chỉnh</li>
+          <li>Thiếu: sản phẩm/SKU, khách hàng, tồn kho, đồng bộ sàn TMĐT</li>
+          <li>Schema đã chuẩn bị sẵn cho các phần này</li>
+        </ul>
+      </div>
+    </div>
+
+    <h3>Ba việc cần làm ngay hôm nay</h3>
+    <ol>
+      <li><b>Bỏ CORS trong <code>nginx.conf</code></b> — đây là lỗ hổng thực sự đang mở trên production, sửa trong 5 phút.</li>
+      <li><b>Đổi profile production sang <code>prod</code></b> và tạo <code>application-prod.yml</code> — đang log toàn bộ SQL ra ngoài.</li>
+      <li><b>Ẩn menu "Sản phẩm"</b> cho tới khi có API thật — hiện tại người dùng bị dẫn tới một trang demo vẽ pháo hoa.</li>
+    </ol>
+
+    <div class="callout">
+      <b>Ghi chú về tài liệu.</b> Báo cáo này được đối chiếu trực tiếp với mã nguồn tại commit <code>d575a8c</code> ngày 22/10/2026. Bản <code>docs/bao-cao-phan-tich.html</code> là phiên bản trước, được giữ lại để đối chiếu.
+    </div>
+  </section>
+
+  </main>
+</div>
+
+<footer>
+  Báo cáo phân tích kỹ thuật · SaaS OMS · commit <code>d575a8c</code> · 22/10/2026<br>
+  Sinh tự động bằng OpenCode — mọi phát hiện đều có tham chiếu dòng mã nguồn để kiểm chứng lại.
+</footer>
+
+</body>
+</html>

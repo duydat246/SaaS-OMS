@@ -1,3 +1,209 @@
-<div class="product-list-page" #viewport>
-  <canvas #canvas class="product-list-page__canvas" aria-hidden="true"></canvas>
+<div class="flex flex-column gap-3">
+  <!-- Header -->
+  <div
+    class="flex align-items-center justify-content-between flex-wrap gap-2"
+  >
+    <h2 class="m-0">Sản phẩm</h2>
+    <div class="flex align-items-center gap-2 flex-wrap w-full sm:w-auto">
+      <p-button
+        label="Xuất Excel"
+        icon="pi pi-file-excel"
+        size="small"
+        styleClass="w-full sm:w-auto"
+        severity="secondary"
+        (click)="exportExcel()"
+      />
+      <a routerLink="/products/new" class="w-full sm:w-auto">
+        <p-button
+          label="Thêm sản phẩm"
+          icon="pi pi-plus"
+          size="small"
+          styleClass="w-full sm:w-auto"
+        />
+      </a>
+    </div>
+  </div>
+
+  <!-- Filters -->
+  <p-card>
+    <div class="product-list-filters">
+      <div class="product-list-filters__inputs">
+        <div class="product-search-input">
+          <input
+            pInputText
+            [(ngModel)]="searchText"
+            placeholder="Tìm theo tên sản phẩm, danh mục, mã SKU"
+            class="w-full"
+            style="padding-right: 2.25rem"
+            (keyup.enter)="applyFilters()"
+          />
+          @if (searchText) {
+            <button
+              type="button"
+              class="product-search-input__clear"
+              (click)="searchText = ''; applyFilters()"
+              aria-label="Xóa tìm kiếm"
+            >
+              <i class="pi pi-times"></i>
+            </button>
+          }
+        </div>
+        <p-dropdown
+          class="product-list-filter-dd"
+          [(ngModel)]="selectedCategory"
+          [options]="categoryOptions"
+          optionLabel="label"
+          optionValue="value"
+          placeholder="Tất cả danh mục"
+          [showClear]="true"
+          (onChange)="applyFilters()"
+        />
+        <p-dropdown
+          class="product-list-filter-dd"
+          [(ngModel)]="selectedStatus"
+          [options]="statusOptions"
+          optionLabel="label"
+          optionValue="value"
+          placeholder="Tất cả trạng thái"
+          [showClear]="true"
+          (onChange)="applyFilters()"
+        />
+        <p-dropdown
+          class="product-list-filter-dd"
+          [(ngModel)]="selectedPlatform"
+          [options]="platformOptions"
+          optionLabel="label"
+          optionValue="value"
+          placeholder="Tất cả nền tảng"
+          [showClear]="true"
+          (onChange)="applyFilters()"
+        />
+      </div>
+      <div class="product-list-filters__actions">
+        <p-button
+          label="Tìm kiếm"
+          icon="pi pi-search"
+          size="small"
+          styleClass="product-list-action-btn"
+          (click)="applyFilters()"
+        />
+        <p-button
+          label="Xoá bộ lọc"
+          icon="pi pi-filter-slash"
+          size="small"
+          severity="secondary"
+          styleClass="product-list-action-btn"
+          (click)="clearFilters()"
+        />
+      </div>
+    </div>
+  </p-card>
+
+  <!-- Table -->
+  <p-table
+    [value]="products()"
+    [loading]="loading()"
+    [rows]="meta().size"
+    [totalRecords]="meta().totalElements"
+    [lazy]="true"
+    (onPage)="onPage($event)"
+    [paginator]="true"
+    [rowsPerPageOptions]="rowsPerPageOptions"
+    [showCurrentPageReport]="true"
+    [scrollable]="true"
+    scrollHeight="calc(100dvh - 18rem)"
+    styleClass="p-datatable-sm apollo-product-table"
+    [rowHover]="true"
+  >
+    <ng-template pTemplate="header">
+      <tr>
+        <th>Ảnh</th>
+        <th>Tên sản phẩm</th>
+        <th>Số SKU</th>
+        <th>Giá</th>
+        <th>Tồn kho</th>
+        <th>Trạng thái</th>
+        <th>Nền tảng</th>
+        <th>Cập nhật</th>
+        <th></th>
+      </tr>
+    </ng-template>
+    <ng-template pTemplate="body" let-product>
+      <tr class="cursor-pointer" (click)="goToDetail(product.id)">
+        <td>
+          <img
+            [src]="getImageSrc(product)"
+            [alt]="product.name"
+            class="product-image"
+            (error)="onImageError($event)"
+          />
+        </td>
+        <td>
+          <div class="flex flex-column">
+            <span class="font-medium">{{ product.name }}</span>
+            @if (product.category) {
+              <span class="text-500 text-sm">{{ product.category }}</span>
+            }
+          </div>
+        </td>
+        <td>{{ product.skuCount }}</td>
+        <td>{{ getPriceLabel(product) }}</td>
+        <td>
+          <p-tag
+            [value]="getStockLabel(product.totalStock)"
+            [severity]="getStockSeverity(product.totalStock)"
+          />
+        </td>
+        <td>
+          <p-tag
+            [value]="productStatusLabelVi(product.status)"
+            [severity]="getStatusSeverity(product.status)"
+          />
+        </td>
+        <td>
+          <p-tag
+            [value]="platformSourceLabelVi(product.platformSource)"
+            severity="secondary"
+          />
+        </td>
+        <td>{{ product.updatedAt | date: "dd/MM/yyyy HH:mm" }}</td>
+        <td (click)="$event.stopPropagation()">
+          <div class="flex align-items-center gap-1">
+            <p-button
+              icon="pi pi-eye"
+              [rounded]="true"
+              [text]="true"
+              size="small"
+              (click)="goToDetail(product.id)"
+              aria-label="Xem"
+            />
+            <p-button
+              icon="pi pi-pencil"
+              [rounded]="true"
+              [text]="true"
+              size="small"
+              (click)="goToEdit(product.id)"
+              aria-label="Sửa"
+            />
+            <p-button
+              icon="pi pi-trash"
+              [rounded]="true"
+              [text]="true"
+              size="small"
+              severity="danger"
+              (click)="archiveProduct(product)"
+              aria-label="Lưu trữ"
+            />
+          </div>
+        </td>
+      </tr>
+    </ng-template>
+    <ng-template pTemplate="emptymessage">
+      <tr>
+        <td colspan="9" class="text-center py-4 text-500">
+          Không tìm thấy sản phẩm
+        </td>
+      </tr>
+    </ng-template>
+  </p-table>
 </div>
