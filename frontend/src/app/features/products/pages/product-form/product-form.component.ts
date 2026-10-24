@@ -473,6 +473,9 @@ export class ProductFormComponent {
       return next;
     });
 
+    // Reset queue của p-fileUpload để tránh kẹt trạng thái pending upload
+    this.imageUploader()?.clear();
+
     // Ảnh đã thuộc sản phẩm đã lưu: backend xoá khi lưu form.
     if (this.isPersistedImage(image.id)) {
       return;
