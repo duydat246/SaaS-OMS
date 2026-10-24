@@ -99,6 +99,7 @@
           <tr>
             <th>Sản phẩm</th>
             <th>Phân loại</th>
+            <th>SKU</th>
             <th class="text-right">SL</th>
             <th class="text-right">Đơn giá</th>
             <th class="text-right">Thành tiền</th>
@@ -108,6 +109,7 @@
           <tr>
             <td>{{ item.productName }}</td>
             <td>{{ item.variant ?? "—" }}</td>
+            <td>{{ item.skuCode ?? "—" }}</td>
             <td class="text-right">{{ item.quantity }}</td>
             <td class="text-right">{{ item.unitPrice | number: "1.0-0" }}₫</td>
             <td class="text-right font-medium">

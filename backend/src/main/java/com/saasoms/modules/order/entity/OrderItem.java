@@ -22,6 +22,9 @@ public class OrderItem {
     @JoinColumn(name = "order_id", nullable = false)
     private Order order;
 
+    @Column(name = "sku_id")
+    private Long skuId;
+
     @Column(length = 100)
     private String skuCode;
 

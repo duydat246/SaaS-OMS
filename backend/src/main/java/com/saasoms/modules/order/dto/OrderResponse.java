@@ -42,6 +42,7 @@ public class OrderResponse {
     @Builder
     public static class ItemInfo {
         private Long id;
+        private Long skuId;
         private String skuCode;
         private String productName;
         private String variant;
@@ -74,6 +75,7 @@ public class OrderResponse {
                         .build())
                 .items(o.getItems().stream().map(i -> ItemInfo.builder()
                         .id(i.getId())
+                        .skuId(i.getSkuId())
                         .skuCode(i.getSkuCode())
                         .productName(i.getProductName())
                         .variant(i.getVariant())

@@ -427,7 +427,7 @@ Một bước chỉ được coi là xong khi:
 | 11 | P2 | `as any`, subscription không huỷ, `.css` trùng | `product-list.component.ts:100,132`, `product-form.component.ts:203,271,287`, `product.service.ts:75` | Bỏ `any`, dùng `takeUntilDestroyed`, xoá `.css` thừa |
 | 12 | P2 | Message lỗi lẫn Anh/Việt | `GlobalExceptionHandler.java:41,46,52`, `OrderService` | Chuẩn hoá message tiếng Việt |
 | 13 | P2 | Tài liệu lệch code (localStorage, thiếu route products) | `frontend/CLAUDE.md:34,38-44` | Cập nhật tài liệu khi chạm; code là chuẩn |
-| 14 | P2 | `ordered_at` không bao giờ được ghi | `OrderService.createOrder()` | Set khi tạo đơn (khi có work order) |
+| 14 | P2 | ~~`ordered_at` không bao giờ được ghi~~ — đã xử lý 23/10/2026 | `OrderService.createOrder()` | Đã set `orderedAt` khi tạo đơn tay |
 | 15 | P2 | Tích hợp TikTok/Shopee chưa có dù schema sẵn | `platform_connections` | Để sprint riêng, không tự làm |
 
 ---

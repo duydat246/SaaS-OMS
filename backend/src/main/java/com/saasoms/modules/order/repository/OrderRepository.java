@@ -2,9 +2,11 @@ package com.saasoms.modules.order.repository;
 
 import com.saasoms.modules.order.entity.Order;
 import com.saasoms.modules.order.entity.OrderStatus;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -14,6 +16,14 @@ import java.util.Optional;
 public interface OrderRepository extends JpaRepository<Order, Long> {
 
     Optional<Order> findByIdAndShopId(Long id, Long shopId);
+
+    /**
+     * Khoá đơn theo tenant khi đổi trạng thái, tránh hai lần xác nhận đồng thời
+     * cùng trừ tồn kho. Bắt buộc gọi trong transaction.
+     */
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT o FROM Order o WHERE o.id = :id AND o.shop.id = :shopId")
+    Optional<Order> findForUpdate(@Param("id") Long id, @Param("shopId") Long shopId);
 
     Page<Order> findByShopId(Long shopId, Pageable pageable);
 

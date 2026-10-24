@@ -34,6 +34,7 @@ export interface OrderCustomer {
 
 export interface OrderItem {
   id: number;
+  skuId: number | null;
   skuCode: string | null;
   productName: string;
   variant: string | null;
@@ -53,10 +54,8 @@ export interface CreateOrderRequest {
 }
 
 export interface CreateOrderItemRequest {
-  productName: string;
-  variant: string;
+  skuId: number;
   quantity: number;
-  unitPrice: number;
 }
 
 export interface OrderFilters {
