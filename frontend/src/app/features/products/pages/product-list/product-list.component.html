@@ -1,8 +1,8 @@
+<p-confirmDialog />
+
 <div class="flex flex-column gap-3">
   <!-- Header -->
-  <div
-    class="flex align-items-center justify-content-between flex-wrap gap-2"
-  >
+  <div class="flex align-items-center justify-content-between flex-wrap gap-2">
     <h2 class="m-0">Sản phẩm</h2>
     <div class="flex align-items-center gap-2 flex-wrap w-full sm:w-auto">
       <p-button
@@ -11,199 +11,251 @@
         size="small"
         styleClass="w-full sm:w-auto"
         severity="secondary"
-        (click)="exportExcel()"
+        [loading]="exporting()"
+        [disabled]="meta().totalElements === 0"
+        (onClick)="exportExcel()"
       />
-      <a routerLink="/products/new" class="w-full sm:w-auto">
-        <p-button
-          label="Thêm sản phẩm"
-          icon="pi pi-plus"
-          size="small"
-          styleClass="w-full sm:w-auto"
-        />
-      </a>
+      <p-button
+        label="Thêm sản phẩm"
+        icon="pi pi-plus"
+        size="small"
+        styleClass="w-full sm:w-auto"
+        routerLink="/products/new"
+      />
     </div>
   </div>
 
-  <!-- Filters -->
+  <!-- Thống kê -->
+  <div class="product-stats">
+    <div class="product-stat">
+      <span class="product-stat__label">Tổng sản phẩm</span>
+      <span class="product-stat__value">{{ statValue(stats()?.totalProducts) }}</span>
+    </div>
+    <div class="product-stat">
+      <span class="product-stat__label">Đang bán</span>
+      <span class="product-stat__value">{{ statValue(stats()?.activeProducts) }}</span>
+    </div>
+    <div class="product-stat">
+      <span class="product-stat__label">Ngừng bán</span>
+      <span class="product-stat__value">{{ statValue(stats()?.inactiveProducts) }}</span>
+    </div>
+    <div class="product-stat">
+      <span class="product-stat__label">Hết hàng</span>
+      <span class="product-stat__value" [class.product-stat__value--danger]="(stats()?.outOfStockCount ?? 0) > 0">
+        {{ statValue(stats()?.outOfStockCount) }}
+      </span>
+    </div>
+    <div class="product-stat">
+      <span class="product-stat__label">Tổng tồn kho</span>
+      <span class="product-stat__value">{{ statValue(stats()?.totalStock) }}</span>
+    </div>
+  </div>
+
+  <!-- Bộ lọc -->
   <p-card>
     <div class="product-list-filters">
-      <div class="product-list-filters__inputs">
-        <div class="product-search-input">
-          <input
-            pInputText
-            [(ngModel)]="searchText"
-            placeholder="Tìm theo tên sản phẩm, danh mục, mã SKU"
-            class="w-full"
-            style="padding-right: 2.25rem"
-            (keyup.enter)="applyFilters()"
-          />
-          @if (searchText) {
-            <button
-              type="button"
-              class="product-search-input__clear"
-              (click)="searchText = ''; applyFilters()"
-              aria-label="Xóa tìm kiếm"
-            >
-              <i class="pi pi-times"></i>
-            </button>
-          }
-        </div>
-        <p-dropdown
-          class="product-list-filter-dd"
-          [(ngModel)]="selectedCategory"
-          [options]="categoryOptions"
-          optionLabel="label"
-          optionValue="value"
-          placeholder="Tất cả danh mục"
-          [showClear]="true"
-          (onChange)="applyFilters()"
+      <div class="product-search-input">
+        <input
+          pInputText
+          [ngModel]="searchText()"
+          (ngModelChange)="onSearchInput($event)"
+          placeholder="Tìm theo tên, danh mục, mã SKU"
+          aria-label="Tìm sản phẩm"
+          class="w-full"
+          (keyup.enter)="applyFilters()"
         />
-        <p-dropdown
-          class="product-list-filter-dd"
-          [(ngModel)]="selectedStatus"
-          [options]="statusOptions"
-          optionLabel="label"
-          optionValue="value"
-          placeholder="Tất cả trạng thái"
-          [showClear]="true"
-          (onChange)="applyFilters()"
-        />
-        <p-dropdown
-          class="product-list-filter-dd"
-          [(ngModel)]="selectedPlatform"
-          [options]="platformOptions"
-          optionLabel="label"
-          optionValue="value"
-          placeholder="Tất cả nền tảng"
-          [showClear]="true"
-          (onChange)="applyFilters()"
-        />
+        @if (searchText()) {
+          <button
+            type="button"
+            class="product-search-input__clear"
+            (click)="clearSearch()"
+            aria-label="Xoá nội dung tìm kiếm"
+          >
+            <i class="pi pi-times"></i>
+          </button>
+        }
       </div>
-      <div class="product-list-filters__actions">
-        <p-button
-          label="Tìm kiếm"
-          icon="pi pi-search"
-          size="small"
-          styleClass="product-list-action-btn"
-          (click)="applyFilters()"
-        />
-        <p-button
-          label="Xoá bộ lọc"
-          icon="pi pi-filter-slash"
-          size="small"
-          severity="secondary"
-          styleClass="product-list-action-btn"
-          (click)="clearFilters()"
-        />
-      </div>
+      <p-dropdown
+        [ngModel]="selectedCategory()"
+        (onChange)="onCategoryChange($event.value)"
+        [options]="categoryOptions()"
+        optionLabel="label"
+        optionValue="value"
+        placeholder="Tất cả danh mục"
+        ariaLabel="Lọc theo danh mục"
+        emptyMessage="Chưa có danh mục"
+        [showClear]="true"
+        styleClass="w-full"
+      />
+      <p-dropdown
+        [ngModel]="selectedStatus()"
+        (onChange)="onStatusChange($event.value)"
+        [options]="statusOptions"
+        optionLabel="label"
+        optionValue="value"
+        placeholder="Đang bán + Ngừng bán"
+        ariaLabel="Lọc theo trạng thái"
+        [showClear]="true"
+        styleClass="w-full"
+      />
+      <p-dropdown
+        [ngModel]="selectedPlatform()"
+        (onChange)="onPlatformChange($event.value)"
+        [options]="platformOptions"
+        optionLabel="label"
+        optionValue="value"
+        placeholder="Tất cả nền tảng"
+        ariaLabel="Lọc theo nền tảng"
+        [showClear]="true"
+        styleClass="w-full"
+      />
+      <p-dropdown
+        [ngModel]="selectedSort()"
+        (onChange)="onSortChange($event.value)"
+        [options]="sortOptions"
+        optionLabel="label"
+        optionValue="value"
+        ariaLabel="Sắp xếp"
+        styleClass="w-full"
+      />
+      <p-button
+        label="Xoá bộ lọc"
+        icon="pi pi-filter-slash"
+        size="small"
+        severity="secondary"
+        [disabled]="!hasActiveFilters()"
+        (onClick)="clearFilters()"
+      />
     </div>
   </p-card>
 
-  <!-- Table -->
-  <p-table
-    [value]="products()"
-    [loading]="loading()"
-    [rows]="meta().size"
-    [totalRecords]="meta().totalElements"
-    [lazy]="true"
-    (onPage)="onPage($event)"
-    [paginator]="true"
-    [rowsPerPageOptions]="rowsPerPageOptions"
-    [showCurrentPageReport]="true"
-    [scrollable]="true"
-    scrollHeight="calc(100dvh - 18rem)"
-    styleClass="p-datatable-sm apollo-product-table"
-    [rowHover]="true"
-  >
-    <ng-template pTemplate="header">
-      <tr>
-        <th>Ảnh</th>
-        <th>Tên sản phẩm</th>
-        <th>Số SKU</th>
-        <th>Giá</th>
-        <th>Tồn kho</th>
-        <th>Trạng thái</th>
-        <th>Nền tảng</th>
-        <th>Cập nhật</th>
-        <th></th>
-      </tr>
-    </ng-template>
-    <ng-template pTemplate="body" let-product>
-      <tr class="cursor-pointer" (click)="goToDetail(product.id)">
-        <td>
-          <img
-            [src]="getImageSrc(product)"
-            [alt]="product.name"
-            class="product-image"
-            (error)="onImageError($event)"
-          />
-        </td>
-        <td>
-          <div class="flex flex-column">
-            <span class="font-medium">{{ product.name }}</span>
-            @if (product.category) {
-              <span class="text-500 text-sm">{{ product.category }}</span>
+  @if (loadError()) {
+    <div class="product-load-error" role="alert">
+      <span><i class="pi pi-exclamation-circle mr-2"></i>{{ loadError() }}</span>
+      <p-button label="Thử lại" icon="pi pi-refresh" size="small" severity="secondary" (onClick)="retry()" />
+    </div>
+  } @else {
+    <!-- Bảng -->
+    <p-table
+      [value]="products()"
+      [loading]="loading()"
+      [rows]="meta().size"
+      [first]="first()"
+      [totalRecords]="meta().totalElements"
+      [lazy]="true"
+      (onPage)="onPage($event)"
+      [paginator]="true"
+      [rowsPerPageOptions]="rowsPerPageOptions"
+      [showCurrentPageReport]="true"
+      currentPageReportTemplate="{first}–{last} / {totalRecords} sản phẩm"
+      [scrollable]="true"
+      styleClass="p-datatable-sm apollo-product-table"
+      [rowHover]="true"
+    >
+      <ng-template pTemplate="header">
+        <tr>
+          <th>Ảnh</th>
+          <th>Tên sản phẩm</th>
+          <th>Số SKU</th>
+          <th>Giá</th>
+          <th>Tồn kho</th>
+          <th>Trạng thái</th>
+          <th>Nền tảng</th>
+          <th>Cập nhật</th>
+          <th>Thao tác</th>
+        </tr>
+      </ng-template>
+      <ng-template pTemplate="body" let-product>
+        <tr class="cursor-pointer" (click)="goToDetail(product.id)">
+          <td>
+            <img
+              [src]="imageSrc(product)"
+              [alt]="product.name"
+              class="product-image"
+              (error)="onImageError($event)"
+            />
+          </td>
+          <td>
+            <div class="flex flex-column">
+              <a
+                class="product-name"
+                [routerLink]="['/products', product.id]"
+                (click)="$event.stopPropagation()"
+              >{{ product.name }}</a>
+              @if (product.category) {
+                <span class="product-muted text-sm">{{ product.category }}</span>
+              }
+            </div>
+          </td>
+          <td>{{ product.skuCount }}</td>
+          <td class="white-space-nowrap">{{ priceLabel(product) }}</td>
+          <td class="white-space-nowrap">
+            <span class="mr-2">{{ formatQuantity(product.totalStock) }}</span>
+            <p-tag [value]="stockLabel(product.totalStock)" [severity]="stockSeverity(product.totalStock)" />
+          </td>
+          <td>
+            <p-tag [value]="productStatusLabelVi(product.status)" [severity]="statusSeverity(product.status)" />
+          </td>
+          <td>
+            <p-tag [value]="platformLabelVi(product.platformSource)" severity="secondary" />
+          </td>
+          <td class="white-space-nowrap">{{ product.updatedAt | date: "dd/MM/yyyy HH:mm" }}</td>
+          <td (click)="$event.stopPropagation()">
+            <div class="flex align-items-center gap-1">
+              @if (product.status === "ARCHIVED") {
+                <p-button
+                  icon="pi pi-refresh"
+                  [rounded]="true"
+                  [text]="true"
+                  size="small"
+                  severity="success"
+                  ariaLabel="Khôi phục"
+                  pTooltip="Khôi phục"
+                  tooltipPosition="top"
+                  [loading]="busyProductId() === product.id"
+                  (onClick)="confirmRestore(product)"
+                />
+              } @else {
+                <p-button
+                  icon="pi pi-pencil"
+                  [rounded]="true"
+                  [text]="true"
+                  size="small"
+                  ariaLabel="Sửa"
+                  pTooltip="Sửa"
+                  tooltipPosition="top"
+                  (onClick)="goToEdit(product.id)"
+                />
+                <p-button
+                  icon="pi pi-trash"
+                  [rounded]="true"
+                  [text]="true"
+                  size="small"
+                  severity="danger"
+                  ariaLabel="Xoá"
+                  pTooltip="Xoá"
+                  tooltipPosition="top"
+                  [loading]="busyProductId() === product.id"
+                  (onClick)="confirmArchive(product)"
+                />
+              }
+            </div>
+          </td>
+        </tr>
+      </ng-template>
+      <ng-template pTemplate="emptymessage">
+        <tr>
+          <td colspan="9" class="text-center py-5 product-muted">
+            @if (hasActiveFilters()) {
+              <div class="mb-3">Không có sản phẩm khớp bộ lọc.</div>
+              <p-button label="Xoá bộ lọc" size="small" severity="secondary" (onClick)="clearFilters()" />
+            } @else {
+              <div class="mb-3">Cửa hàng chưa có sản phẩm nào.</div>
+              <p-button label="Thêm sản phẩm" icon="pi pi-plus" size="small" routerLink="/products/new" />
             }
-          </div>
-        </td>
-        <td>{{ product.skuCount }}</td>
-        <td>{{ getPriceLabel(product) }}</td>
-        <td>
-          <p-tag
-            [value]="getStockLabel(product.totalStock)"
-            [severity]="getStockSeverity(product.totalStock)"
-          />
-        </td>
-        <td>
-          <p-tag
-            [value]="productStatusLabelVi(product.status)"
-            [severity]="getStatusSeverity(product.status)"
-          />
-        </td>
-        <td>
-          <p-tag
-            [value]="platformSourceLabelVi(product.platformSource)"
-            severity="secondary"
-          />
-        </td>
-        <td>{{ product.updatedAt | date: "dd/MM/yyyy HH:mm" }}</td>
-        <td (click)="$event.stopPropagation()">
-          <div class="flex align-items-center gap-1">
-            <p-button
-              icon="pi pi-eye"
-              [rounded]="true"
-              [text]="true"
-              size="small"
-              (click)="goToDetail(product.id)"
-              aria-label="Xem"
-            />
-            <p-button
-              icon="pi pi-pencil"
-              [rounded]="true"
-              [text]="true"
-              size="small"
-              (click)="goToEdit(product.id)"
-              aria-label="Sửa"
-            />
-            <p-button
-              icon="pi pi-trash"
-              [rounded]="true"
-              [text]="true"
-              size="small"
-              severity="danger"
-              (click)="archiveProduct(product)"
-              aria-label="Lưu trữ"
-            />
-          </div>
-        </td>
-      </tr>
-    </ng-template>
-    <ng-template pTemplate="emptymessage">
-      <tr>
-        <td colspan="9" class="text-center py-4 text-500">
-          Không tìm thấy sản phẩm
-        </td>
-      </tr>
-    </ng-template>
-  </p-table>
+          </td>
+        </tr>
+      </ng-template>
+    </p-table>
+  }
 </div>

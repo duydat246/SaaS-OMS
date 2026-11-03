@@ -1,0 +1,272 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Phân tích SaaS OMS</title>
+<style>
+  :root {
+    --bg: #f6f7f9; --surface: #ffffff; --text: #1c2430; --muted: #5b6675; --line: #dfe3e8;
+    --accent: #1f5fbf; --code-bg: #eef1f5;
+    --high-bg: #fde8e6; --high-fg: #a52a1e;
+    --mid-bg: #fdf1d8; --mid-fg: #8a5a00;
+    --low-bg: #e6eefb; --low-fg: #1f5fbf;
+    --ok-bg: #e3f4e8; --ok-fg: #1c7038;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #12161c; --surface: #1b212a; --text: #e7ebf0; --muted: #9ba6b4; --line: #2e3743;
+      --accent: #7fb0f5; --code-bg: #272f3a;
+      --high-bg: #43201c; --high-fg: #f4a79e;
+      --mid-bg: #3d3018; --mid-fg: #eec66f;
+      --low-bg: #1e2f4a; --low-fg: #a3c6f7;
+      --ok-bg: #1b3a26; --ok-fg: #8bd8a4;
+    }
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; scroll-padding-top: 16px; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font: 16px/1.65 "Segoe UI", system-ui, -apple-system, Roboto, Arial, sans-serif;
+  }
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 32px 16px 64px; display: grid; gap: 32px; grid-template-columns: 210px minmax(0, 1fr); }
+  nav { position: sticky; top: 16px; align-self: start; font-size: 14px; }
+  nav strong { display: block; margin-bottom: 8px; color: var(--muted); font-weight: 600; }
+  nav a { display: block; padding: 5px 0; color: var(--text); text-decoration: none; }
+  nav a:hover { color: var(--accent); }
+  main { min-width: 0; }
+  header { margin-bottom: 24px; }
+  h1 { font-size: 30px; line-height: 1.25; margin: 0 0 6px; }
+  .meta { color: var(--muted); font-size: 14px; margin: 0; }
+  h2 { font-size: 22px; margin: 40px 0 12px; line-height: 1.3; }
+  h3 { font-size: 16px; margin: 0; line-height: 1.45; }
+  p { margin: 0 0 12px; }
+  ul, ol { margin: 0 0 12px; padding-left: 22px; }
+  li { margin-bottom: 6px; }
+  code {
+    font: 13.5px/1.4 Consolas, "SFMono-Regular", Menlo, monospace;
+    background: var(--code-bg); padding: 1px 5px; border-radius: 4px; overflow-wrap: anywhere;
+  }
+  .summary { background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--accent); border-radius: 8px; padding: 16px 18px; }
+  .summary p:last-child { margin-bottom: 0; }
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin: 16px 0 0; }
+  .stat { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; }
+  .stat b { display: block; font-size: 22px; line-height: 1.2; }
+  .stat span { color: var(--muted); font-size: 13.5px; }
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; margin-bottom: 10px; }
+  .card-head { display: flex; gap: 10px; align-items: flex-start; margin-bottom: 8px; }
+  .num { flex: none; width: 26px; height: 26px; border-radius: 50%; background: var(--code-bg); display: grid; place-items: center; font-size: 13px; font-weight: 700; }
+  .card p { margin-bottom: 6px; }
+  .card .loc { font-size: 13.5px; color: var(--muted); margin: 8px 0 0; }
+  .label { color: var(--muted); font-weight: 600; }
+  .badge { display: inline-block; font-size: 12px; font-weight: 600; line-height: 1.4; padding: 2px 8px; border-radius: 999px; white-space: nowrap; }
+  .high { background: var(--high-bg); color: var(--high-fg); }
+  .mid { background: var(--mid-bg); color: var(--mid-fg); }
+  .low { background: var(--low-bg); color: var(--low-fg); }
+  .ok { background: var(--ok-bg); color: var(--ok-fg); }
+  .badges { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+  .table-wrap { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; }
+  table { border-collapse: collapse; width: 100%; min-width: 560px; font-size: 15px; }
+  th, td { text-align: left; vertical-align: top; padding: 10px 14px; border-bottom: 1px solid var(--line); }
+  th { font-size: 13.5px; color: var(--muted); font-weight: 600; }
+  tr:last-child td { border-bottom: 0; }
+  .note { font-size: 14px; color: var(--muted); }
+  .steps { list-style: none; padding: 0; counter-reset: step; }
+  .steps li { counter-increment: step; position: relative; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 12px 16px 12px 52px; margin-bottom: 10px; }
+  .steps li::before { content: counter(step); position: absolute; left: 14px; top: 12px; width: 26px; height: 26px; border-radius: 50%; background: var(--accent); color: var(--surface); display: grid; place-items: center; font-size: 13px; font-weight: 700; }
+  @media (max-width: 820px) {
+    .wrap { grid-template-columns: minmax(0, 1fr); gap: 16px; padding-top: 20px; }
+    nav { position: static; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 12px 16px; }
+    h1 { font-size: 25px; }
+  }
+  @media print {
+    nav { display: none; }
+    .wrap { display: block; }
+    .card, .steps li { break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav aria-label="Mục lục">
+    <strong>Mục lục</strong>
+    <a href="#tong-quan">Kết luận</a>
+    <a href="#hien-trang">Hiện trạng</a>
+    <a href="#loi">Lỗi ưu tiên cao</a>
+    <a href="#no-ky-thuat">Xếp lại nợ kỹ thuật</a>
+    <a href="#tai-lieu">Tài liệu và chất lượng</a>
+    <a href="#ke-hoach">Thứ tự xử lý</a>
+    <a href="#cau-hoi">Cần bạn quyết định</a>
+  </nav>
+
+  <main>
+    <header>
+      <h1>Phân tích dự án SaaS OMS</h1>
+      <p class="meta">Ngày 03/11/2026 · Nhánh <code>dev</code>, commit <code>420d0d5</code></p>
+    </header>
+
+    <section id="tong-quan">
+      <div class="summary">
+        <p><strong>Phần lõi nghiệp vụ khá chắc, rủi ro lớn nhất nằm ở khâu triển khai và xử lý lỗi.</strong> Có 4 lỗi ưu tiên cao mà <code>AGENTS.md</code> chưa ghi, và 3 mục P0 trong đó nên xếp lại mức.</p>
+        <p>Chưa chạy app với MySQL, nên các lỗi runtime trong báo cáo được suy ra từ code, trừ lỗi compose đã chạy thử.</p>
+      </div>
+      <div class="stats">
+        <div class="stat"><b>53/53</b><span>Test backend đạt</span></div>
+        <div class="stat"><b>Thành công</b><span>Build frontend, có 3 cảnh báo</span></div>
+        <div class="stat"><b>902 kB</b><span>Bundle initial, budget 512 kB</span></div>
+        <div class="stat"><b>3/13</b><span>Component dùng <code>OnPush</code></span></div>
+      </div>
+    </section>
+
+    <section id="hien-trang">
+      <h2>Hiện trạng</h2>
+      <ul>
+        <li><strong>Sản phẩm:</strong> đã có CRUD, SKU, xoá mềm và upload ảnh qua URL có chữ ký.</li>
+        <li><strong>Đơn hàng:</strong> tạo đơn theo SKU, trừ và hoàn tồn kho khi đổi trạng thái, có khoá ghi để tránh xác nhận trùng.</li>
+        <li><strong>Điểm tốt:</strong> các truy vấn nghiệp vụ đã đọc đều lọc theo tenant, <code>ProductService</code> đã chống N+1, và ảnh được kiểm tra magic bytes.</li>
+        <li><strong>Chưa có:</strong> API cho customer, user và shop (hiện chưa tạo được tài khoản <code>STAFF</code>); dữ liệu thật cho biểu đồ và "Top sản phẩm" ở dashboard; tích hợp TikTok/Shopee.</li>
+      </ul>
+    </section>
+
+    <section id="loi">
+      <h2>Lỗi ưu tiên cao chưa có trong <code>AGENTS.md</code></h2>
+      <p class="note">Mức độ là đánh giá của người phân tích. "Đã chạy thử" nghĩa là đã tái hiện bằng lệnh thật; "Suy ra từ code" nghĩa là chưa tái hiện trên app đang chạy.</p>
+
+      <article class="card">
+        <div class="card-head"><span class="num">1</span><div><h3>Cú pháp biến sai trong compose production</h3><div class="badges"><span class="badge high">Cao</span><span class="badge ok">Đã chạy thử</span></div></div></div>
+        <p><span class="label">Vấn đề:</span> dùng <code>${VAR:default}</code>, trong khi cú pháp đúng là <code>${VAR:-default}</code>.</p>
+        <p><span class="label">Hậu quả:</span> <code>docker compose config</code> báo <code>invalid interpolation format</code> trên Compose v5.1.1. Nếu VPS dùng đúng file này, bước deploy sẽ lỗi.</p>
+        <p class="loc"><code>docker-compose.prod.yml:41</code></p>
+      </article>
+
+      <article class="card">
+        <div class="card-head"><span class="num">2</span><div><h3>nginx giới hạn upload ở mức mặc định 1 MB</h3><div class="badges"><span class="badge high">Cao</span><span class="badge low">Suy ra từ cấu hình</span></div></div></div>
+        <p><span class="label">Vấn đề:</span> <code>nginx.conf</code> không đặt <code>client_max_body_size</code>, trong khi giao diện và backend cho phép 5 MB.</p>
+        <p><span class="label">Hậu quả:</span> ảnh trên 1 MB sẽ bị 413 trên production.</p>
+        <p class="loc"><code>frontend/nginx.conf</code></p>
+      </article>
+
+      <article class="card">
+        <div class="card-head"><span class="num">3</span><div><h3>Người dùng bị đăng xuất nhầm khi retry gặp lỗi</h3><div class="badges"><span class="badge high">Cao</span><span class="badge low">Suy ra từ code</span></div></div></div>
+        <p><span class="label">Vấn đề:</span> <code>catchError</code> bên trong interceptor bọc cả request retry, không chỉ bước refresh token.</p>
+        <p><span class="label">Hậu quả:</span> token vừa hết hạn mà retry gặp lỗi bất kỳ (như 409 trùng SKU) thì người dùng bị đăng xuất và mất dữ liệu đang nhập.</p>
+        <p class="loc"><code>frontend/src/app/core/interceptors/jwt.interceptor.ts:46</code></p>
+      </article>
+
+      <article class="card">
+        <div class="card-head"><span class="num">4</span><div><h3>Lỗi do người dùng bị trả về 500</h3><div class="badges"><span class="badge high">Cao</span><span class="badge low">Suy ra từ code</span></div></div></div>
+        <p><span class="label">Vấn đề:</span> không có handler riêng cho lỗi framework và lỗi DB, nên tất cả rơi vào handler <code>Exception</code>.</p>
+        <p><span class="label">Hậu quả:</span> <code>?status=FOO</code>, URL không tồn tại, upload thiếu <code>file</code> hoặc trùng dữ liệu đồng thời đều trả 500.</p>
+        <p class="loc"><code>backend/src/main/java/com/saasoms/common/exception/GlobalExceptionHandler.java:55</code></p>
+      </article>
+
+      <article class="card">
+        <div class="card-head"><span class="num">5</span><div><h3><code>APP_MEDIA_SECRET</code> rỗng làm hỏng API ảnh</h3><div class="badges"><span class="badge high">Cao</span><span class="badge low">Suy ra từ code</span></div></div></div>
+        <p><span class="label">Vấn đề:</span> giá trị rỗng không fallback về <code>JWT_SECRET</code>, trái với ghi chú trong <code>.env.example</code>. <code>setup-vps.md</code> cũng không nhắc biến này.</p>
+        <p><span class="label">Hậu quả:</span> mọi API trả về ảnh, kể cả upload, sẽ lỗi 500.</p>
+        <p class="loc"><code>docker-compose.prod.yml:39</code></p>
+      </article>
+
+      <article class="card">
+        <div class="card-head"><span class="num">6</span><div><h3>Form sản phẩm ghi đè tồn kho bằng giá trị cũ</h3><div class="badges"><span class="badge mid">Trung bình</span><span class="badge low">Suy ra từ code</span></div></div></div>
+        <p><span class="label">Vấn đề:</span> <code>stock</code> được lấy nguyên từ form và <code>Sku</code> không có <code>@Version</code>.</p>
+        <p><span class="label">Hậu quả:</span> lưu form sau khi đơn đã trừ tồn sẽ làm tồn kho tăng sai, dẫn đến bán vượt.</p>
+        <p class="loc"><code>backend/src/main/java/com/saasoms/modules/product/service/ProductService.java:268</code></p>
+      </article>
+
+      <article class="card">
+        <div class="card-head"><span class="num">7</span><div><h3>Tổng tiền đơn hàng có thể âm</h3><div class="badges"><span class="badge mid">Trung bình</span><span class="badge low">Suy ra từ code</span></div></div></div>
+        <p><span class="label">Vấn đề:</span> backend không chặn giảm giá lớn hơn tiền hàng.</p>
+        <p><span class="label">Hậu quả:</span> <code>totalAmount</code> có thể âm trong DB, trong khi giao diện hiển thị 0.</p>
+        <p class="loc"><code>backend/src/main/java/com/saasoms/modules/order/service/OrderService.java:162</code>, <code>frontend/src/app/features/orders/pages/order-form/order-form.component.ts:322</code></p>
+      </article>
+
+      <article class="card">
+        <div class="card-head"><span class="num">8</span><div><h3>Danh sách đơn bị N+1 và <code>size</code> không giới hạn</h3><div class="badges"><span class="badge mid">Trung bình</span><span class="badge low">Suy ra từ code</span></div></div></div>
+        <p><span class="label">Hậu quả:</span> mỗi đơn có thể thêm query cho items và customer; export 1000 đơn có thể tới khoảng 2000 query.</p>
+        <p class="loc"><code>backend/src/main/java/com/saasoms/modules/order/dto/OrderResponse.java:69-76</code>, <code>backend/src/main/java/com/saasoms/modules/order/controller/OrderController.java:36</code></p>
+      </article>
+
+      <p><strong>Lỗi nhỏ hơn</strong></p>
+      <ul>
+        <li><code>refresh()</code> không kiểm tra tài khoản còn <code>ACTIVE</code> (<code>AuthService.java:89</code>).</li>
+        <li>Refresh token hết hạn nhưng không được dùng lại thì không có job dọn.</li>
+      </ul>
+      <p><strong>Rủi ro cần đo thêm:</strong> backend giới hạn RAM 320 MB với heap 256 MB, nên có thể bị OOM kill khi tải cao.</p>
+    </section>
+
+    <section id="no-ky-thuat">
+      <h2>Mức nợ kỹ thuật nên xếp lại</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Mục</th><th>Đề xuất</th><th>Lý do</th></tr></thead>
+          <tbody>
+            <tr>
+              <td>#1 CORS của nginx</td>
+              <td><span class="badge low">Giảm mức</span></td>
+              <td>Vẫn nên sửa, nhưng token nằm trong <code>sessionStorage</code> và không dùng cookie, nên khó khai thác hơn mức P0.</td>
+            </tr>
+            <tr>
+              <td>#2 Prod chạy profile <code>dev</code></td>
+              <td><span class="badge low">Giảm mức</span></td>
+              <td><code>application-dev.yml</code> bị gitignore nên image build từ CI không có file này; <code>show-sql</code> và log DEBUG không bật trên production. Vẫn nên tạo profile <code>prod</code>.</td>
+            </tr>
+            <tr>
+              <td>#3 Swagger công khai</td>
+              <td><span class="badge low">Giảm mức</span></td>
+              <td>nginx chỉ proxy <code>/api/</code> và <code>/auth/</code>, backend không mở cổng ra ngoài. Theo cấu hình tunnel trong tài liệu, Swagger không truy cập được từ Internet. Bằng chứng đã chuyển sang <code>SecurityConfig.java:45</code>.</td>
+            </tr>
+            <tr>
+              <td>#8 CI</td>
+              <td><span class="badge high">Tăng mức</span></td>
+              <td>Mỗi lần push lên <code>dev</code> đều deploy thẳng production mà không chạy test, và <code>setup-vps.md</code> coi đây là quy trình hằng ngày. Git local cũng không thấy nhánh <code>main</code>.</td>
+            </tr>
+            <tr>
+              <td>#11 Chất lượng frontend</td>
+              <td><span class="badge mid">Cập nhật</span></td>
+              <td><code>product-form</code> đã hết <code>as any</code>. Còn lại <code>product-list.component.ts:100,132</code>, <code>product.service.ts:75</code>, subscription chưa huỷ ở <code>product-list</code>, và 2 file <code>.css</code> không được tham chiếu.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="tai-lieu">
+      <h2>Tài liệu và cổng chất lượng</h2>
+      <ul>
+        <li><strong><code>docs/ke-hoach-san-pham.md</code> đã lỗi thời:</strong> tài liệu cấm upload ảnh, trừ tồn kho và thêm migration, nhưng code đã có cả ba (có <code>V2__product_images.sql</code>).</li>
+        <li><strong>CI không đồng bộ compose:</strong> file trên VPS chỉ được tải một lần bằng <code>curl</code>. Bản đó có thể thiếu volume <code>uploads</code> được thêm ngày 23/10, khi đó ảnh sẽ mất mỗi lần deploy.</li>
+        <li><strong>Tài liệu khác lệch code:</strong> <code>frontend/CLAUDE.md</code> vẫn ghi <code>localStorage</code>, trong khi code dùng <code>sessionStorage</code>. File này và <code>PROMPT_TEMPLATE.md</code> cũng bị gitignore dù <code>AGENTS.md</code> coi là nguồn tham chiếu.</li>
+        <li><strong>Khoảng trống test:</strong> chưa có test cho <code>auth</code>, <code>JwtFilter</code>, <code>GlobalExceptionHandler</code>, và JPQL/migration chưa được chạy trên MySQL thật.</li>
+        <li><strong>Cảnh báo build:</strong> bundle initial vượt budget, SCSS của dashboard vượt budget, và <code>exceljs</code> không phải ESM.</li>
+        <li><strong>File rác:</strong> <code>loi-build/loi-build.jpg</code> đang được commit.</li>
+      </ul>
+    </section>
+
+    <section id="ke-hoach">
+      <h2>Thứ tự xử lý đề xuất</h2>
+      <ol class="steps">
+        <li><strong>Kiểm tra VPS ngay (chỉ đọc):</strong> xem tab Actions, file compose trên VPS, volume <code>uploads</code> và giá trị <code>APP_MEDIA_SECRET</code>.</li>
+        <li><strong>Sửa để production chạy đúng:</strong> lỗi 1, 2, 5, rồi bỏ CORS trong nginx.</li>
+        <li><strong>Sửa lỗi người dùng gặp trực tiếp:</strong> lỗi 3 và 4, kèm entry point trả 401 (nợ #7), vì interceptor hiện phải coi 403 là hết token.</li>
+        <li><strong>Bảo vệ dữ liệu:</strong> lỗi 6, 7, 8. Lỗi 7 và 8 nằm trong vùng <code>order</code> bị cấm chạm nên cần work order.</li>
+        <li><strong>Siết CI:</strong> chạy test trước khi deploy, tag image theo SHA, tách môi trường, rồi thêm rate-limit cho đăng nhập.</li>
+        <li><strong>Hoàn thiện sản phẩm:</strong> nối dashboard với dữ liệu thật, thêm API user và phân quyền <code>STAFF</code>.</li>
+      </ol>
+    </section>
+
+    <section id="cau-hoi">
+      <h2>Cần bạn quyết định</h2>
+      <article class="card">
+        <h3><code>dev</code> có đang là production thật không?</h3>
+        <p>Nếu đúng, việc sửa CI (nợ #8) nên làm ngay ở bước 2, và <code>AGENTS.md</code> cần ghi lại đúng thực tế. Nếu không, cần tạo <code>main</code> và chuyển deploy sang đó.</p>
+      </article>
+      <article class="card">
+        <h3>Nên xử lý <code>ke-hoach-san-pham.md</code> thế nào?</h3>
+        <p>Đề xuất đánh dấu đã hoàn thành và viết work order mới. Tài liệu này đứng đầu thứ tự ưu tiên, nên nếu giữ nguyên nó sẽ tiếp tục mâu thuẫn với code.</p>
+      </article>
+    </section>
+  </main>
+</div>
+</body>
+</html>

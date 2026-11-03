@@ -1,4 +1,7 @@
-import { Routes } from "@angular/router";
+import { CanDeactivateFn, Routes } from "@angular/router";
+import type { ProductFormComponent } from "./pages/product-form/product-form.component";
+
+const confirmLeaveForm: CanDeactivateFn<ProductFormComponent> = (form) => form.canDeactivate();
 
 export const productsRoutes: Routes = [
   {
@@ -14,6 +17,7 @@ export const productsRoutes: Routes = [
       import("./pages/product-form/product-form.component").then(
         (m) => m.ProductFormComponent,
       ),
+    canDeactivate: [confirmLeaveForm],
   },
   {
     path: ":id/edit",
@@ -21,6 +25,7 @@ export const productsRoutes: Routes = [
       import("./pages/product-form/product-form.component").then(
         (m) => m.ProductFormComponent,
       ),
+    canDeactivate: [confirmLeaveForm],
   },
   {
     path: ":id",

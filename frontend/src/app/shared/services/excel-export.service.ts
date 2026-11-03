@@ -21,7 +21,7 @@ const TITLE_ROW = 1;
 const HEADER_ROW = 5; // 3 empty rows (2-4) between title and header
 const DATA_START = HEADER_ROW + 1;
 
-const COL_COUNT_PRODUCT = 6;
+const COL_COUNT_PRODUCT = 9;
 
 const COLUMNS: { header: string; width: number }[] = [
   { header: "Mã đơn", width: 12 },
@@ -36,9 +36,12 @@ const COLUMNS_PRODUCT: { header: string; width: number }[] = [
   { header: "Mã SP", width: 10 },
   { header: "Tên sản phẩm", width: 32 },
   { header: "Danh mục", width: 18 },
-  { header: "Số SKU", width: 10 },
+  { header: "Mã SKU", width: 28 },
+  { header: "Giá thấp nhất (₫)", width: 18 },
+  { header: "Giá cao nhất (₫)", width: 18 },
   { header: "Tồn kho", width: 12 },
   { header: "Trạng thái", width: 16 },
+  { header: "Nền tảng", width: 16 },
 ];
 
 // ── Helpers ────────────────────────────────────────────────────────────────
@@ -163,9 +166,12 @@ export class ExcelExportService {
         String(p.id),
         p.name,
         p.category ?? "—",
-        p.skuCount,
+        p.skus.map((sku) => sku.skuCode).join(", "),
+        p.minPrice ?? "—",
+        p.maxPrice ?? "—",
         p.totalStock,
         productStatusLabelVi(p.status),
+        platformSourceLabelVi(p.platformSource),
       ];
       row.height = 20;
       const bg = i % 2 === 0 ? ROW_BG_ODD : ROW_BG_EVEN;

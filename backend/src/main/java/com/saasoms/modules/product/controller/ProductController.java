@@ -53,8 +53,9 @@ public class ProductController {
             @RequestParam(defaultValue = "20") int size,
             @RequestParam(defaultValue = "updatedAt,desc") String sort) {
 
-        int safePage = Math.max(page, 0);
         int safeSize = Math.min(Math.max(size, 1), 100);
+        // Offset vượt Integer.MAX_VALUE sẽ lỗi khi query; kẹp lại để trả trang rỗng kèm totalPages thật.
+        int safePage = Math.min(Math.max(page, 0), Integer.MAX_VALUE / safeSize);
         Pageable pageable = PageRequest.of(safePage, safeSize, parseSort(sort));
 
         return ApiResponse.ok(
@@ -120,7 +121,7 @@ public class ProductController {
 
         String field = parts[0].trim();
         if (!ALLOWED_SORT_FIELDS.contains(field)) {
-            return Sort.by(Sort.Direction.DESC, DEFAULT_SORT_FIELD);
+            return withTieBreaker(Sort.by(Sort.Direction.DESC, DEFAULT_SORT_FIELD));
         }
 
         Sort.Direction direction = Sort.Direction.DESC;
@@ -128,6 +129,11 @@ public class ProductController {
             direction = Sort.Direction.ASC;
         }
 
-        return Sort.by(direction, field);
+        return withTieBreaker(Sort.by(direction, field));
+    }
+
+    /** Nhiều sản phẩm trùng giá trị sắp xếp thì thứ tự phải cố định, nếu không các trang sẽ lặp hoặc sót dòng. */
+    private static Sort withTieBreaker(Sort sort) {
+        return sort.and(Sort.by(Sort.Direction.DESC, "id"));
     }
 }

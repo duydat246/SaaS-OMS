@@ -347,6 +347,12 @@
   border-color: var(--apollo-border) !important;
 }
 
+// Product list table (scrollable): header dính cố định, nền trong suốt sẽ lộ màu sáng của theme
+.apollo-layout .apollo-product-table .p-datatable-thead > tr > th {
+  background: #111827 !important;
+  color: #94a3b8 !important;
+}
+
 .apollo-layout .p-datatable .p-datatable-tbody > tr {
   background: transparent;
   color: var(--apollo-text);

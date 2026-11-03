@@ -3,7 +3,6 @@ import {
   Component,
   computed,
   DestroyRef,
-  effect,
   inject,
   signal,
   viewChild,
@@ -21,7 +20,7 @@ import {
 } from "@angular/forms";
 import { ActivatedRoute, Router, RouterLink } from "@angular/router";
 import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
-import { catchError, concatMap, EMPTY, finalize, from, startWith, tap } from "rxjs";
+import { catchError, concatMap, EMPTY, finalize, from, Observable, startWith, tap } from "rxjs";
 import { CardModule } from "primeng/card";
 import { ButtonModule } from "primeng/button";
 import { InputTextModule } from "primeng/inputtext";
@@ -34,13 +33,9 @@ import { TooltipModule } from "primeng/tooltip";
 import { ConfirmationService, MessageService } from "primeng/api";
 import { ProductService } from "@features/products/services/product.service";
 import { ProductImageService } from "@features/products/services/product-image.service";
-import { Product, ProductImage, ProductRequest, SkuRequest } from "@features/products/models/product.model";
-import { PRODUCT_STATUS_OPTIONS } from "@features/products/constants/product.constants";
-
-type PlatformSourceOption = {
-  label: string;
-  value: string;
-};
+import { ProductListStateService } from "@features/products/services/product-list-state.service";
+import { Product, ProductImage, ProductRequest, Sku, SkuRequest } from "@features/products/models/product.model";
+import { PRODUCT_PLATFORM_OPTIONS, formatVnd } from "@features/products/constants/product.constants";
 
 type SkuFormValue = {
   id: number | null;
@@ -49,6 +44,15 @@ type SkuFormValue = {
   price: number | null;
   stock: number | null;
 };
+
+// Khớp với ràng buộc của ProductRequest và SkuRequest ở backend.
+const NAME_MAX_LENGTH = 200;
+const DESCRIPTION_MAX_LENGTH = 10000;
+const CATEGORY_MAX_LENGTH = 100;
+const SKU_CODE_MAX_LENGTH = 100;
+const VARIANT_MAX_LENGTH = 200;
+const PRICE_MAX = 9999999999.99;
+const STOCK_MAX = 2147483647;
 
 const MAX_IMAGES = 10;
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
@@ -85,10 +89,14 @@ export class ProductFormComponent {
   private readonly messageService = inject(MessageService);
   private readonly confirmationService = inject(ConfirmationService);
   private readonly destroyRef = inject(DestroyRef);
+  readonly listQuery = inject(ProductListStateService).lastQuery;
 
   private readonly imageUploader = viewChild<FileUpload>("imageUploader");
 
   loading = signal(false);
+  saving = signal(false);
+  /** Gợi ý danh mục đang dùng, tránh gõ lệch tên tạo ra danh mục trùng. */
+  categories = signal<string[]>([]);
   product = signal<Product | null>(null);
 
   isEdit = signal(false);
@@ -99,26 +107,31 @@ export class ProductFormComponent {
   uploading = signal(false);
   primaryImageId = signal<number | null>(null);
   private readonly brokenImageIds = signal<ReadonlySet<number>>(new Set());
+  /** Danh sách ảnh không nằm trong form nên phải tự theo dõi thay đổi. */
+  private imagesChanged = false;
+  private saved = false;
 
   readonly maxImages = MAX_IMAGES;
   readonly maxImageSizeMb = MAX_IMAGE_BYTES / (1024 * 1024);
   readonly imageCount = computed(() => this.images().length);
   readonly isImageLimitReached = computed(() => this.images().length >= MAX_IMAGES);
 
-  platformSourceOptions: PlatformSourceOption[] = [
-    { label: "Thủ công", value: "MANUAL" },
-    { label: "TikTok", value: "TIKTOK" },
-    { label: "Shopee", value: "SHOPEE" },
-  ];
+  platformSourceOptions = PRODUCT_PLATFORM_OPTIONS;
 
-  statusOptions = PRODUCT_STATUS_OPTIONS;
+  readonly priceMax = PRICE_MAX;
+  readonly priceMaxLabel = formatVnd(PRICE_MAX);
+  readonly stockMax = STOCK_MAX;
+  readonly nameMaxLength = NAME_MAX_LENGTH;
+  readonly descriptionMaxLength = DESCRIPTION_MAX_LENGTH;
+  readonly categoryMaxLength = CATEGORY_MAX_LENGTH;
+  readonly skuCodeMaxLength = SKU_CODE_MAX_LENGTH;
+  readonly variantMaxLength = VARIANT_MAX_LENGTH;
 
   form = this.fb.group({
-    name: ["", [Validators.required]],
-    description: [""],
-    category: [""],
+    name: ["", [Validators.required, Validators.pattern(/\S/), Validators.maxLength(NAME_MAX_LENGTH)]],
+    description: ["", [Validators.maxLength(DESCRIPTION_MAX_LENGTH)]],
+    category: ["", [Validators.maxLength(CATEGORY_MAX_LENGTH)]],
     platformSource: ["MANUAL", [Validators.required]],
-    status: ["ACTIVE"],
     skus: this.fb.array([this.createSkuGroup()], [this.skuArrayValidator()]),
   });
 
@@ -176,10 +189,36 @@ export class ProductFormComponent {
       )
       .subscribe((rows) => this.skuRows.set(rows as SkuFormValue[]));
 
-    // Update array validator when values change
-    effect(() => {
-      // trigger revalidation
-      this.skus.updateValueAndValidity({ onlySelf: false, emitEvent: false });
+    this.productService
+      .getCategories()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (categories) => this.categories.set(categories ?? []),
+        // Chỉ là gợi ý nhập liệu: lỗi thì vẫn gõ tay được.
+        error: () => this.categories.set([]),
+      });
+  }
+
+  /** Guard của route: hỏi lại trước khi rời trang nếu còn thay đổi chưa lưu. */
+  canDeactivate(): boolean | Observable<boolean> {
+    if (this.saved || !(this.form.dirty || this.imagesChanged)) {
+      return true;
+    }
+    return new Observable<boolean>((subscriber) => {
+      const finish = (leave: boolean) => {
+        subscriber.next(leave);
+        subscriber.complete();
+      };
+      this.confirmationService.confirm({
+        message: "Thay đổi chưa được lưu sẽ bị mất. Bạn có chắc muốn rời trang?",
+        header: "Rời trang",
+        icon: "pi pi-exclamation-triangle",
+        acceptLabel: "Rời trang",
+        rejectLabel: "Ở lại",
+        acceptButtonStyleClass: "p-button-danger",
+        accept: () => finish(true),
+        reject: () => finish(false),
+      });
     });
   }
 
@@ -192,13 +231,14 @@ export class ProductFormComponent {
       );
   }
 
-  createSkuGroup(id?: number): FormGroup {
+  createSkuGroup(sku?: Sku): FormGroup {
     return this.fb.group({
-      id: [id ?? null],
-      skuCode: ["", [Validators.required]],
-      variant: [""],
-      price: [0, [Validators.required, Validators.min(0)]],
-      stock: [0, [Validators.required, Validators.min(0)]],
+      id: [sku?.id ?? null],
+      // Không bắt buộc: để trống thì backend tự sinh mã (SKU mới) hoặc giữ mã cũ (SKU đã có).
+      skuCode: [sku?.skuCode ?? "", [Validators.maxLength(SKU_CODE_MAX_LENGTH)]],
+      variant: [sku?.variant ?? "", [Validators.maxLength(VARIANT_MAX_LENGTH)]],
+      price: [sku?.price ?? 0, [Validators.required, Validators.min(0), Validators.max(PRICE_MAX)]],
+      stock: [sku?.stock ?? 0, [Validators.required, Validators.min(0), Validators.max(STOCK_MAX)]],
     });
   }
 
@@ -224,6 +264,7 @@ export class ProductFormComponent {
 
   addSku(): void {
     this.skus.push(this.createSkuGroup());
+    this.skus.markAsDirty();
     this.skus.updateValueAndValidity();
   }
 
@@ -232,6 +273,7 @@ export class ProductFormComponent {
       return;
     }
     this.skus.removeAt(index);
+    this.skus.markAsDirty();
     this.skus.updateValueAndValidity();
   }
 
@@ -242,28 +284,29 @@ export class ProductFormComponent {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
       next: (product) => {
+        // Backend từ chối sửa sản phẩm đã xoá: đưa về trang chi tiết để khôi phục.
+        if (product.status === "ARCHIVED") {
+          this.messageService.add({
+            severity: "warn",
+            summary: "Sản phẩm đã xoá",
+            detail: "Hãy khôi phục sản phẩm trước khi sửa.",
+          });
+          this.router.navigate(["/products", product.id]);
+          return;
+        }
         this.product.set(product);
         this.form.patchValue({
           name: product.name,
           description: product.description ?? "",
           category: product.category ?? "",
           platformSource: product.platformSource ?? "MANUAL",
-          status: product.status,
         });
         this.applyProductImages(product);
         // rebuild skus
         this.skus.clear();
         if (product.skus && product.skus.length > 0) {
           for (const sku of product.skus) {
-            this.skus.push(
-              this.fb.group({
-                id: [sku.id],
-                skuCode: [sku.skuCode, [Validators.required]],
-                variant: [sku.variant ?? ""],
-                price: [sku.price, [Validators.required, Validators.min(0)]],
-                stock: [sku.stock, [Validators.required, Validators.min(0)]],
-              }),
-            );
+            this.skus.push(this.createSkuGroup(sku));
           }
         } else {
           this.skus.push(this.createSkuGroup());
@@ -275,6 +318,8 @@ export class ProductFormComponent {
         this.loading.set(false);
         const detail = err?.error?.message ?? "Không tải được thông tin sản phẩm.";
         this.messageService.add({ severity: "error", summary: "Lỗi", detail });
+        // Không để lại form trống: bấm lưu lúc này sẽ ghi đè bằng dữ liệu rỗng.
+        this.router.navigate(["/products"], { queryParams: this.listQuery() });
       },
     });
   }
@@ -299,7 +344,7 @@ export class ProductFormComponent {
     }
     if (this.uploading()) {
       this.messageService.add({
-        severity: "warning",
+        severity: "warn",
         summary: "Đang tải ảnh",
         detail: "Vui lòng đợi quá trình tải ảnh hiện tại hoàn tất.",
       });
@@ -309,7 +354,7 @@ export class ProductFormComponent {
     const remaining = MAX_IMAGES - this.images().length;
     if (remaining <= 0) {
       this.messageService.add({
-        severity: "warning",
+        severity: "warn",
         summary: "Đã đạt giới hạn",
         detail: `Mỗi sản phẩm chỉ được tối đa ${MAX_IMAGES} ảnh.`,
       });
@@ -353,7 +398,7 @@ export class ProductFormComponent {
     }
     if (overflowCount > 0) {
       this.messageService.add({
-        severity: "warning",
+        severity: "warn",
         summary: "Vượt giới hạn ảnh",
         detail: `${overflowCount} ảnh chưa được thêm vì mỗi sản phẩm chỉ có tối đa ${MAX_IMAGES} ảnh.`,
       });
@@ -419,6 +464,7 @@ export class ProductFormComponent {
   }
 
   private appendImage(image: ProductImage): void {
+    this.imagesChanged = true;
     this.images.update((list) => [...list, image]);
     if (this.primaryImageId() === null) {
       this.primaryImageId.set(image.id);
@@ -430,6 +476,7 @@ export class ProductFormComponent {
   }
 
   setPrimary(imageId: number): void {
+    this.imagesChanged = true;
     this.primaryImageId.set(imageId);
   }
 
@@ -459,6 +506,7 @@ export class ProductFormComponent {
   }
 
   private removeImage(image: ProductImage): void {
+    this.imagesChanged = true;
     const remaining = this.images().filter((item) => item.id !== image.id);
     this.images.set(remaining);
     if (this.primaryImageId() === image.id) {
@@ -488,7 +536,7 @@ export class ProductFormComponent {
       .subscribe({
         error: () => {
           this.messageService.add({
-            severity: "warning",
+            severity: "warn",
             summary: "Chưa dọn được ảnh",
             detail: "Ảnh đã bỏ khỏi danh sách nhưng chưa xoá được trên máy chủ.",
           });
@@ -506,7 +554,7 @@ export class ProductFormComponent {
   onSubmit(): void {
     if (this.uploading()) {
       this.messageService.add({
-        severity: "warning",
+        severity: "warn",
         summary: "Đang tải ảnh",
         detail: "Vui lòng đợi tải ảnh xong trước khi lưu.",
       });
@@ -517,16 +565,21 @@ export class ProductFormComponent {
       this.form.markAllAsTouched();
       this.skus.markAllAsTouched();
       this.skus.updateValueAndValidity();
+      this.messageService.add({
+        severity: "error",
+        summary: "Chưa thể lưu",
+        detail: "Vui lòng kiểm tra lại các trường được đánh dấu.",
+      });
       return;
     }
 
-    this.loading.set(true);
+    this.saving.set(true);
 
     const formValue = this.form.getRawValue();
     const rawSkus = this.skus.getRawValue() as SkuFormValue[];
     const skus: SkuRequest[] = rawSkus.map((sku) => ({
       id: sku.id ?? undefined,
-      skuCode: (sku.skuCode ?? "").trim(),
+      skuCode: (sku.skuCode ?? "").trim() || null,
       variant: sku.variant && sku.variant.trim() !== "" ? sku.variant.trim() : null,
       price: Number(sku.price ?? 0),
       stock: Number(sku.stock ?? 0),
@@ -549,45 +602,28 @@ export class ProductFormComponent {
       skus,
     };
 
-    if (this.isEdit() && this.productId()) {
-      this.productService
-        .updateProduct(this.productId()!, req)
-        .pipe(takeUntilDestroyed(this.destroyRef))
-        .subscribe({
-        next: (product) => {
-          this.messageService.add({
-            severity: "success",
-            summary: "Thành công",
-            detail: "Đã cập nhật sản phẩm.",
-          });
-          this.router.navigate(["/products", product.id]);
-        },
-        error: (err) => {
-          this.loading.set(false);
-          const detail = err?.error?.message ?? "Cập nhật sản phẩm thất bại.";
-          this.messageService.add({ severity: "error", summary: "Lỗi", detail });
-        },
-      });
-    } else {
-      this.productService
-        .createProduct(req)
-        .pipe(takeUntilDestroyed(this.destroyRef))
-        .subscribe({
-        next: (product) => {
-          this.messageService.add({
-            severity: "success",
-            summary: "Thành công",
-            detail: "Đã tạo sản phẩm mới.",
-          });
-          this.router.navigate(["/products", product.id]);
-        },
-        error: (err) => {
-          this.loading.set(false);
-          const detail = err?.error?.message ?? "Tạo sản phẩm thất bại.";
-          this.messageService.add({ severity: "error", summary: "Lỗi", detail });
-        },
-      });
-    }
+    const editingId = this.isEdit() ? this.productId() : null;
+    const save$ = editingId
+      ? this.productService.updateProduct(editingId, req)
+      : this.productService.createProduct(req);
+
+    save$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: (product) => {
+        this.saved = true;
+        this.messageService.add({
+          severity: "success",
+          summary: "Thành công",
+          detail: editingId ? "Đã cập nhật sản phẩm." : "Đã tạo sản phẩm mới.",
+        });
+        this.router.navigate(["/products", product.id]);
+      },
+      error: (err) => {
+        this.saving.set(false);
+        const detail =
+          err?.error?.message ?? (editingId ? "Cập nhật sản phẩm thất bại." : "Tạo sản phẩm thất bại.");
+        this.messageService.add({ severity: "error", summary: "Lỗi", detail });
+      },
+    });
   }
 
   getSkuGroup(index: number): FormGroup {
@@ -595,7 +631,6 @@ export class ProductFormComponent {
   }
 
   formatPrice(value: number | null): string {
-    if (value === null || value === undefined) return "—";
-    return new Intl.NumberFormat("vi-VN").format(value) + "₫";
+    return value === null || value === undefined ? "—" : formatVnd(value);
   }
 }

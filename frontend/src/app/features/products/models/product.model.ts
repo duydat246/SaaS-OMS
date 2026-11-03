@@ -1,5 +1,3 @@
-import { PlatformSource } from "@features/orders/models/order.model";
-
 export type ProductStatus = "ACTIVE" | "INACTIVE" | "ARCHIVED";
 
 export interface Sku {
@@ -52,6 +50,7 @@ export interface ProductFilters {
   page?: number;
   size?: number;
   status?: ProductStatus | "";
+  sort?: string;
   category?: string;
   platformSource?: string;
   search?: string;
@@ -59,7 +58,8 @@ export interface ProductFilters {
 
 export interface SkuRequest {
   id?: number;
-  skuCode: string;
+  /** null: backend tự sinh mã (SKU mới) hoặc giữ mã cũ (SKU đã có). */
+  skuCode: string | null;
   variant: string | null;
   price: number;
   stock: number;

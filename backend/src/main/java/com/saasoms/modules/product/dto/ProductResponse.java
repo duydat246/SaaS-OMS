@@ -29,7 +29,7 @@ public class ProductResponse {
     private int skuCount;
     private BigDecimal minPrice;
     private BigDecimal maxPrice;
-    private int totalStock;
+    private long totalStock;
     private List<SkuInfo> skus;
     private List<ProductImageResponse> images;
 
@@ -62,7 +62,10 @@ public class ProductResponse {
     public static ProductResponse from(Product product,
                                        List<Sku> skus,
                                        List<ProductImageResponse> images) {
-        List<Sku> safeSkus = skus == null ? List.of() : skus;
+        // Sắp theo id để thứ tự biến thể ổn định giữa danh sách, chi tiết và form sửa.
+        List<Sku> safeSkus = skus == null ? List.of() : skus.stream()
+                .sorted(Comparator.comparing(Sku::getId, Comparator.nullsLast(Comparator.naturalOrder())))
+                .toList();
         List<ProductImageResponse> safeImages = images == null ? List.of() : images;
 
         BigDecimal minPrice = safeSkus.stream()
@@ -77,10 +80,10 @@ public class ProductResponse {
                 .max(Comparator.naturalOrder())
                 .orElse(null);
 
-        int totalStock = safeSkus.stream()
+        long totalStock = safeSkus.stream()
                 .map(Sku::getStock)
                 .filter(Objects::nonNull)
-                .mapToInt(Integer::intValue)
+                .mapToLong(Integer::longValue)
                 .sum();
 
         return ProductResponse.builder()

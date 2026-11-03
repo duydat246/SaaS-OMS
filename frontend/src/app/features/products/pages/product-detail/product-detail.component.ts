@@ -1,4 +1,4 @@
-import { Component, ChangeDetectionStrategy, computed, inject, signal } from "@angular/core";
+import { Component, ChangeDetectionStrategy, DestroyRef, computed, inject, signal } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { ActivatedRoute, Router, RouterLink } from "@angular/router";
 import { MessageService, ConfirmationService } from "primeng/api";
@@ -8,20 +8,20 @@ import { TagModule } from "primeng/tag";
 import { TableModule } from "primeng/table";
 import { DialogModule } from "primeng/dialog";
 import { ConfirmDialogModule } from "primeng/confirmdialog";
-import { ToastModule } from "primeng/toast";
 import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 import { Product, ProductImage } from "@features/products/models/product.model";
 import { productStatusLabelVi } from "@features/products/models/product-status";
-import { PRODUCT_STATUS_SEVERITY } from "@features/products/constants/product.constants";
+import {
+  LOW_STOCK_THRESHOLD,
+  PRODUCT_STATUS_SEVERITY,
+  TagSeverity,
+  formatPriceRange,
+  formatQuantity,
+  formatVnd,
+  productPlatformLabelVi,
+} from "@features/products/constants/product.constants";
 import { ProductService } from "@features/products/services/product.service";
-
-type TagSeverity =
-  | "success"
-  | "info"
-  | "secondary"
-  | "contrast"
-  | "warning"
-  | "danger";
+import { ProductListStateService } from "@features/products/services/product-list-state.service";
 
 @Component({
   selector: "app-product-detail",
@@ -35,9 +35,8 @@ type TagSeverity =
     TableModule,
     DialogModule,
     ConfirmDialogModule,
-    ToastModule,
   ],
-  providers: [ConfirmationService, MessageService],
+  providers: [ConfirmationService],
   templateUrl: "./product-detail.component.html",
   styleUrls: ["./product-detail.component.scss"],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -48,6 +47,8 @@ export class ProductDetailComponent {
   private readonly productService = inject(ProductService);
   private readonly confirmationService = inject(ConfirmationService);
   private readonly messageService = inject(MessageService);
+  private readonly destroyRef = inject(DestroyRef);
+  readonly listQuery = inject(ProductListStateService).lastQuery;
 
   product = signal<Product | null>(null);
   loading = signal(true);
@@ -75,6 +76,9 @@ export class ProductDetailComponent {
   });
 
   productStatusLabelVi = productStatusLabelVi;
+  platformLabelVi = productPlatformLabelVi;
+  formatQuantity = formatQuantity;
+  readonly lowStockThreshold = LOW_STOCK_THRESHOLD;
 
   constructor() {
     const id = Number(this.route.snapshot.paramMap.get("id"));
@@ -141,11 +145,11 @@ export class ProductDetailComponent {
     const p = this.product();
     if (!p) return;
     this.confirmationService.confirm({
-      message: `Bạn có chắc chắn ngừng bán/xoá sản phẩm "${p.name}"?`,
-      header: "Xác nhận",
+      message: `Xoá sản phẩm "${p.name}"? Bạn có thể khôi phục lại sau.`,
+      header: "Xác nhận xoá",
       icon: "pi pi-exclamation-triangle",
       acceptLabel: "Xoá",
-      rejectLabel: "Hủy",
+      rejectLabel: "Huỷ",
       acceptButtonStyleClass: "p-button-danger",
       accept: () => this.archive(),
     });
@@ -155,10 +159,10 @@ export class ProductDetailComponent {
     const p = this.product();
     if (!p) return;
     this.actionLoading.set(true);
-    this.productService.archiveProduct(p.id).pipe(takeUntilDestroyed()).subscribe({
+    this.productService.archiveProduct(p.id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
         this.actionLoading.set(false);
-        this.messageService.add({ severity: "success", summary: "Thành công", detail: "Đã ngừng bán sản phẩm." });
+        this.messageService.add({ severity: "success", summary: "Thành công", detail: "Đã xoá sản phẩm." });
         this.load(p.id);
       },
       error: (err) => {
@@ -177,7 +181,7 @@ export class ProductDetailComponent {
       header: "Xác nhận khôi phục",
       icon: "pi pi-refresh",
       acceptLabel: "Khôi phục",
-      rejectLabel: "Hủy",
+      rejectLabel: "Huỷ",
       acceptButtonStyleClass: "p-button-success",
       accept: () => this.restore(),
     });
@@ -187,7 +191,7 @@ export class ProductDetailComponent {
     const p = this.product();
     if (!p) return;
     this.actionLoading.set(true);
-    this.productService.restoreProduct(p.id).pipe(takeUntilDestroyed()).subscribe({
+    this.productService.restoreProduct(p.id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (updated) => {
         this.actionLoading.set(false);
         this.product.set(updated);
@@ -210,7 +214,7 @@ export class ProductDetailComponent {
         header: "Xác nhận",
         icon: "pi pi-exclamation-triangle",
         acceptLabel: "Ngừng bán",
-        rejectLabel: "Hủy",
+        rejectLabel: "Huỷ",
         acceptButtonStyleClass: "p-button-warning",
         accept: () => this.updateStatus("INACTIVE"),
       });
@@ -220,7 +224,7 @@ export class ProductDetailComponent {
         header: "Xác nhận",
         icon: "pi pi-check",
         acceptLabel: "Đang bán",
-        rejectLabel: "Hủy",
+        rejectLabel: "Huỷ",
         acceptButtonStyleClass: "p-button-success",
         accept: () => this.updateStatus("ACTIVE"),
       });
@@ -231,7 +235,7 @@ export class ProductDetailComponent {
     const p = this.product();
     if (!p) return;
     this.actionLoading.set(true);
-    this.productService.updateStatus(p.id, status).pipe(takeUntilDestroyed()).subscribe({
+    this.productService.updateStatus(p.id, status).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (updated) => {
         this.actionLoading.set(false);
         this.product.set(updated);
@@ -251,23 +255,7 @@ export class ProductDetailComponent {
 
   priceRange(): string {
     const p = this.product();
-    if (!p || p.skus.length === 0) return "—";
-    if (p.minPrice != null && p.maxPrice != null) {
-      if (p.minPrice === p.maxPrice) {
-        return new Intl.NumberFormat("vi-VN").format(p.minPrice) + "₫";
-      }
-      return (
-        new Intl.NumberFormat("vi-VN").format(p.minPrice) +
-        "₫ - " +
-        new Intl.NumberFormat("vi-VN").format(p.maxPrice) +
-        "₫"
-      );
-    }
-    const prices = p.skus.map((s) => s.price);
-    const min = Math.min(...prices);
-    const max = Math.max(...prices);
-    if (min === max) return new Intl.NumberFormat("vi-VN").format(min) + "₫";
-    return new Intl.NumberFormat("vi-VN").format(min) + "₫ - " + new Intl.NumberFormat("vi-VN").format(max) + "₫";
+    return p ? formatPriceRange(p.minPrice, p.maxPrice) : "—";
   }
 
   totalStockValue(): number {
@@ -277,7 +265,7 @@ export class ProductDetailComponent {
   }
 
   formatCurrency(v: number): string {
-    return new Intl.NumberFormat("vi-VN").format(v) + "₫";
+    return formatVnd(v);
   }
 
   formatDate(v: string | null | undefined): string {
@@ -297,15 +285,17 @@ export class ProductDetailComponent {
 
   private load(id: number): void {
     this.loading.set(true);
-    this.productService.getProduct(id).pipe(takeUntilDestroyed()).subscribe({
+    this.productService.getProduct(id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (product) => {
         this.product.set(product);
         this.applyCurrentImage(product);
         this.loading.set(false);
       },
-      error: () => {
+      error: (err) => {
         this.loading.set(false);
-        this.router.navigate(["/products"]);
+        const detail = err?.error?.message ?? "Không tải được thông tin sản phẩm.";
+        this.messageService.add({ severity: "error", summary: "Lỗi", detail });
+        this.router.navigate(["/products"], { queryParams: this.listQuery() });
       },
     });
   }

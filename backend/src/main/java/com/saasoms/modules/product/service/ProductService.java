@@ -24,6 +24,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.EnumSet;
@@ -70,7 +71,7 @@ public class ProductService {
                 statuses,
                 trimToNull(category),
                 trimToNull(platformSource),
-                trimToNull(search),
+                escapeLike(trimToNull(search)),
                 pageable);
 
         if (page.isEmpty()) {
@@ -126,7 +127,18 @@ public class ProductService {
 
         String name = requireName(req.getName());
         requireSkus(req.getSkus());
-        assertNoDuplicateInRequest(req.getSkus());
+
+        // Kiểm tra toàn bộ mã SKU TRƯỚC khi ghi bất cứ thứ gì
+        List<RequestedSku> requestedSkus = new ArrayList<>();
+        for (SkuRequest skuReq : req.getSkus()) {
+            String finalCode = trimToNull(skuReq.getSkuCode());
+            if (finalCode == null) {
+                finalCode = generateUniqueSkuCode(tenantId);
+            }
+            requestedSkus.add(new RequestedSku(skuReq, null, finalCode));
+        }
+        assertNoDuplicateFinalCodes(requestedSkus);
+        assertSkuCodesNotUsedByOtherProducts(tenantId, null, requestedSkus);
 
         Product product = Product.builder()
                 .shop(shop)
@@ -141,17 +153,12 @@ public class ProductService {
         Product savedProduct = productRepository.save(product);
 
         List<Sku> savedSkus = new ArrayList<>();
-        for (SkuRequest skuReq : req.getSkus()) {
-            String skuCode = trimToNull(skuReq.getSkuCode());
-            if (skuCode == null) {
-                skuCode = generateUniqueSkuCode(tenantId);
-            }
-            assertSkuCodeAvailable(tenantId, skuCode, null);
-
+        for (RequestedSku item : requestedSkus) {
+            SkuRequest skuReq = item.request();
             Sku sku = Sku.builder()
                     .product(savedProduct)
                     .shop(shop)
-                    .skuCode(skuCode)
+                    .skuCode(item.finalCode())
                     .variant(trimToNull(skuReq.getVariant()))
                     .price(safePrice(skuReq.getPrice()))
                     .stock(safeStock(skuReq.getStock()))
@@ -194,11 +201,16 @@ public class ProductService {
 
         // Tính mã cuối cùng cho từng dòng TRƯỚC khi ghi bất cứ thứ gì
         List<RequestedSku> requestedSkus = new ArrayList<>();
+        Set<Long> seenIds = new HashSet<>();
         for (SkuRequest skuReq : req.getSkus()) {
             Sku current = null;
             String finalCode = trimToNull(skuReq.getSkuCode());
 
             if (skuReq.getId() != null) {
+                if (!seenIds.add(skuReq.getId())) {
+                    throw BusinessException.badRequest(
+                            "Biến thể (ID " + skuReq.getId() + ") bị lặp trong danh sách.");
+                }
                 current = existingById.get(skuReq.getId());
                 if (current == null) {
                     throw BusinessException.badRequest("SKU không thuộc sản phẩm này");
@@ -255,6 +267,8 @@ public class ProductService {
         product.setCategory(trimToNull(req.getCategory()));
         product.setPlatformSource(normalizePlatformSource(req.getPlatformSource()));
         product.setImageUrl(legacyImageUrl(req, product));
+        // Chỉ sửa SKU hoặc ảnh thì Product không "dirty", @UpdateTimestamp sẽ không chạy.
+        product.setUpdatedAt(LocalDateTime.now());
 
         List<Sku> touched = new ArrayList<>();
         for (RequestedSku item : requestedSkus) {
@@ -310,6 +324,7 @@ public class ProductService {
         }
 
         product.setStatus(req.getStatus());
+        product.setUpdatedAt(LocalDateTime.now());
         productRepository.save(product);
         return toResponse(tenantId, product);
     }
@@ -321,6 +336,7 @@ public class ProductService {
 
         if (product.getStatus() != ProductStatus.ARCHIVED) {
             product.setStatus(ProductStatus.ARCHIVED);
+            product.setUpdatedAt(LocalDateTime.now());
             productRepository.save(product);
         }
     }
@@ -330,8 +346,12 @@ public class ProductService {
         Long tenantId = requireTenant();
         Product product = findProduct(tenantId, id);
 
-        product.setStatus(ProductStatus.ACTIVE);
-        productRepository.save(product);
+        // Chỉ sản phẩm đã xoá mới khôi phục; không để endpoint này lén mở bán sản phẩm "Ngừng bán".
+        if (product.getStatus() == ProductStatus.ARCHIVED) {
+            product.setStatus(ProductStatus.ACTIVE);
+            product.setUpdatedAt(LocalDateTime.now());
+            productRepository.save(product);
+        }
         return toResponse(tenantId, product);
     }
 
@@ -384,6 +404,14 @@ public class ProductService {
         }
         String trimmed = value.trim();
         return trimmed.isEmpty() ? null : trimmed;
+    }
+
+    /** Để ký tự % và _ người dùng gõ được tìm đúng nghĩa đen. Query dùng ESCAPE '!'. */
+    private static String escapeLike(String value) {
+        if (value == null) {
+            return null;
+        }
+        return value.replace("!", "!!").replace("%", "!%").replace("_", "!_");
     }
 
     private static String requireName(String rawName) {
@@ -439,51 +467,6 @@ public class ProductService {
         }
         throw BusinessException.conflict(
                 "Không thể sinh mã SKU tự động, vui lòng thử lại hoặc nhập mã thủ công");
-    }
-
-    private void assertSkuCodeAvailable(Long tenantId, String skuCode, Long excludeSkuId) {
-        String code = trimToNull(skuCode);
-        if (code == null) {
-            return;
-        }
-
-        boolean duplicated = excludeSkuId == null
-                ? skuRepository.existsByShopIdAndSkuCode(tenantId, code)
-                : skuRepository.existsByShopIdAndSkuCodeAndIdNot(tenantId, code, excludeSkuId);
-
-        if (!duplicated) {
-            return;
-        }
-
-        Sku existing = skuRepository.findByShopIdAndSkuCode(tenantId, code).orElse(null);
-        if (existing != null
-                && existing.getProduct() != null
-                && existing.getProduct().getStatus() == ProductStatus.ARCHIVED) {
-            throw BusinessException.conflict(
-                    "Mã SKU \"" + code + "\" đang thuộc sản phẩm đã xoá (ID "
-                            + existing.getProduct().getId()
-                            + "). Hãy khôi phục sản phẩm đó hoặc dùng mã khác.");
-        }
-
-        throw BusinessException.conflict("Mã SKU \"" + code + "\" đã tồn tại trong cửa hàng.");
-    }
-
-    private void assertNoDuplicateInRequest(List<SkuRequest> skus) {
-        if (skus == null || skus.isEmpty()) {
-            return;
-        }
-
-        Set<String> seen = new HashSet<>();
-        for (SkuRequest skuReq : skus) {
-            String code = trimToNull(skuReq.getSkuCode());
-            if (code == null) {
-                continue;
-            }
-            if (!seen.add(code.toLowerCase(Locale.ROOT))) {
-                throw BusinessException.badRequest(
-                        "Mã SKU \"" + code + "\" bị lặp trong danh sách biến thể.");
-            }
-        }
     }
 
     private static void assertNoDuplicateFinalCodes(List<RequestedSku> requestedSkus) {

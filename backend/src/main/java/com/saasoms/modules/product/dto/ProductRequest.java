@@ -3,6 +3,7 @@ package com.saasoms.modules.product.dto;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -19,6 +20,7 @@ public class ProductRequest {
     @Size(max = 200, message = "Tên sản phẩm tối đa 200 ký tự")
     private String name;
 
+    @Size(max = 10000, message = "Mô tả tối đa 10000 ký tự")
     private String description;
 
     @Size(max = 100, message = "Danh mục tối đa 100 ký tự")
@@ -36,6 +38,5 @@ public class ProductRequest {
     private Long primaryImageId;
 
     @NotEmpty(message = "Sản phẩm phải có ít nhất 1 SKU")
-    @Valid
-    private List<SkuRequest> skus;
+    private List<@NotNull(message = "Danh sách SKU không được chứa phần tử rỗng") @Valid SkuRequest> skus;
 }

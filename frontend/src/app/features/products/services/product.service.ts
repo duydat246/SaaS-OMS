@@ -1,9 +1,12 @@
 import { Injectable } from "@angular/core";
 import { HttpClient, HttpParams } from "@angular/common/http";
-import { Observable } from "rxjs";
-import { map } from "rxjs/operators";
+import { EMPTY, Observable } from "rxjs";
+import { expand, map, reduce } from "rxjs/operators";
 import { ApiResponse, PageResponse } from "@core/models/api.model";
 import { Product, ProductFilters, ProductRequest, ProductStats, ProductStatus } from "@features/products/models/product.model";
+
+/** Backend kẹp size tối đa 100, nên xuất toàn bộ phải đi theo từng trang. */
+const EXPORT_PAGE_SIZE = 100;
 
 @Injectable({ providedIn: "root" })
 export class ProductService {
@@ -40,10 +43,26 @@ export class ProductService {
     if (filters.search) {
       params = params.set("search", filters.search);
     }
+    if (filters.sort) {
+      params = params.set("sort", filters.sort);
+    }
 
     return this.http
       .get<ApiResponse<PageResponse<Product>>>(this.base, { params })
       .pipe(map((r) => r.data));
+  }
+
+  /** Lấy mọi sản phẩm khớp bộ lọc, gọi tuần tự từng trang. */
+  getAllProducts(filters: ProductFilters = {}): Observable<Product[]> {
+    const fetchPage = (page: number) =>
+      this.getProducts({ ...filters, page, size: EXPORT_PAGE_SIZE });
+
+    return fetchPage(0).pipe(
+      expand((res) =>
+        res.meta.page + 1 < res.meta.totalPages ? fetchPage(res.meta.page + 1) : EMPTY,
+      ),
+      reduce((all, res) => all.concat(res.content ?? []), [] as Product[]),
+    );
   }
 
   getProduct(id: number): Observable<Product> {
@@ -71,14 +90,9 @@ export class ProductService {
   }
 
   archiveProduct(id: number): Observable<void> {
-    return this.http.delete<ApiResponse<void> | void>(`${this.base}/${id}`).pipe(
-      map((r: any) => {
-        if (r && typeof r === "object" && "data" in r) {
-          return (r as ApiResponse<void>).data;
-        }
-        return undefined as void;
-      })
-    );
+    return this.http
+      .delete<ApiResponse<void>>(`${this.base}/${id}`)
+      .pipe(map(() => undefined));
   }
 
   restoreProduct(id: number): Observable<Product> {

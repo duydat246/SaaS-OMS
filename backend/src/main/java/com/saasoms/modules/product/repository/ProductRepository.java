@@ -29,12 +29,12 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
               AND (:category IS NULL OR p.category = :category)
               AND (:platformSource IS NULL OR p.platformSource = :platformSource)
               AND (:search IS NULL OR
-                   LOWER(p.name) LIKE LOWER(CONCAT('%', :search, '%'))
-                   OR LOWER(COALESCE(p.category, '')) LIKE LOWER(CONCAT('%', :search, '%'))
+                   LOWER(p.name) LIKE LOWER(CONCAT('%', :search, '%')) ESCAPE '!'
+                   OR LOWER(COALESCE(p.category, '')) LIKE LOWER(CONCAT('%', :search, '%')) ESCAPE '!'
                    OR EXISTS (
                        SELECT s.id FROM Sku s
                        WHERE s.product = p
-                         AND LOWER(s.skuCode) LIKE LOWER(CONCAT('%', :search, '%'))
+                         AND LOWER(s.skuCode) LIKE LOWER(CONCAT('%', :search, '%')) ESCAPE '!'
                    ))
             """)
     Page<Product> search(

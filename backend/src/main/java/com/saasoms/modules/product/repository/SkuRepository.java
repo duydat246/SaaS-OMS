@@ -30,13 +30,9 @@ public interface SkuRepository extends JpaRepository<Sku, Long> {
 
     Optional<Sku> findByIdAndShopId(Long id, Long shopId);
 
-    Optional<Sku> findByShopIdAndSkuCode(Long shopId, String skuCode);
-
     List<Sku> findByShopIdAndSkuCodeIn(Long shopId, Collection<String> skuCodes);
 
     boolean existsByShopIdAndSkuCode(Long shopId, String skuCode);
-
-    boolean existsByShopIdAndSkuCodeAndIdNot(Long shopId, String skuCode, Long id);
 
     @Query(value = """
             SELECT DISTINCT oi.sku_id FROM order_items oi

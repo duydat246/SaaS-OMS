@@ -12,6 +12,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -23,16 +24,23 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.not;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @ExtendWith(MockitoExtension.class)
 class ProductControllerTest {
+
+    private static final String NULL_SKU_BODY = """
+            {"name":"x","skus":[null]}
+            """;
+    private static final String NULL_SKU_MESSAGE = "Danh sách SKU không được chứa phần tử rỗng";
 
     @Mock
     private ProductService productService;
@@ -134,6 +142,156 @@ class ProductControllerTest {
         Sort.Order order = pageableCaptor.getValue().getSort().getOrderFor("name");
         assertThat(order).isNotNull();
         assertThat(order.getDirection()).isEqualTo(Sort.Direction.ASC);
+    }
+
+    @Test
+    void list_sort_hasIdTieBreakerForStablePaging() throws Exception {
+        when(productService.getProducts(any(), any(), any(), any(), any()))
+                .thenReturn(emptyPageResponse());
+
+        mockMvc.perform(get("/api/products").param("sort", "name,asc"))
+                .andExpect(status().isOk());
+
+        ArgumentCaptor<Pageable> pageableCaptor = ArgumentCaptor.forClass(Pageable.class);
+        verify(productService).getProducts(any(), any(), any(), any(), pageableCaptor.capture());
+
+        assertThat(pageableCaptor.getValue().getSort().getOrderFor("id")).isNotNull();
+    }
+
+    @Test
+    void list_sizeZeroAndNegativePage_areClamped() throws Exception {
+        when(productService.getProducts(any(), any(), any(), any(), any()))
+                .thenReturn(emptyPageResponse());
+
+        mockMvc.perform(get("/api/products").param("size", "0").param("page", "-1"))
+                .andExpect(status().isOk());
+
+        ArgumentCaptor<Pageable> pageableCaptor = ArgumentCaptor.forClass(Pageable.class);
+        verify(productService).getProducts(any(), any(), any(), any(), pageableCaptor.capture());
+
+        assertThat(pageableCaptor.getValue().getPageSize()).isEqualTo(1);
+        assertThat(pageableCaptor.getValue().getPageNumber()).isZero();
+    }
+
+    @Test
+    void list_hugePage_offsetStaysWithinIntegerRange() throws Exception {
+        when(productService.getProducts(any(), any(), any(), any(), any()))
+                .thenReturn(emptyPageResponse());
+
+        mockMvc.perform(get("/api/products").param("page", "2147483647"))
+                .andExpect(status().isOk());
+
+        ArgumentCaptor<Pageable> pageableCaptor = ArgumentCaptor.forClass(Pageable.class);
+        verify(productService).getProducts(any(), any(), any(), any(), pageableCaptor.capture());
+
+        assertThat(pageableCaptor.getValue().getPageSize()).isEqualTo(20);
+        assertThat(pageableCaptor.getValue().getOffset()).isLessThanOrEqualTo(Integer.MAX_VALUE);
+    }
+
+    @Test
+    void list_validPage_isUnchanged() throws Exception {
+        when(productService.getProducts(any(), any(), any(), any(), any()))
+                .thenReturn(emptyPageResponse());
+
+        mockMvc.perform(get("/api/products").param("page", "3").param("size", "50"))
+                .andExpect(status().isOk());
+
+        ArgumentCaptor<Pageable> pageableCaptor = ArgumentCaptor.forClass(Pageable.class);
+        verify(productService).getProducts(any(), any(), any(), any(), pageableCaptor.capture());
+
+        assertThat(pageableCaptor.getValue().getPageNumber()).isEqualTo(3);
+        assertThat(pageableCaptor.getValue().getPageSize()).isEqualTo(50);
+    }
+
+    @Test
+    void create_nullSkuElement_returns400() throws Exception {
+        mockMvc.perform(post("/api/products")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(NULL_SKU_BODY))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value(NULL_SKU_MESSAGE));
+    }
+
+    @Test
+    void update_nullSkuElement_returns400() throws Exception {
+        mockMvc.perform(put("/api/products/1")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(NULL_SKU_BODY))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value(NULL_SKU_MESSAGE));
+    }
+
+    @Test
+    void list_invalidStatus_returns400() throws Exception {
+        mockMvc.perform(get("/api/products").param("status", "FOO"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message", containsString("status")));
+    }
+
+    @Test
+    void get_nonNumericId_returns400() throws Exception {
+        mockMvc.perform(get("/api/products/abc"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false));
+    }
+
+    @Test
+    void create_concurrentDuplicateSku_returns409() throws Exception {
+        when(productService.createProduct(any(ProductRequest.class)))
+                .thenThrow(new DataIntegrityViolationException("Duplicate entry"));
+
+        String body = """
+                {"name":"Áo","skus":[{"skuCode":"SKU-1","price":1,"stock":1}]}
+                """;
+
+        mockMvc.perform(post("/api/products")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message", not(containsString("Duplicate"))));
+    }
+
+    @Test
+    void create_descriptionTooLong_returns400() throws Exception {
+        String body = """
+                {"name":"Áo","description":"%s","skus":[{"skuCode":"SKU-1","price":1,"stock":1}]}
+                """.formatted("a".repeat(10_001));
+
+        mockMvc.perform(post("/api/products")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message", containsString("Mô tả")));
+    }
+
+    @Test
+    void create_negativePriceOrStock_returns400() throws Exception {
+        String body = """
+                {"name":"Áo","skus":[{"skuCode":"SKU-1","price":-1,"stock":-1}]}
+                """;
+
+        mockMvc.perform(post("/api/products")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false));
+    }
+
+    @Test
+    void create_priceOverflowingDecimal12_2_returns400() throws Exception {
+        String body = """
+                {"name":"Áo","skus":[{"skuCode":"SKU-1","price":12345678901,"stock":1}]}
+                """;
+
+        mockMvc.perform(post("/api/products")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message", containsString("Giá")));
     }
 
     // ---------------------------------------------------------------- FIXTURE

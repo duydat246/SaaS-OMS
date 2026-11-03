@@ -424,7 +424,7 @@ Một bước chỉ được coi là xong khi:
 | 8 | P1 | CI deploy cả `dev`, tag `latest`, không chạy test | `.github/workflows/deploy.yml:5,24,31` | Chỉ deploy từ `main`, tag SHA, thêm `mvn test` + `npm build` |
 | 9 | P1 | Dashboard dùng số liệu giả; export cắt cứng 1000 dòng | `dashboard.component.ts:106-127`, `dashboard.constants.ts:18`, `:322` | Nối API thật; phân trang khi export và báo số dòng |
 | 10 | P2 | Order chưa kẹp `size`, bỏ qua `sort` | `OrderController.java:34-37` | Kẹp 1..100, nhận sort whitelist |
-| 11 | P2 | `as any`, subscription không huỷ, `.css` trùng | `product-list.component.ts:100,132`, `product-form.component.ts:203,271,287`, `product.service.ts:75` | Bỏ `any`, dùng `takeUntilDestroyed`, xoá `.css` thừa |
+| 11 | P2 | ~~`as any`, subscription không huỷ, `.css` trùng~~ — đã xử lý 03/11/2026 | `features/products/**` | Đã bỏ `any`, dùng `takeUntilDestroyed(destroyRef)`, xoá `.css` thừa |
 | 12 | P2 | Message lỗi lẫn Anh/Việt | `GlobalExceptionHandler.java:41,46,52`, `OrderService` | Chuẩn hoá message tiếng Việt |
 | 13 | P2 | Tài liệu lệch code (localStorage, thiếu route products) | `frontend/CLAUDE.md:34,38-44` | Cập nhật tài liệu khi chạm; code là chuẩn |
 | 14 | P2 | ~~`ordered_at` không bao giờ được ghi~~ — đã xử lý 23/10/2026 | `OrderService.createOrder()` | Đã set `orderedAt` khi tạo đơn tay |

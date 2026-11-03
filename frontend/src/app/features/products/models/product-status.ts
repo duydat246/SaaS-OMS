@@ -1,11 +1,5 @@
 import type { ProductStatus } from "./product.model";
 
-export enum ProductStatusCode {
-  ACTIVE = "ACTIVE",
-  INACTIVE = "INACTIVE",
-  ARCHIVED = "ARCHIVED",
-}
-
 export const PRODUCT_STATUS_LABEL_VI: Record<ProductStatus, string> = {
   ACTIVE: "Đang bán",
   INACTIVE: "Ngừng bán",

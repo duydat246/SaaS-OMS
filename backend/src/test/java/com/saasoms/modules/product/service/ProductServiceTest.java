@@ -29,6 +29,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -178,18 +179,10 @@ class ProductServiceTest {
     // ----------------------------------------------------------------- WRITE
 
     @Test
-    void createProduct_duplicateSkuCode_throwsConflict() {
+    void createProduct_duplicateSkuCode_throwsConflictBeforeAnyWrite() {
         when(shopRepository.findById(TENANT_ID)).thenReturn(Optional.of(shop));
-        when(productRepository.save(any(Product.class))).thenAnswer(invocation -> {
-            Product saved = invocation.getArgument(0);
-            if (saved.getId() == null) {
-                saved.setId(10L);
-            }
-            return saved;
-        });
-        when(skuRepository.existsByShopIdAndSkuCode(TENANT_ID, "SKU-1")).thenReturn(true);
-        when(skuRepository.findByShopIdAndSkuCode(TENANT_ID, "SKU-1"))
-                .thenReturn(Optional.of(sku(500L, product(99L, ProductStatus.ACTIVE), "SKU-1", "1.00", 1)));
+        when(skuRepository.findByShopIdAndSkuCodeIn(eq(TENANT_ID), anyCollection()))
+                .thenReturn(List.of(sku(500L, product(99L, ProductStatus.ACTIVE), "SKU-1", "1.00", 1)));
 
         ProductRequest request = request("Áo thun", List.of(
                 new SkuRequest(null, "SKU-1", "M", new BigDecimal("1.00"), 1)));
@@ -199,21 +192,14 @@ class ProductServiceTest {
 
         assertThat(ex.getStatus()).isEqualTo(HttpStatus.CONFLICT);
         assertThat(ex.getMessage()).contains("SKU-1");
+        verify(productRepository, never()).save(any(Product.class));
     }
 
     @Test
     void createProduct_duplicateSkuCodeOfArchivedProduct_messageMentionsRestore() {
         when(shopRepository.findById(TENANT_ID)).thenReturn(Optional.of(shop));
-        when(productRepository.save(any(Product.class))).thenAnswer(invocation -> {
-            Product saved = invocation.getArgument(0);
-            if (saved.getId() == null) {
-                saved.setId(10L);
-            }
-            return saved;
-        });
-        when(skuRepository.existsByShopIdAndSkuCode(TENANT_ID, "SKU-OLD")).thenReturn(true);
-        when(skuRepository.findByShopIdAndSkuCode(TENANT_ID, "SKU-OLD"))
-                .thenReturn(Optional.of(sku(500L, product(99L, ProductStatus.ARCHIVED), "SKU-OLD", "1.00", 1)));
+        when(skuRepository.findByShopIdAndSkuCodeIn(eq(TENANT_ID), anyCollection()))
+                .thenReturn(List.of(sku(500L, product(99L, ProductStatus.ARCHIVED), "SKU-OLD", "1.00", 1)));
 
         ProductRequest request = request("Áo thun", List.of(
                 new SkuRequest(null, "SKU-OLD", "M", new BigDecimal("1.00"), 1)));
@@ -223,6 +209,122 @@ class ProductServiceTest {
 
         assertThat(ex.getStatus()).isEqualTo(HttpStatus.CONFLICT);
         assertThat(ex.getMessage()).contains("đã xoá").contains("khôi phục");
+    }
+
+    @Test
+    void createProduct_duplicateCodeInRequest_throwsBadRequestBeforeAnyWrite() {
+        when(shopRepository.findById(TENANT_ID)).thenReturn(Optional.of(shop));
+
+        ProductRequest request = request("Áo thun", List.of(
+                new SkuRequest(null, "SKU-1", "M", new BigDecimal("1.00"), 1),
+                new SkuRequest(null, "sku-1", "L", new BigDecimal("1.00"), 1)));
+
+        BusinessException ex = assertThrows(BusinessException.class,
+                () -> productService.createProduct(request));
+
+        assertThat(ex.getStatus()).isEqualTo(HttpStatus.BAD_REQUEST);
+        verify(productRepository, never()).save(any(Product.class));
+    }
+
+    @Test
+    void getProducts_searchWithLikeWildcards_isEscaped() {
+        when(productRepository.search(any(), any(), any(), any(), any(), any()))
+                .thenReturn(Page.empty());
+
+        productService.getProducts(null, null, null, " 100%_a!b ", PageRequest.of(0, 20));
+
+        verify(productRepository).search(
+                eq(TENANT_ID), anyCollection(), isNull(), isNull(), eq("100!%!_a!!b"), any(Pageable.class));
+    }
+
+    @Test
+    void getProduct_skusAreSortedById() {
+        Product product = product(10L, ProductStatus.ACTIVE);
+        when(productRepository.findByIdAndShopId(10L, TENANT_ID)).thenReturn(Optional.of(product));
+        when(skuRepository.findByShopIdAndProductId(TENANT_ID, 10L)).thenReturn(List.of(
+                sku(102L, product, "SKU-C", "1.00", 1),
+                sku(100L, product, "SKU-A", "1.00", 1),
+                sku(101L, product, "SKU-B", "1.00", 1)));
+
+        ProductResponse response = productService.getProduct(10L);
+
+        assertThat(response.getSkus()).extracting(ProductResponse.SkuInfo::getId)
+                .containsExactly(100L, 101L, 102L);
+    }
+
+    @Test
+    void getProduct_totalStockAboveIntRange_doesNotOverflow() {
+        Product product = product(10L, ProductStatus.ACTIVE);
+        when(productRepository.findByIdAndShopId(10L, TENANT_ID)).thenReturn(Optional.of(product));
+        when(skuRepository.findByShopIdAndProductId(TENANT_ID, 10L)).thenReturn(List.of(
+                sku(100L, product, "SKU-A", "1.00", Integer.MAX_VALUE),
+                sku(101L, product, "SKU-B", "1.00", Integer.MAX_VALUE)));
+
+        ProductResponse response = productService.getProduct(10L);
+
+        assertThat(response.getTotalStock()).isEqualTo(2L * Integer.MAX_VALUE);
+    }
+
+    @Test
+    void updateProduct_sameSkuIdTwice_throwsBadRequest() {
+        Product product = product(10L, ProductStatus.ACTIVE);
+        when(productRepository.findByIdAndShopId(10L, TENANT_ID)).thenReturn(Optional.of(product));
+        when(skuRepository.findByShopIdAndProductId(TENANT_ID, 10L))
+                .thenReturn(List.of(sku(100L, product, "SKU-A", "1.00", 1)));
+
+        ProductRequest request = request("Áo thun", List.of(
+                new SkuRequest(100L, "SKU-A", null, new BigDecimal("2.00"), 2),
+                new SkuRequest(100L, "SKU-B", null, new BigDecimal("3.00"), 3)));
+
+        BusinessException ex = assertThrows(BusinessException.class,
+                () -> productService.updateProduct(10L, request));
+
+        assertThat(ex.getStatus()).isEqualTo(HttpStatus.BAD_REQUEST);
+        verify(skuRepository, never()).saveAll(anyCollection());
+    }
+
+    @Test
+    void updateProduct_onlySkuChanged_bumpsUpdatedAt() {
+        Product product = product(10L, ProductStatus.ACTIVE);
+        LocalDateTime old = LocalDateTime.now().minusDays(1);
+        product.setUpdatedAt(old);
+        when(productRepository.findByIdAndShopId(10L, TENANT_ID)).thenReturn(Optional.of(product));
+        when(skuRepository.findByShopIdAndProductId(TENANT_ID, 10L))
+                .thenReturn(List.of(sku(100L, product, "SKU-A", "1.00", 1)));
+
+        ProductRequest request = request("Sản phẩm 10", List.of(
+                new SkuRequest(100L, "SKU-A", null, new BigDecimal("2.00"), 1)));
+
+        ProductResponse response = productService.updateProduct(10L, request);
+
+        assertThat(product.getUpdatedAt()).isAfter(old);
+        assertThat(response.getUpdatedAt()).isAfter(old);
+    }
+
+    @Test
+    void updateProduct_otherTenant_throws404() {
+        TenantContext.set(2L);
+        when(productRepository.findByIdAndShopId(10L, 2L)).thenReturn(Optional.empty());
+
+        ProductRequest request = request("Áo thun", List.of(
+                new SkuRequest(null, "SKU-1", null, new BigDecimal("1.00"), 1)));
+
+        BusinessException ex = assertThrows(BusinessException.class,
+                () -> productService.updateProduct(10L, request));
+
+        assertThat(ex.getStatus()).isEqualTo(HttpStatus.NOT_FOUND);
+    }
+
+    @Test
+    void restoreProduct_inactiveProduct_staysInactive() {
+        Product product = product(10L, ProductStatus.INACTIVE);
+        when(productRepository.findByIdAndShopId(10L, TENANT_ID)).thenReturn(Optional.of(product));
+        when(skuRepository.findByShopIdAndProductId(TENANT_ID, 10L)).thenReturn(List.of());
+
+        ProductResponse response = productService.restoreProduct(10L);
+
+        assertThat(response.getStatus()).isEqualTo(ProductStatus.INACTIVE);
+        verify(productRepository, never()).save(any(Product.class));
     }
 
     @Test
