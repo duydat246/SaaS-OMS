@@ -1,26 +1,27 @@
-<div class="flex flex-column gap-3">
-  <!-- Header -->
-  <div class="flex align-items-center gap-2">
-    <a routerLink="/orders">
-      <p-button
-        icon="pi pi-arrow-left"
-        [rounded]="true"
-        [text]="true"
-        severity="secondary"
-        aria-label="Quay lại danh sách đơn hàng"
-      />
-    </a>
-    <h2 class="m-0">Tạo đơn hàng mới</h2>
+<div class="page-stack page-form">
+  <div class="page-header">
+    <div class="page-header__title">
+      <a routerLink="/orders" tabindex="-1">
+        <p-button
+          icon="pi pi-arrow-left"
+          [rounded]="true"
+          [text]="true"
+          severity="secondary"
+          ariaLabel="Quay lại danh sách đơn hàng"
+        />
+      </a>
+      <h2>Tạo đơn hàng mới</h2>
+    </div>
   </div>
 
   <form [formGroup]="form" (ngSubmit)="onSubmit()">
-    <div class="grid">
+    <div class="order-form-top">
       <!-- Customer Info -->
-      <div class="col-12 md:col-6">
+      <div>
         <p-card header="Khách hàng">
           <div class="flex flex-column gap-3">
-            <div class="flex flex-column gap-1">
-              <label class="font-medium" for="customer-name">Họ và tên *</label>
+            <div class="field">
+              <label for="customer-name">Họ và tên *</label>
               <input
                 pInputText
                 id="customer-name"
@@ -35,8 +36,8 @@
                 <small class="p-error">Vui lòng nhập họ tên khách hàng.</small>
               }
             </div>
-            <div class="flex flex-column gap-1">
-              <label class="font-medium" for="customer-phone">Số điện thoại *</label>
+            <div class="field">
+              <label for="customer-phone">Số điện thoại *</label>
               <input
                 pInputText
                 id="customer-phone"
@@ -51,8 +52,8 @@
                 <small class="p-error">Vui lòng nhập số điện thoại.</small>
               }
             </div>
-            <div class="flex flex-column gap-1">
-              <label class="font-medium" for="customer-address">Địa chỉ giao hàng</label>
+            <div class="field">
+              <label for="customer-address">Địa chỉ giao hàng</label>
               <input
                 pInputText
                 id="customer-address"
@@ -61,8 +62,8 @@
                 class="w-full"
               />
             </div>
-            <div class="flex flex-column gap-1">
-              <label class="font-medium" for="order-notes">Ghi chú</label>
+            <div class="field">
+              <label for="order-notes">Ghi chú</label>
               <input
                 pInputText
                 id="order-notes"
@@ -76,51 +77,51 @@
       </div>
 
       <!-- Pricing -->
-      <div class="col-12 md:col-6">
+      <div>
         <p-card header="Thanh toán">
           <div class="flex flex-column gap-3">
-            <div class="flex flex-column gap-1">
-              <label class="font-medium" for="shipping-fee">Phí vận chuyển (₫)</label>
+            <div class="field">
+              <label for="shipping-fee">Phí vận chuyển (₫)</label>
               <p-inputNumber
                 inputId="shipping-fee"
                 formControlName="shippingFee"
                 [min]="0"
                 mode="decimal"
                 class="w-full"
-                inputStyleClass="w-full"
+                inputStyleClass="w-full num"
               />
             </div>
-            <div class="flex flex-column gap-1">
-              <label class="font-medium" for="discount">Giảm giá (₫)</label>
+            <div class="field">
+              <label for="discount">Giảm giá (₫)</label>
               <p-inputNumber
                 inputId="discount"
                 formControlName="discount"
                 [min]="0"
                 mode="decimal"
                 class="w-full"
-                inputStyleClass="w-full"
+                inputStyleClass="w-full num"
               />
             </div>
 
-            <div class="flex justify-content-between border-top-1 surface-border pt-2">
-              <span class="font-medium">Tạm tính</span>
-              <span class="font-medium">{{ summary().subtotal | number: "1.0-0" }}₫</span>
+            <div class="summary-row order-form-subtotal">
+              <span>Tạm tính</span>
+              <span class="num font-medium">{{ summary().subtotal | number: "1.0-0" }}₫</span>
             </div>
-            <div class="flex justify-content-between font-bold text-lg">
+            <div class="summary-row order-form-total">
               <span>Tổng cộng</span>
-              <span>{{ summary().total | number: "1.0-0" }}₫</span>
+              <span class="num">{{ summary().total | number: "1.0-0" }}₫</span>
             </div>
           </div>
         </p-card>
       </div>
 
       <!-- Order Items -->
-      <div class="col-12">
+      <div class="order-form-items">
         <p-card header="Sản phẩm">
-          <div class="flex flex-column gap-3" formArrayName="items">
+          <div class="flex flex-column gap-2" formArrayName="items">
             @for (line of items.controls; track line; let i = $index) {
               <div [formGroupName]="i" class="order-line">
-                <div class="grid align-items-end">
+                <div class="grid align-items-start">
                   <div class="col-12 md:col-4">
                     <label class="font-medium text-sm" [for]="'product-' + i">
                       Sản phẩm *
@@ -131,11 +132,12 @@
                       [suggestions]="productSuggestions()"
                       (completeMethod)="searchProducts($event)"
                       [dropdown]="true"
+                      dropdownAriaLabel="Mở danh sách sản phẩm"
                       [showClear]="true"
                       field="name"
                       placeholder="Tìm và chọn sản phẩm"
                       styleClass="w-full"
-                      inputStyleClass="w-full mt-1"
+                      inputStyleClass="w-full"
                       [forceSelection]="true"
                       [showEmptyMessage]="true"
                       emptyMessage="Không tìm thấy sản phẩm đang bán"
@@ -143,7 +145,7 @@
                       <ng-template let-product pTemplate="item">
                         <div class="flex flex-column">
                           <span class="font-medium">{{ product.name }}</span>
-                          <span class="text-500 text-sm">
+                          <span class="muted text-sm">
                             Còn {{ product.totalStock }} sản phẩm
                           </span>
                         </div>
@@ -156,11 +158,11 @@
                       <small class="p-error">Vui lòng chọn sản phẩm.</small>
                     }
                     @if (productsLoading()) {
-                      <small class="text-500">Đang tìm sản phẩm...</small>
+                      <small class="muted">Đang tìm sản phẩm...</small>
                     }
                   </div>
 
-                  <div class="col-12 md:col-4">
+                  <div class="col-12 md:col-3">
                     <label class="font-medium text-sm" [for]="'variant-' + i">
                       Phân loại (biến thể) *
                     </label>
@@ -172,7 +174,7 @@
                       optionValue="value"
                       optionDisabled="disabled"
                       placeholder="Chọn biến thể"
-                      styleClass="w-full mt-1"
+                      styleClass="w-full"
                       [filter]="true"
                       filterBy="label"
                       scrollHeight="240px"
@@ -193,11 +195,11 @@
                       formControlName="quantity"
                       [min]="1"
                       [max]="maxQuantity(line)"
-                      class="w-full mt-1"
-                      inputStyleClass="w-full"
+                      class="w-full"
+                      inputStyleClass="w-full num"
                       (onBlur)="clampQuantity(line)"
                     />
-                    <small class="text-500">Tồn kho: {{ maxQuantity(line) }}</small>
+                    <small class="muted">Tồn kho: {{ maxQuantity(line) }}</small>
                     @if (
                       line.controls.quantity.touched &&
                       line.controls.quantity.invalid
@@ -210,22 +212,22 @@
 
                   <div class="col-6 md:col-2">
                     <span class="font-medium text-sm block">Thành tiền</span>
-                    <span class="font-bold block mt-2">
+                    <span class="num font-medium block mt-2">
                       {{ lineTotal(line) | number: "1.0-0" }}₫
                     </span>
-                    <small class="text-500">
+                    <small class="muted">
                       Đơn giá:
                       {{ line.controls.sku.value?.price | number: "1.0-0" }}₫
                     </small>
                   </div>
 
-                  <div class="col-12 md:col-1 flex justify-content-end">
+                  <div class="col-12 md:col-1 flex justify-content-end order-line-action">
                     <p-button
                       icon="pi pi-trash"
                       [rounded]="true"
                       [text]="true"
                       severity="danger"
-                      aria-label="Xoá sản phẩm khỏi đơn"
+                      ariaLabel="Xoá sản phẩm khỏi đơn"
                       (click)="removeItem(i)"
                       [disabled]="items.length === 1"
                     />
@@ -241,9 +243,10 @@
               icon="pi pi-plus"
               severity="secondary"
               size="small"
+              [outlined]="true"
               (click)="addItem()"
             />
-            <small class="text-500">
+            <small class="muted">
               Tồn kho chỉ bị trừ sau khi đơn hàng được xác nhận.
             </small>
           </div>
@@ -251,8 +254,8 @@
       </div>
     </div>
 
-    <div class="flex gap-2 justify-content-end mt-2">
-      <a routerLink="/orders">
+    <div class="save-bar">
+      <a routerLink="/orders" tabindex="-1">
         <p-button label="Huỷ" severity="secondary" [outlined]="true" />
       </a>
       <p-button

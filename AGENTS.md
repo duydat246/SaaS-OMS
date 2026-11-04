@@ -422,7 +422,7 @@ Một bước chỉ được coi là xong khi:
 | 6 | P1 | Login chưa rate-limit; mật khẩu tối thiểu 6 ký tự | `AuthService.java:63`, `RegisterRequest` | Rate-limit theo IP/email, nâng chính sách mật khẩu |
 | 7 | P1 | Thiếu 401 entry point → trả 403 khi hết token | `SecurityConfig.java` | Thêm `AuthenticationEntryPoint` trả 401 + `ApiResponse` |
 | 8 | P1 | CI deploy cả `dev`, tag `latest`, không chạy test | `.github/workflows/deploy.yml:5,24,31` | Chỉ deploy từ `main`, tag SHA, thêm `mvn test` + `npm build` |
-| 9 | P1 | Dashboard dùng số liệu giả; export cắt cứng 1000 dòng | `dashboard.component.ts:106-127`, `dashboard.constants.ts:18`, `:322` | Nối API thật; phân trang khi export và báo số dòng |
+| 9 | P1 | Dashboard dùng số liệu giả (đã gắn nhãn "Dữ liệu minh hoạ" ngày 04/11/2026); export cắt cứng 1000 dòng | `dashboard.component.ts:108-152`, `dashboard.constants.ts:18`, `dashboard.component.ts:314` | Nối API thật; phân trang khi export và báo số dòng |
 | 10 | P2 | Order chưa kẹp `size`, bỏ qua `sort` | `OrderController.java:34-37` | Kẹp 1..100, nhận sort whitelist |
 | 11 | P2 | ~~`as any`, subscription không huỷ, `.css` trùng~~ — đã xử lý 03/11/2026 | `features/products/**` | Đã bỏ `any`, dùng `takeUntilDestroyed(destroyRef)`, xoá `.css` thừa |
 | 12 | P2 | Message lỗi lẫn Anh/Việt | `GlobalExceptionHandler.java:41,46,52`, `OrderService` | Chuẩn hoá message tiếng Việt |

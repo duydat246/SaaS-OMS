@@ -1,8 +1,7 @@
 <p-confirmDialog />
-<div class="flex flex-column gap-3">
-  <!-- Header -->
-  <div class="flex align-items-center justify-content-between flex-wrap gap-2">
-    <div class="flex align-items-center gap-2">
+<div class="page-stack page-form">
+  <div class="page-header">
+    <div class="page-header__title">
       <p-button
         icon="pi pi-arrow-left"
         [rounded]="true"
@@ -12,21 +11,20 @@
         routerLink="/products"
         [queryParams]="listQuery()"
       />
-      <h2 class="m-0">{{ isEdit() ? "Sửa sản phẩm" : "Thêm sản phẩm" }}</h2>
+      <h2>{{ isEdit() ? "Sửa sản phẩm" : "Thêm sản phẩm" }}</h2>
     </div>
   </div>
 
   @if (loading()) {
-    <div class="text-center py-6 form-hint">Đang tải...</div>
+    <div class="text-center py-6 muted">Đang tải...</div>
   } @else {
   <form [formGroup]="form" (ngSubmit)="onSubmit()">
-    <div class="grid">
-      <!-- Thông tin chung -->
-      <div class="col-12 lg:col-6">
+    <div class="form-layout">
+      <div class="page-stack form-main">
         <p-card header="Thông tin chung">
-          <div class="flex flex-column gap-3">
-            <div class="flex flex-column gap-1">
-              <label class="font-medium" for="product-name">Tên sản phẩm *</label>
+          <div class="field-grid">
+            <div class="field field--wide">
+              <label for="product-name">Tên sản phẩm *</label>
               <input
                 id="product-name"
                 pInputText
@@ -35,7 +33,7 @@
                 class="w-full"
               />
               @if (form.get('name')?.touched && form.get('name')?.invalid) {
-                <small class="text-red-500">
+                <small class="field-error">
                   @if (form.get('name')?.errors?.['maxlength']) {
                     Tên sản phẩm tối đa {{ nameMaxLength }} ký tự.
                   } @else {
@@ -45,8 +43,41 @@
               }
             </div>
 
-            <div class="flex flex-column gap-1">
-              <label class="font-medium" for="product-description">Mô tả</label>
+            <div class="field">
+              <label for="product-category">Danh mục</label>
+              <input
+                id="product-category"
+                pInputText
+                formControlName="category"
+                placeholder="Ví dụ: Áo, Giày"
+                class="w-full"
+                list="product-category-options"
+              />
+              <datalist id="product-category-options">
+                @for (category of categories(); track category) {
+                  <option [value]="category"></option>
+                }
+              </datalist>
+              @if (form.get('category')?.errors?.['maxlength']) {
+                <small class="field-error">Danh mục tối đa {{ categoryMaxLength }} ký tự.</small>
+              }
+            </div>
+
+            <div class="field">
+              <label for="product-platform">Nguồn nền tảng</label>
+              <p-dropdown
+                inputId="product-platform"
+                formControlName="platformSource"
+                [options]="platformSourceOptions"
+                optionLabel="label"
+                optionValue="value"
+                placeholder="Chọn nguồn"
+                styleClass="w-full"
+              />
+            </div>
+
+            <div class="field field--wide">
+              <label for="product-description">Mô tả</label>
               <textarea
                 id="product-description"
                 pInputTextarea
@@ -56,250 +87,136 @@
                 class="w-full"
               ></textarea>
               @if (form.get('description')?.errors?.['maxlength']) {
-                <small class="text-red-500">Mô tả tối đa {{ descriptionMaxLength }} ký tự.</small>
-              }
-            </div>
-
-            <div class="grid">
-              <div class="col-12 md:col-6 flex flex-column gap-1">
-                <label class="font-medium" for="product-category">Danh mục</label>
-                <input
-                  id="product-category"
-                  pInputText
-                  formControlName="category"
-                  placeholder="Ví dụ: Áo, Giày"
-                  class="w-full"
-                  list="product-category-options"
-                />
-                <datalist id="product-category-options">
-                  @for (category of categories(); track category) {
-                    <option [value]="category"></option>
-                  }
-                </datalist>
-                @if (form.get('category')?.errors?.['maxlength']) {
-                  <small class="text-red-500">Danh mục tối đa {{ categoryMaxLength }} ký tự.</small>
-                }
-              </div>
-              <div class="col-12 md:col-6 flex flex-column gap-1">
-                <label class="font-medium" for="product-platform">Nguồn nền tảng</label>
-                <p-dropdown
-                  inputId="product-platform"
-                  formControlName="platformSource"
-                  [options]="platformSourceOptions"
-                  optionLabel="label"
-                  optionValue="value"
-                  placeholder="Chọn nguồn"
-                  styleClass="w-full"
-                />
-              </div>
-            </div>
-
-            <div class="flex flex-column gap-2">
-              <div class="flex align-items-center justify-content-between flex-wrap gap-2">
-                <label class="font-medium">Ảnh sản phẩm</label>
-                <span class="text-sm image-counter">
-                  {{ imageCount() }}/{{ maxImages }} ảnh
-                </span>
-              </div>
-
-              <div class="flex align-items-center gap-2 flex-wrap">
-                <p-fileUpload
-                  #imageUploader
-                  mode="basic"
-                  [customUpload]="true"
-                  [multiple]="true"
-                  accept="image/jpeg,image/png,image/webp,image/gif"
-                  [auto]="true"
-                  [showUploadButton]="false"
-                  [showCancelButton]="false"
-                  [disabled]="uploading() || isImageLimitReached()"
-                  chooseLabel="Chọn ảnh"
-                  chooseIcon="pi pi-plus"
-                  invalidFileTypeMessageSummary="Tệp không hợp lệ: {0}"
-                  invalidFileTypeMessageDetail="Chỉ chấp nhận ảnh JPEG, PNG, WEBP hoặc GIF."
-                  (uploadHandler)="onUpload($event)"
-                />
-                @if (uploading()) {
-                  <span class="flex align-items-center gap-2 text-sm image-uploading">
-                    <i class="pi pi-spin pi-spinner"></i>
-                    Đang tải ảnh lên...
-                  </span>
-                }
-              </div>
-
-              <small class="image-hint">
-                Tối đa {{ maxImages }} ảnh · mỗi ảnh ≤ {{ maxImageSizeMb }}MB · JPEG/PNG/WEBP/GIF
-              </small>
-
-              @if (images().length === 0) {
-                <div class="image-empty text-center">
-                  <i class="pi pi-image"></i>
-                  <div>Chưa có ảnh nào</div>
-                </div>
-              } @else {
-                <div class="image-grid">
-                  @for (image of images(); track image.id) {
-                    <div class="image-item">
-                      @if (isBroken(image.id)) {
-                        <div class="image-thumb image-thumb-placeholder">
-                          <i class="pi pi-image"></i>
-                        </div>
-                      } @else {
-                        <img
-                          class="image-thumb"
-                          [src]="image.url"
-                          [alt]="image.fileName || 'Ảnh sản phẩm'"
-                          (error)="onImageError(image.id)"
-                        />
-                      }
-
-                      @if (isPrimary(image)) {
-                        <span class="image-primary-badge">Ảnh chính</span>
-                      }
-
-                      <div class="image-actions">
-                        <p-button
-                          [icon]="isPrimary(image) ? 'pi pi-star-fill' : 'pi pi-star'"
-                          [rounded]="true"
-                          [text]="true"
-                          size="small"
-                          severity="warning"
-                          [disabled]="isPrimary(image)"
-                          [ariaLabel]="'Đặt làm ảnh chính'"
-                          pTooltip="Đặt làm ảnh chính"
-                          tooltipPosition="top"
-                          (onClick)="setPrimary(image.id)"
-                        />
-                        <p-button
-                          icon="pi pi-trash"
-                          [rounded]="true"
-                          [text]="true"
-                          size="small"
-                          severity="danger"
-                          [ariaLabel]="'Xoá ảnh'"
-                          pTooltip="Xoá ảnh"
-                          tooltipPosition="top"
-                          (onClick)="confirmRemove(image)"
-                        />
-                      </div>
-                    </div>
-                  }
-                </div>
+                <small class="field-error">Mô tả tối đa {{ descriptionMaxLength }} ký tự.</small>
               }
             </div>
           </div>
         </p-card>
-      </div>
 
-      <!-- SKU -->
-      <div class="col-12 lg:col-6">
         <p-card header="Danh sách SKU">
-          <div class="flex flex-column gap-3" formArrayName="skus">
-            @for (skuCtrl of skus.controls; track skuCtrl; let i = $index) {
-              <div [formGroupName]="i" class="sku-row grid align-items-end">
-                <div class="col-12 md:col-6 flex flex-column gap-1">
-                  <label class="font-medium text-sm" [attr.for]="'sku-code-' + i">Mã SKU</label>
-                  <input
-                    [id]="'sku-code-' + i"
-                    pInputText
-                    formControlName="skuCode"
-                    placeholder="Để trống để tự sinh mã"
-                    class="w-full"
-                  />
-                  @if (getSkuGroup(i).get('skuCode')?.invalid) {
-                    <small class="text-red-500">Mã SKU tối đa {{ skuCodeMaxLength }} ký tự.</small>
-                  }
-                </div>
-                <div class="col-12 md:col-6 flex flex-column gap-1">
-                  <label class="font-medium text-sm" [attr.for]="'sku-variant-' + i">Biến thể</label>
-                  <input
-                    [id]="'sku-variant-' + i"
-                    pInputText
-                    formControlName="variant"
-                    placeholder="Màu/Size"
-                    class="w-full"
-                  />
-                  @if (getSkuGroup(i).get('variant')?.invalid) {
-                    <small class="text-red-500">Biến thể tối đa {{ variantMaxLength }} ký tự.</small>
-                  }
-                </div>
-                <div class="col-12 md:col-5 flex flex-column gap-1">
-                  <label class="font-medium text-sm" [attr.for]="'sku-price-' + i">Giá (₫) *</label>
-                  <p-inputNumber
-                    [inputId]="'sku-price-' + i"
-                    formControlName="price"
-                    [min]="0"
-                    [max]="priceMax"
-                    [maxFractionDigits]="2"
-                    mode="decimal"
-                    styleClass="w-full"
-                    inputStyleClass="w-full"
-                  />
-                  @if (getSkuGroup(i).get('price')?.touched && getSkuGroup(i).get('price')?.invalid) {
-                    <small class="text-red-500">Giá phải từ 0 đến {{ priceMaxLabel }}.</small>
-                  }
-                </div>
-                <div class="col-12 md:col-5 flex flex-column gap-1">
-                  <label class="font-medium text-sm" [attr.for]="'sku-stock-' + i">Tồn kho *</label>
-                  <p-inputNumber
-                    [inputId]="'sku-stock-' + i"
-                    formControlName="stock"
-                    [min]="0"
-                    [max]="stockMax"
-                    [maxFractionDigits]="0"
-                    styleClass="w-full"
-                    inputStyleClass="w-full"
-                  />
-                  @if (getSkuGroup(i).get('stock')?.touched && getSkuGroup(i).get('stock')?.invalid) {
-                    <small class="text-red-500">Tồn kho phải là số nguyên không âm.</small>
-                  }
-                </div>
-                <div class="col-12 md:col-2 flex justify-content-end">
-                  <p-button
-                    icon="pi pi-trash"
-                    [rounded]="true"
-                    [text]="true"
-                    severity="danger"
-                    ariaLabel="Xoá dòng SKU"
-                    (click)="removeSku(i)"
-                    [disabled]="skus.length === 1"
-                  />
-                </div>
-              </div>
-            }
-          </div>
+          <table class="sku-table">
+            <thead>
+              <tr>
+                <th>Mã SKU</th>
+                <th>Biến thể</th>
+                <th class="num">Giá (₫) *</th>
+                <th class="num">Tồn kho *</th>
+                <th><span class="sr-only">Thao tác</span></th>
+              </tr>
+            </thead>
+            <tbody formArrayName="skus">
+              @for (skuCtrl of skus.controls; track skuCtrl; let i = $index) {
+                <tr [formGroupName]="i">
+                  <td>
+                    <label class="cell-label" [attr.for]="'sku-code-' + i">Mã SKU</label>
+                    <input
+                      [id]="'sku-code-' + i"
+                      pInputText
+                      formControlName="skuCode"
+                      placeholder="Để trống để tự sinh mã"
+                      class="w-full"
+                    />
+                    @if (getSkuGroup(i).get('skuCode')?.invalid) {
+                      <small class="field-error">Mã SKU tối đa {{ skuCodeMaxLength }} ký tự.</small>
+                    }
+                  </td>
+                  <td>
+                    <label class="cell-label" [attr.for]="'sku-variant-' + i">Biến thể</label>
+                    <input
+                      [id]="'sku-variant-' + i"
+                      pInputText
+                      formControlName="variant"
+                      placeholder="Màu/Size"
+                      class="w-full"
+                    />
+                    @if (getSkuGroup(i).get('variant')?.invalid) {
+                      <small class="field-error">Biến thể tối đa {{ variantMaxLength }} ký tự.</small>
+                    }
+                  </td>
+                  <td>
+                    <label class="cell-label" [attr.for]="'sku-price-' + i">Giá (₫) *</label>
+                    <p-inputNumber
+                      [inputId]="'sku-price-' + i"
+                      formControlName="price"
+                      [min]="0"
+                      [max]="priceMax"
+                      [maxFractionDigits]="2"
+                      mode="decimal"
+                      styleClass="w-full"
+                      inputStyleClass="w-full num"
+                    />
+                    @if (getSkuGroup(i).get('price')?.touched && getSkuGroup(i).get('price')?.invalid) {
+                      <small class="field-error">Giá phải từ 0 đến {{ priceMaxLabel }}.</small>
+                    }
+                  </td>
+                  <td>
+                    <label class="cell-label" [attr.for]="'sku-stock-' + i">Tồn kho *</label>
+                    <p-inputNumber
+                      [inputId]="'sku-stock-' + i"
+                      formControlName="stock"
+                      [min]="0"
+                      [max]="stockMax"
+                      [maxFractionDigits]="0"
+                      styleClass="w-full"
+                      inputStyleClass="w-full num"
+                    />
+                    @if (getSkuGroup(i).get('stock')?.touched && getSkuGroup(i).get('stock')?.invalid) {
+                      <small class="field-error">Tồn kho phải là số nguyên không âm.</small>
+                    }
+                    @if (currentStockHint(i) !== null) {
+                      <small class="stock-hint">Tồn hiện tại: {{ currentStockHint(i) }}</small>
+                    }
+                  </td>
+                  <td class="sku-action">
+                    <p-button
+                      icon="pi pi-trash"
+                      [rounded]="true"
+                      [text]="true"
+                      severity="danger"
+                      ariaLabel="Xoá dòng SKU"
+                      (click)="removeSku(i)"
+                      [disabled]="skus.length === 1"
+                    />
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
 
           @if (skus.errors?.['duplicateSku'] && skus.touched) {
-            <small class="text-red-500 mt-2 block">Mã SKU không được trùng lặp (không phân biệt hoa thường).</small>
+            <small class="field-error mt-2 block">Mã SKU không được trùng lặp (không phân biệt hoa thường).</small>
           }
           @if (skus.errors?.['requiredSku'] && skus.touched) {
-            <small class="text-red-500 mt-2 block">Cần ít nhất 1 SKU.</small>
+            <small class="field-error mt-2 block">Cần ít nhất 1 SKU.</small>
           }
 
-          <div class="mt-3">
+          <div class="mt-2">
             <p-button
               label="Thêm dòng SKU"
               icon="pi pi-plus"
               severity="secondary"
               size="small"
+              [outlined]="true"
               (click)="addSku()"
             />
           </div>
         </p-card>
+      </div>
 
-        <p-card header="Tổng hợp" styleClass="mt-3">
+      <div class="page-stack">
+        <p-card header="Tổng hợp">
           <div class="flex flex-column gap-2">
-            <div class="flex align-items-center justify-content-between">
+            <div class="summary-row">
               <span>Số SKU</span>
-              <span class="font-medium">{{ skuCount() }}</span>
+              <span class="num font-medium">{{ skuCount() }}</span>
             </div>
-            <div class="flex align-items-center justify-content-between">
+            <div class="summary-row">
               <span>Tổng tồn</span>
-              <span class="font-medium">{{ totalStock() }}</span>
+              <span class="num font-medium">{{ totalStock() }}</span>
             </div>
-            <div class="flex align-items-center justify-content-between">
+            <div class="summary-row">
               <span>Khoảng giá</span>
-              <span class="font-medium">
+              <span class="num font-medium">
                 @if (minPrice() === null) {
                   —
                 } @else if (minPrice() === maxPrice()) {
@@ -311,10 +228,101 @@
             </div>
           </div>
         </p-card>
+
+        <p-card header="Ảnh sản phẩm">
+          <div class="flex flex-column gap-2">
+            <div class="flex align-items-center justify-content-between flex-wrap gap-2">
+              <p-fileUpload
+                #imageUploader
+                mode="basic"
+                [customUpload]="true"
+                [multiple]="true"
+                accept="image/jpeg,image/png,image/webp,image/gif"
+                [auto]="true"
+                [showUploadButton]="false"
+                [showCancelButton]="false"
+                [disabled]="uploading() || isImageLimitReached()"
+                chooseLabel="Chọn ảnh"
+                chooseIcon="pi pi-plus"
+                invalidFileTypeMessageSummary="Tệp không hợp lệ: {0}"
+                invalidFileTypeMessageDetail="Chỉ chấp nhận ảnh JPEG, PNG, WEBP hoặc GIF."
+                (uploadHandler)="onUpload($event)"
+              />
+              <span class="muted num">{{ imageCount() }}/{{ maxImages }} ảnh</span>
+            </div>
+
+            @if (uploading()) {
+              <span class="flex align-items-center gap-2 muted">
+                <i class="pi pi-spin pi-spinner"></i>
+                Đang tải ảnh lên...
+              </span>
+            }
+
+            <small class="muted">
+              Tối đa {{ maxImages }} ảnh · mỗi ảnh ≤ {{ maxImageSizeMb }}MB · JPEG/PNG/WEBP/GIF
+            </small>
+
+            @if (images().length === 0) {
+              <div class="image-empty text-center">
+                <i class="pi pi-image"></i>
+                <div>Chưa có ảnh nào</div>
+              </div>
+            } @else {
+              <div class="image-grid">
+                @for (image of images(); track image.id) {
+                  <div class="image-item">
+                    @if (isBroken(image.id)) {
+                      <div class="image-thumb image-thumb-placeholder">
+                        <i class="pi pi-image"></i>
+                      </div>
+                    } @else {
+                      <img
+                        class="image-thumb"
+                        [src]="image.url"
+                        [alt]="image.fileName || 'Ảnh sản phẩm'"
+                        (error)="onImageError(image.id)"
+                      />
+                    }
+
+                    @if (isPrimary(image)) {
+                      <span class="image-primary-badge">Ảnh chính</span>
+                    }
+
+                    <div class="image-actions">
+                      <p-button
+                        [icon]="isPrimary(image) ? 'pi pi-star-fill' : 'pi pi-star'"
+                        [rounded]="true"
+                        [text]="true"
+                        size="small"
+                        severity="secondary"
+                        [disabled]="isPrimary(image)"
+                        [ariaLabel]="'Đặt làm ảnh chính'"
+                        pTooltip="Đặt làm ảnh chính"
+                        tooltipPosition="top"
+                        (onClick)="setPrimary(image.id)"
+                      />
+                      <p-button
+                        icon="pi pi-trash"
+                        [rounded]="true"
+                        [text]="true"
+                        size="small"
+                        severity="danger"
+                        [ariaLabel]="'Xoá ảnh'"
+                        pTooltip="Xoá ảnh"
+                        tooltipPosition="top"
+                        (onClick)="confirmRemove(image)"
+                      />
+                    </div>
+                  </div>
+                }
+              </div>
+            }
+          </div>
+        </p-card>
       </div>
     </div>
 
-    <div class="flex gap-2 justify-content-end mt-3">
+    <div class="save-bar">
       <p-button
         label="Huỷ"
         severity="secondary"

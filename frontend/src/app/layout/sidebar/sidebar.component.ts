@@ -26,7 +26,6 @@ interface NavItem {
 
       <div class="sidebar-shop">{{ auth.currentUser()?.shopName }}</div>
 
-      <div class="nav-section-label">MENU</div>
       <ul class="nav-list">
         @for (item of navItems; track item.route) {
           <li>

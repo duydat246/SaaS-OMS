@@ -1,12 +1,11 @@
 <p-confirmDialog></p-confirmDialog>
 
 @if (loading()) {
-  <div class="text-center py-6 detail-label">Đang tải...</div>
+  <div class="text-center py-6 muted">Đang tải...</div>
 } @else if (product()) {
-  <div class="flex flex-column gap-3">
-    <!-- Header -->
-    <div class="flex flex-column sm:flex-row align-items-stretch sm:align-items-center justify-content-between gap-2">
-      <div class="flex align-items-center gap-2 flex-wrap min-w-0">
+  <div class="page-stack">
+    <div class="page-header">
+      <div class="page-header__title">
         <p-button
           icon="pi pi-arrow-left"
           [rounded]="true"
@@ -16,19 +15,19 @@
           routerLink="/products"
           [queryParams]="listQuery()"
         />
-        <h2 class="m-0">{{ product()!.name }}</h2>
+        <h2>{{ product()!.name }}</h2>
         <p-tag
           [value]="productStatusLabelVi(product()!.status)"
           [severity]="getSeverity(product()!.status)"
         />
       </div>
 
-      <div class="flex flex-wrap gap-2 w-full sm:w-auto">
+      <div class="page-header__actions">
         @if (isArchived()) {
           <p-button
             label="Khôi phục"
             icon="pi pi-refresh"
-            severity="success"
+            size="small"
             [loading]="actionLoading()"
             (click)="confirmRestore()"
           />
@@ -36,15 +35,16 @@
           <p-button
             label="Sửa"
             icon="pi pi-pencil"
-            severity="secondary"
-            [outlined]="true"
+            size="small"
             (click)="edit()"
           />
           @if (isActive()) {
             <p-button
               label="Ngừng bán"
               icon="pi pi-ban"
-              severity="warning"
+              size="small"
+              severity="secondary"
+              [outlined]="true"
               [loading]="actionLoading()"
               (click)="confirmToggleInactive()"
             />
@@ -53,7 +53,9 @@
             <p-button
               label="Đang bán"
               icon="pi pi-check"
-              severity="success"
+              size="small"
+              severity="secondary"
+              [outlined]="true"
               [loading]="actionLoading()"
               (click)="confirmToggleInactive()"
             />
@@ -61,6 +63,7 @@
           <p-button
             label="Xoá"
             icon="pi pi-trash"
+            size="small"
             severity="danger"
             [outlined]="true"
             [loading]="actionLoading()"
@@ -77,146 +80,136 @@
       </div>
     }
 
-    <div class="grid">
-      <!-- Thông tin sản phẩm -->
-      <div class="col-12 lg:col-6">
-        <p-card header="Thông tin sản phẩm" styleClass="h-full">
-          <div class="flex flex-column gap-3">
-            <div class="flex gap-3 flex-column sm:flex-row">
-              <div class="product-gallery">
-                <div class="product-image-wrapper">
-                  @if (heroSrc() && !heroBroken()) {
-                    <img
-                      [src]="heroSrc() ?? ''"
-                      alt="Ảnh chính sản phẩm"
-                      class="product-image"
-                      (error)="onHeroError()"
-                    />
-                  } @else {
-                    <div class="product-image-placeholder">
-                      <i class="pi pi-image"></i>
-                    </div>
-                  }
-                </div>
-
-                @if (images().length > 1) {
-                  <div class="gallery-thumbs">
-                    @for (image of images(); track image.id; let i = $index) {
-                      <button
-                        type="button"
-                        class="gallery-thumb"
-                        [class.gallery-thumb--active]="image.id === currentImage()?.id"
-                        [attr.aria-label]="'Xem ảnh ' + (i + 1) + (image.fileName ? ': ' + image.fileName : '')"
-                        [attr.aria-pressed]="image.id === currentImage()?.id"
-                        (click)="selectImage(image.id)"
-                      >
-                        @if (imageBroken(image.id)) {
-                          <i class="pi pi-image"></i>
-                        } @else {
-                          <img
-                            [src]="image.url"
-                            [alt]="image.fileName || 'Ảnh sản phẩm'"
-                            (error)="onThumbError(image.id)"
-                          />
-                        }
-                      </button>
-                    }
-                  </div>
-                }
-              </div>
-              <div class="flex flex-column gap-2 flex-1 min-w-0">
-                <div>
-                  <div class="detail-label text-sm">Danh mục</div>
-                  <div class="detail-value">{{ product()!.category || "—" }}</div>
-                </div>
-                <div>
-                  <div class="detail-label text-sm">Nền tảng</div>
-                  <div class="detail-value">{{ platformLabelVi(product()!.platformSource) }}</div>
-                </div>
-              </div>
-            </div>
-            <div>
-              <div class="detail-label text-sm mb-1">Mô tả</div>
-              <div class="detail-value white-space-pre-line">{{ product()!.description || "—" }}</div>
-            </div>
-            <div class="grid">
-              <div class="col-12 sm:col-6">
-                <div class="detail-label text-sm">Ngày tạo</div>
-                <div class="detail-value">{{ formatDate(product()!.createdAt) }}</div>
-              </div>
-              <div class="col-12 sm:col-6">
-                <div class="detail-label text-sm">Cập nhật lần cuối</div>
-                <div class="detail-value">{{ formatDate(product()!.updatedAt) }}</div>
-              </div>
-            </div>
-          </div>
-        </p-card>
+    <div class="stat-strip">
+      <div class="stat-strip__item">
+        <span class="stat-strip__label">Số SKU</span>
+        <span class="stat-strip__value">{{ product()!.skus.length }}</span>
       </div>
-
-      <!-- Tổng hợp -->
-      <div class="col-12 lg:col-6">
-        <p-card header="Tổng hợp" styleClass="h-full">
-          <div class="flex flex-column gap-3">
-            <div class="flex justify-content-between">
-              <span class="detail-label">Số SKU</span>
-              <span class="detail-value font-medium">{{ product()!.skus.length }}</span>
-            </div>
-            <div class="flex justify-content-between">
-              <span class="detail-label">Tổng tồn kho</span>
-              <span class="detail-value font-medium">{{ formatQuantity(product()!.totalStock) }}</span>
-            </div>
-            <div class="flex justify-content-between">
-              <span class="detail-label">Khoảng giá</span>
-              <span class="detail-value font-medium">{{ priceRange() }}</span>
-            </div>
-            <div class="flex justify-content-between">
-              <span class="detail-label">Giá trị tồn kho</span>
-              <span class="detail-value font-medium">{{ formatCurrency(totalStockValue()) }}</span>
-            </div>
-          </div>
-        </p-card>
+      <div class="stat-strip__item">
+        <span class="stat-strip__label">Tổng tồn kho</span>
+        <span class="stat-strip__value">{{ formatQuantity(product()!.totalStock) }}</span>
+      </div>
+      <div class="stat-strip__item">
+        <span class="stat-strip__label">Khoảng giá</span>
+        <span class="stat-strip__value">{{ priceRange() }}</span>
+      </div>
+      <div class="stat-strip__item">
+        <span class="stat-strip__label">Giá trị tồn kho</span>
+        <span class="stat-strip__value">{{ formatCurrency(totalStockValue()) }}</span>
       </div>
     </div>
 
-    <!-- Bảng SKU -->
-    <p-card header="Danh sách SKU">
-      <p-table [value]="product()!.skus" styleClass="p-datatable-sm">
-        <ng-template pTemplate="header">
-          <tr>
-            <th>Mã SKU</th>
-            <th>Biến thể</th>
-            <th class="text-right">Giá</th>
-            <th class="text-right">Tồn kho</th>
-          </tr>
-        </ng-template>
-        <ng-template pTemplate="body" let-sku>
-          <tr>
-            <td>{{ sku.skuCode }}</td>
-            <td>{{ sku.variant || "—" }}</td>
-            <td class="text-right">{{ formatCurrency(sku.price) }}</td>
-            <td class="text-right">
-              <span
-                [class.sku-stock-low]="sku.stock > 0 && sku.stock <= lowStockThreshold"
-                [class.sku-stock-out]="sku.stock === 0"
-              >
-                {{ formatQuantity(sku.stock) }}
-              </span>
-              @if (sku.stock === 0) {
-                <p-tag value="Hết hàng" severity="danger" styleClass="ml-2"></p-tag>
-              } @else if (sku.stock > 0 && sku.stock <= lowStockThreshold) {
-                <p-tag value="Sắp hết" severity="warning" styleClass="ml-2"></p-tag>
+    <div class="detail-layout">
+      <p-card header="Danh sách SKU">
+        <p-table [value]="product()!.skus" styleClass="p-datatable-sm" [tableStyle]="{ '--table-min': '520px' }">
+          <ng-template pTemplate="header">
+            <tr>
+              <th>Mã SKU</th>
+              <th>Biến thể</th>
+              <th class="num">Giá</th>
+              <th class="num">Tồn kho</th>
+            </tr>
+          </ng-template>
+          <ng-template pTemplate="body" let-sku>
+            <tr>
+              <td class="sku-code-cell">{{ sku.skuCode }}</td>
+              <td>{{ sku.variant || "—" }}</td>
+              <td class="num">{{ formatCurrency(sku.price) }}</td>
+              <td class="num">
+                @if (sku.stock === 0) {
+                  <p-tag class="sku-tag" value="Hết hàng" severity="danger"></p-tag>
+                } @else if (sku.stock > 0 && sku.stock <= lowStockThreshold) {
+                  <p-tag class="sku-tag" value="Sắp hết" severity="warning"></p-tag>
+                }
+                <span
+                  class="sku-stock"
+                  [class.sku-stock-low]="sku.stock > 0 && sku.stock <= lowStockThreshold"
+                  [class.sku-stock-out]="sku.stock === 0"
+                >
+                  {{ formatQuantity(sku.stock) }}
+                </span>
+              </td>
+            </tr>
+          </ng-template>
+          <ng-template pTemplate="emptymessage">
+            <tr>
+              <td colspan="4" class="text-center muted">Chưa có SKU</td>
+            </tr>
+          </ng-template>
+        </p-table>
+      </p-card>
+
+      <p-card header="Thông tin sản phẩm">
+        <div class="flex flex-column gap-3">
+          <div class="product-gallery">
+            <div class="product-image-wrapper">
+              @if (heroSrc() && !heroBroken()) {
+                <img
+                  [src]="heroSrc() ?? ''"
+                  alt="Ảnh chính sản phẩm"
+                  class="product-image"
+                  (error)="onHeroError()"
+                />
+              } @else {
+                <div class="product-image-placeholder">
+                  <i class="pi pi-image"></i>
+                </div>
               }
-            </td>
-          </tr>
-        </ng-template>
-        <ng-template pTemplate="emptymessage">
-          <tr>
-            <td colspan="4" class="text-center detail-label">Chưa có SKU</td>
-          </tr>
-        </ng-template>
-      </p-table>
-    </p-card>
+            </div>
+
+            @if (images().length > 1) {
+              <div class="gallery-thumbs">
+                @for (image of images(); track image.id; let i = $index) {
+                  <button
+                    type="button"
+                    class="gallery-thumb"
+                    [class.gallery-thumb--active]="image.id === currentImage()?.id"
+                    [attr.aria-label]="'Xem ảnh ' + (i + 1) + (image.fileName ? ': ' + image.fileName : '')"
+                    [attr.aria-pressed]="image.id === currentImage()?.id"
+                    (click)="selectImage(image.id)"
+                  >
+                    @if (imageBroken(image.id)) {
+                      <i class="pi pi-image"></i>
+                    } @else {
+                      <img
+                        [src]="image.url"
+                        [alt]="image.fileName || 'Ảnh sản phẩm'"
+                        (error)="onThumbError(image.id)"
+                      />
+                    }
+                  </button>
+                }
+              </div>
+            }
+          </div>
+
+          <dl class="detail-list">
+            <div class="summary-row">
+              <dt>Danh mục</dt>
+              <dd>{{ product()!.category || "—" }}</dd>
+            </div>
+            <div class="summary-row">
+              <dt>Nền tảng</dt>
+              <dd>{{ platformLabelVi(product()!.platformSource) }}</dd>
+            </div>
+            <div class="summary-row">
+              <dt>Ngày tạo</dt>
+              <dd>{{ formatDate(product()!.createdAt) }}</dd>
+            </div>
+            <div class="summary-row">
+              <dt>Cập nhật lần cuối</dt>
+              <dd>{{ formatDate(product()!.updatedAt) }}</dd>
+            </div>
+          </dl>
+
+          <div>
+            <div class="muted mb-1">Mô tả</div>
+            <div class="white-space-pre-line">{{ product()!.description || "—" }}</div>
+          </div>
+        </div>
+      </p-card>
+    </div>
   </div>
 } @else {
-  <div class="text-center py-6 detail-label">Không tìm thấy sản phẩm</div>
+  <div class="text-center py-6 muted">Không tìm thấy sản phẩm</div>
 }

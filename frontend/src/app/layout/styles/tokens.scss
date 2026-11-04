@@ -1,0 +1,42 @@
+// Token giao diện sáng. Khai báo ở :root để toast, auth và panel appendTo="body" đều kế thừa.
+
+:root {
+  --apollo-bg: #f4f5f7;
+  --apollo-surface: #ffffff;
+  --apollo-surface-2: #f4f5f7;
+  --apollo-border: #dfe3e8;
+  --apollo-text: #1c2530;
+  --apollo-muted: #5b6775;
+  --apollo-accent: #2563eb;
+  --apollo-accent-hover: #1d4ed8;
+  --apollo-accent-soft: #eaf1fe;
+  --apollo-on-accent: #ffffff;
+
+  // Chỉ dùng cho trạng thái.
+  --apollo-success: #166534;
+  --apollo-success-soft: #e7f6ec;
+  --apollo-warning: #92400e;
+  --apollo-warning-soft: #fef3c7;
+  --apollo-danger: #b42318;
+  --apollo-danger-soft: #fee4e2;
+  --apollo-neutral-soft: #eceef1;
+
+  --apollo-overlay: rgba(28, 37, 48, 0.4);
+  --apollo-shadow-overlay: 0 4px 16px rgba(28, 37, 48, 0.14);
+
+  --apollo-radius-control: 4px;
+  --apollo-radius-block: 6px;
+
+  // Nối token vào biến của theme Lara.
+  // Không dùng "Inter var" của theme: file woff2 đi kèm PrimeNG 17 bị Chromium từ chối (lỗi OTS).
+  --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-feature-settings: normal;
+  --primary-color: var(--apollo-accent);
+  --primary-color-text: var(--apollo-on-accent);
+  --text-color: var(--apollo-text);
+  --text-color-secondary: var(--apollo-muted);
+  --surface-ground: var(--apollo-bg);
+  --surface-card: var(--apollo-surface);
+  --surface-border: var(--apollo-border);
+  --focus-ring: 0 0 0 1px var(--apollo-accent);
+}

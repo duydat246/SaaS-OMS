@@ -1,5 +1,48 @@
+.order-form-top {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.order-form-items {
+  grid-column: 1 / -1;
+  min-width: 0;
+}
+
+.order-form-subtotal {
+  padding-top: 8px;
+  border-top: 1px solid var(--apollo-border);
+}
+
+.order-form-total {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.order-form-total > :first-child {
+  color: var(--apollo-text);
+}
+
 .order-line {
-  padding: 0.75rem;
-  border: 1px solid var(--surface-border, #dee2e6);
-  border-radius: 6px;
+  padding: 4px 8px;
+  border: 1px solid var(--apollo-border);
+  border-radius: var(--apollo-radius-block);
+}
+
+.order-line label {
+  display: block;
+  margin-bottom: 4px;
+}
+
+// Canh nút xoá với hàng ô nhập, bỏ qua dòng nhãn.
+@media (min-width: 768px) {
+  .order-line-action {
+    padding-top: 28px;
+  }
+}
+
+@media (max-width: 767.98px) {
+  .order-form-top {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }

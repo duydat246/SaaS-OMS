@@ -16,7 +16,6 @@ import { ChartModule } from "primeng/chart";
 import { TableModule } from "primeng/table";
 import { ButtonModule } from "primeng/button";
 import { TagModule } from "primeng/tag";
-import { DropdownModule } from "primeng/dropdown";
 import { InputTextModule } from "primeng/inputtext";
 import { IconFieldModule } from "primeng/iconfield";
 import { InputIconModule } from "primeng/inputicon";
@@ -31,10 +30,7 @@ import {
 } from "@features/orders/models/order.model";
 import { orderStatusLabelVi } from "@features/orders/models/order-status";
 import { platformSourceLabelVi } from "@features/orders/models/platform-source";
-import {
-  DASHBOARD_PERIOD_OPTIONS,
-  DASHBOARD_TOP_PRODUCTS,
-} from "@features/dashboard/constants/dashboard.constants";
+import { DASHBOARD_TOP_PRODUCTS } from "@features/dashboard/constants/dashboard.constants";
 import { ORDER_STATUS_SEVERITY } from "@features/orders/constants/order.constants";
 
 export interface DashboardStatCard {
@@ -86,7 +82,6 @@ function buildPaginationItems(
     TableModule,
     ButtonModule,
     TagModule,
-    DropdownModule,
     InputTextModule,
     IconFieldModule,
     InputIconModule,
@@ -110,9 +105,6 @@ export class DashboardComponent implements OnInit {
     { label: "Doanh thu", value: "—", trend: null, up: true },
   ]);
 
-  periodOptions = DASHBOARD_PERIOD_OPTIONS;
-  selectedPeriod = "week";
-
   topProducts = DASHBOARD_TOP_PRODUCTS;
 
   barData = {
@@ -121,14 +113,14 @@ export class DashboardComponent implements OnInit {
       {
         label: "Doanh thu",
         data: [42, 55, 48, 62, 58, 70, 52],
-        backgroundColor: "#475569",
+        backgroundColor: "#2563eb",
         borderRadius: 6,
         barPercentage: 0.65,
       },
       {
         label: "Lợi nhuận",
         data: [18, 24, 22, 28, 26, 32, 24],
-        backgroundColor: "#e2e8f0",
+        backgroundColor: "#a9c3f7",
         borderRadius: 6,
         barPercentage: 0.65,
       },
@@ -140,19 +132,19 @@ export class DashboardComponent implements OnInit {
     plugins: {
       legend: {
         position: "bottom" as const,
-        labels: { color: "#94a3b8", padding: 16, usePointStyle: true },
+        labels: { color: "#5b6775", padding: 16, usePointStyle: true },
       },
     },
     scales: {
       x: {
-        ticks: { color: "#64748b" },
-        grid: { color: "rgba(148, 163, 184, 0.08)" },
+        ticks: { color: "#5b6775" },
+        grid: { color: "#dfe3e8" },
       },
       y: {
         beginAtZero: true,
         max: 90,
-        ticks: { color: "#64748b" },
-        grid: { color: "rgba(148, 163, 184, 0.1)" },
+        ticks: { color: "#5b6775" },
+        grid: { color: "#dfe3e8" },
       },
     },
   };
@@ -162,7 +154,7 @@ export class DashboardComponent implements OnInit {
     datasets: [
       {
         data: [45, 35, 20],
-        backgroundColor: ["#1e3a5f", "#4f6a9e", "#e2e8f0"],
+        backgroundColor: ["#2563eb", "#a9c3f7", "#b8c0cc"],
         borderWidth: 0,
       },
     ],
@@ -174,7 +166,7 @@ export class DashboardComponent implements OnInit {
     plugins: {
       legend: {
         position: "bottom" as const,
-        labels: { color: "#94a3b8", padding: 14, usePointStyle: true },
+        labels: { color: "#5b6775", padding: 14, usePointStyle: true },
       },
     },
   };

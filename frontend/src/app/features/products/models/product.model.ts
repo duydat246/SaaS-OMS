@@ -63,6 +63,8 @@ export interface SkuRequest {
   variant: string | null;
   price: number;
   stock: number;
+  /** Tồn lúc mở form; backend trả 409 nếu tồn hiện tại đã khác số này. */
+  expectedStock?: number | null;
 }
 
 export interface ProductRequest {

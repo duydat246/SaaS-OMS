@@ -1,110 +1,134 @@
-// Dùng đúng bảng màu của shell (apollo-shell.scss), không dùng text-900/text-500
-// của PrimeFlex vì đó là màu chữ cho theme sáng → chữ tối trên nền card tối.
-.detail-value {
-  color: var(--apollo-text, #f1f5f9);
-}
-
-.detail-label {
-  color: var(--apollo-muted, #94a3b8);
-}
-
 .archived-banner {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  background: #fee2e2;
-  color: #991b1b;
-  border: 1px solid #fecaca;
-  border-radius: 6px;
-  padding: 0.75rem 1rem;
-  font-weight: 600;
+  gap: 8px;
+  padding: 8px 12px;
+  background: var(--apollo-danger-soft);
+  border: 1px solid var(--apollo-danger);
+  border-radius: var(--apollo-radius-block);
+  color: var(--apollo-danger);
+  font-weight: 500;
+}
+
+.detail-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  align-items: start;
+  gap: 12px;
+}
+
+.detail-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+}
+
+.detail-list dd {
+  margin: 0;
+  text-align: right;
+  overflow-wrap: anywhere;
 }
 
 .product-gallery {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
-  flex-shrink: 0;
-  width: 180px;
-  max-width: 100%;
+  gap: 6px;
 }
 
 .product-image-wrapper {
-  width: 180px;
-  height: 180px;
-  flex-shrink: 0;
+  width: 100%;
+  height: 200px;
 }
 
 .product-image {
+  display: block;
   width: 100%;
   height: 100%;
-  object-fit: cover;
-  border-radius: 6px;
-  border: 1px solid var(--surface-border);
+  object-fit: contain;
+  background: var(--apollo-surface-2);
+  border: 1px solid var(--apollo-border);
+  border-radius: var(--apollo-radius-block);
+}
+
+.product-image-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  background: var(--apollo-surface-2);
+  border: 1px solid var(--apollo-border);
+  border-radius: var(--apollo-radius-block);
+  color: var(--apollo-muted);
+  font-size: 20px;
 }
 
 .gallery-thumbs {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.4rem;
+  gap: 6px;
 }
 
 .gallery-thumb {
-  width: 48px;
-  height: 48px;
-  padding: 0;
   display: flex;
   align-items: center;
   justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
   overflow: hidden;
-  border: 2px solid transparent;
-  border-radius: 6px;
-  background: rgba(0, 0, 0, 0.25);
-  color: var(--apollo-muted, #94a3b8);
+  background: var(--apollo-surface-2);
+  border: 1px solid var(--apollo-border);
+  border-radius: var(--apollo-radius-control);
+  color: var(--apollo-muted);
   cursor: pointer;
 }
 
 .gallery-thumb img {
+  display: block;
   width: 100%;
   height: 100%;
   object-fit: cover;
-  display: block;
 }
 
 .gallery-thumb--active {
-  border-color: var(--apollo-accent, #6366f1);
+  border-color: var(--apollo-accent);
+  box-shadow: 0 0 0 1px var(--apollo-accent);
 }
 
-.gallery-thumb:focus-visible {
-  outline: 1px solid rgba(148, 163, 184, 0.5);
-  outline-offset: 2px;
+.sku-code-cell {
+  overflow-wrap: anywhere;
 }
 
-@media (max-width: 575.98px) {
-  .product-gallery {
-    width: 100%;
-  }
+.sku-tag {
+  margin-right: 8px;
 }
 
-.product-image-placeholder {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--surface-100);
-  color: var(--text-color-secondary);
-  border-radius: 6px;
-  border: 1px solid var(--surface-border);
-  font-size: 1.5rem;
+.sku-stock {
+  display: inline-block;
+  min-width: 40px;
+  font-weight: 600;
 }
 
 .sku-stock-low {
-  font-weight: 600;
-  color: var(--orange-600);
+  color: var(--apollo-warning);
 }
 
 .sku-stock-out {
-  font-weight: 600;
-  color: var(--red-600);
+  color: var(--apollo-danger);
+}
+
+@media (max-width: 991.98px) {
+  .detail-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+// Xếp tag trên số để bảng không cuộn ngang mà vẫn đọc được tình trạng tồn.
+@media (max-width: 767.98px) {
+  .sku-tag {
+    display: block;
+    margin-right: 0;
+  }
 }

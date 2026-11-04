@@ -1,11 +1,4 @@
 <div class="app-auth-apollo app-auth-apollo--register">
-  <div class="app-auth-apollo__waves" aria-hidden="true">
-    <div class="app-auth-apollo__wave app-auth-apollo__wave--1"></div>
-    <div class="app-auth-apollo__wave app-auth-apollo__wave--2"></div>
-    <div class="app-auth-apollo__wave app-auth-apollo__wave--3"></div>
-    <div class="app-auth-apollo__wave app-auth-apollo__wave--4"></div>
-  </div>
-
   <div class="app-auth-apollo__card">
     <header class="app-auth-apollo__header">
       <h1 class="app-auth-apollo__title">Đăng ký</h1>
@@ -38,22 +31,25 @@
         />
       </p-iconField>
 
-      <div class="app-auth-apollo__field-row">
-        <span class="app-auth-apollo__field-row-icon" aria-hidden="true">
-          <i class="pi pi-th-large"></i>
-        </span>
-        <div class="app-auth-apollo__field-row-body">
-          <p-dropdown
-            formControlName="platform"
-            inputId="platform"
-            [options]="platforms"
-            optionLabel="label"
-            optionValue="value"
-            placeholder="Nền tảng"
-            styleClass="w-full"
-            [appendTo]="'body'"
-            panelStyleClass="app-auth-apollo-dropdown-panel"
-          />
+      <div>
+        <label class="app-auth-apollo__field-label" for="platform">Nguồn nền tảng</label>
+        <div class="app-auth-apollo__field-row">
+          <span class="app-auth-apollo__field-row-icon" aria-hidden="true">
+            <i class="pi pi-th-large"></i>
+          </span>
+          <div class="app-auth-apollo__field-row-body">
+            <p-dropdown
+              formControlName="platform"
+              inputId="platform"
+              ariaLabel="Nguồn nền tảng"
+              [options]="platforms"
+              optionLabel="label"
+              optionValue="value"
+              placeholder="Nền tảng"
+              styleClass="w-full"
+              [appendTo]="'body'"
+            />
+          </div>
         </div>
       </div>
 
@@ -117,7 +113,6 @@
         type="submit"
         label="Tạo cửa hàng"
         styleClass="app-auth-apollo__submit w-full"
-        [rounded]="true"
         [loading]="loading()"
         [disabled]="form.invalid"
       />

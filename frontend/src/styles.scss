@@ -1,50 +1,70 @@
+@import "./app/layout/styles/tokens.scss";
+
 * {
   box-sizing: border-box;
+}
+
+// Theme và PrimeFlex tính theo rem: đặt gốc 14px để toàn bộ control về đúng cỡ thân.
+html {
+  font-size: 14px;
 }
 
 html,
 body {
   height: 100%;
   margin: 0;
-  font-family:
-    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  background-color: #f4f6f9;
-  color: #333;
+  font-family: var(--font-family);
+  font-feature-settings: var(--font-feature-settings);
+  background-color: var(--apollo-bg);
+  color: var(--apollo-text);
 }
 
-/* Global scrollbar styling to match dark app palette */
 * {
   scrollbar-width: thin;
-  scrollbar-color: #5b6bff #0f172a;
+  scrollbar-color: var(--apollo-border) transparent;
 }
 
 *::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
+  width: 8px;
+  height: 8px;
 }
 
 *::-webkit-scrollbar-track {
-  background: #0f172a;
-  border-radius: 999px;
+  background: transparent;
 }
 
 *::-webkit-scrollbar-thumb {
-  background: linear-gradient(180deg, #6f7dff 0%, #4f46e5 100%);
-  border: 2px solid #0f172a;
-  border-radius: 999px;
+  background: var(--apollo-border);
+  border-radius: 4px;
 }
 
 *::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(180deg, #8792ff 0%, #6366f1 100%);
+  background: var(--apollo-muted);
 }
 
-*::-webkit-scrollbar-corner {
-  background: #0f172a;
+:focus-visible {
+  outline: 2px solid var(--apollo-accent);
+  outline-offset: 1px;
+}
+
+// Nhãn dropdown có tabindex=0 nhưng vòng focus đã vẽ trên cả .p-dropdown.p-focus.
+.p-dropdown .p-dropdown-label:focus-visible {
+  outline: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 @import "./app/features/auth/styles/auth-apollo-layout.scss";
 @import "./app/layout/styles/apollo-shell.scss";
 @import "./app/layout/styles/apollo-toast.scss";
+@import "./app/layout/styles/page-kit.scss";
 
 // Utility
 .w-full {
@@ -54,67 +74,272 @@ body {
   text-align: center;
 }
 
-// Panel dropdown (appendTo body) — dark list giống mẫu: nền tối, mục chọn trắng/chữ đen
-.p-dropdown-panel.p-component:not(.app-auth-apollo-dropdown-panel) {
-  background: #141b2d;
-  border: 1px solid rgba(255, 255, 255, 0.22);
-  border-radius: 6px;
-  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.45);
+// Theme Lara đặt mọi rule trong @layer primeng. Style ngoài layer luôn thắng bất kể specificity
+// nên sẽ đè cả biến thể text/outlined; phần nối theme phải nằm cùng layer.
+@layer primeng {
+// Nút: theme Lara hard-code #3B82F6 nên phải nối lại màu nhấn.
+.p-button {
+  padding: 6px 12px;
+  background: var(--apollo-accent);
+  border: 1px solid var(--apollo-accent);
+  border-radius: var(--apollo-radius-control);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.p-button:enabled:hover,
+.p-button:not(button):not(a):not(.p-disabled):hover {
+  background: var(--apollo-accent-hover);
+  border-color: var(--apollo-accent-hover);
+}
+
+// Bỏ vòng focus của theme khi bấm chuột; bàn phím dùng :focus-visible ở trên.
+.p-button:focus,
+.p-button.p-button-secondary:not(:disabled):focus,
+.p-button.p-button-danger:not(:disabled):focus {
+  box-shadow: none;
+}
+
+.p-button.p-button-danger {
+  background: var(--apollo-danger);
+  border-color: var(--apollo-danger);
+}
+
+.p-button.p-button-danger.p-button-outlined,
+.p-button.p-button-danger.p-button-text {
+  background: transparent;
+  color: var(--apollo-danger);
+}
+
+.p-button.p-button-danger.p-button-outlined {
+  border-color: var(--apollo-danger);
+}
+
+.p-button.p-button-danger.p-button-text {
+  border-color: transparent;
+}
+
+.p-button.p-button-danger.p-button-outlined:enabled:hover,
+.p-button.p-button-danger.p-button-text:enabled:hover {
+  background: var(--apollo-danger-soft);
+  color: var(--apollo-danger);
+}
+
+.p-button.p-button-sm {
+  padding: 5px 10px;
+  font-size: 13px;
+}
+
+.p-button.p-button-rounded,
+.p-button.p-button-icon-only.p-button-rounded {
+  border-radius: var(--apollo-radius-control);
+}
+
+.p-button.p-button-icon-only,
+.p-button.p-button-sm.p-button-icon-only,
+.p-button.p-button-icon-only.p-button-rounded {
+  width: 30px;
+  height: 30px;
+  padding: 0;
+}
+
+.p-button.p-button-outlined {
+  color: var(--apollo-accent);
+}
+
+.p-button.p-button-text {
+  color: var(--apollo-accent);
+}
+
+.p-button.p-button-secondary.p-button-outlined,
+.p-button.p-button-secondary.p-button-outlined:enabled:hover {
+  background: var(--apollo-surface);
+  border-color: var(--apollo-border);
+  color: var(--apollo-text);
+}
+
+.p-button.p-button-secondary.p-button-outlined:enabled:hover {
+  background: var(--apollo-surface-2);
+}
+
+.p-button.p-button-secondary.p-button-text {
+  color: var(--apollo-muted);
+}
+
+.p-button.p-button-secondary.p-button-text:enabled:hover {
+  background: var(--apollo-surface-2);
+  color: var(--apollo-text);
+}
+
+// Dialog xác nhận: nút huỷ trung tính; nút hành động màu nhấn, riêng thao tác xoá giữ màu đỏ.
+// Các trang truyền p-button-warning/success cho nút hành động nên phải ghi đè ở đây.
+.p-confirm-dialog .p-button.p-confirm-dialog-reject {
+  background: var(--apollo-surface);
+  border-color: var(--apollo-border);
+  color: var(--apollo-text);
+}
+
+.p-confirm-dialog .p-button.p-confirm-dialog-reject:enabled:hover {
+  background: var(--apollo-surface-2);
+  border-color: var(--apollo-border);
+  color: var(--apollo-text);
+}
+
+.p-confirm-dialog .p-button.p-confirm-dialog-accept:not(.p-button-danger) {
+  background: var(--apollo-accent);
+  border-color: var(--apollo-accent);
+  color: var(--apollo-on-accent);
+}
+
+.p-confirm-dialog .p-button.p-confirm-dialog-accept:not(.p-button-danger):not(:disabled):hover {
+  background: var(--apollo-accent-hover);
+  border-color: var(--apollo-accent-hover);
+  color: var(--apollo-on-accent);
+}
+
+.p-confirm-dialog .p-button.p-confirm-dialog-accept:not(:disabled):focus,
+.p-confirm-dialog .p-button.p-confirm-dialog-reject:not(:disabled):focus {
+  box-shadow: none;
+}
+
+// Ô nhập và dropdown
+.p-inputtext {
+  padding: 6px 10px;
+  background: var(--apollo-surface);
+  border-color: var(--apollo-border);
+  border-radius: var(--apollo-radius-control);
+  color: var(--apollo-text);
+  font-size: 14px;
+}
+
+.p-inputtext::placeholder {
+  color: var(--apollo-muted);
+}
+
+.p-inputtext:enabled:hover,
+.p-dropdown:not(.p-disabled):hover,
+.p-checkbox:not(.p-checkbox-disabled) .p-checkbox-box:hover {
+  border-color: var(--apollo-accent);
+}
+
+.p-inputtext:enabled:focus,
+.p-inputtext.p-focus,
+.p-dropdown:not(.p-disabled).p-focus,
+.p-checkbox:not(.p-checkbox-disabled) .p-checkbox-box.p-focus {
+  border-color: var(--apollo-accent);
+  box-shadow: var(--focus-ring);
+  outline: none;
+}
+
+.p-dropdown {
+  background: var(--apollo-surface);
+  border-color: var(--apollo-border);
+  border-radius: var(--apollo-radius-control);
+}
+
+.p-dropdown .p-dropdown-label {
+  background: transparent;
+  border: 0;
+}
+
+.p-dropdown .p-dropdown-label:enabled:focus {
+  box-shadow: none;
+}
+
+.p-dropdown .p-dropdown-label.p-placeholder,
+.p-dropdown .p-dropdown-trigger,
+.p-dropdown .p-dropdown-clear-icon {
+  color: var(--apollo-muted);
+}
+
+.p-dropdown .p-dropdown-trigger {
+  width: 26px;
+}
+
+.p-dropdown.p-dropdown-clearable .p-dropdown-label {
+  padding-right: 24px;
+}
+
+.p-dropdown .p-dropdown-clear-icon {
+  right: 30px;
+}
+
+.p-checkbox,
+.p-checkbox .p-checkbox-box {
+  width: 16px;
+  height: 16px;
+}
+
+.p-checkbox .p-checkbox-box .p-checkbox-icon {
+  width: 12px;
+  height: 12px;
+  font-size: 12px;
+}
+
+.p-checkbox .p-checkbox-box {
+  border-width: 1px;
+  border-color: var(--apollo-muted);
+  border-radius: var(--apollo-radius-control);
+}
+
+.p-checkbox .p-checkbox-box.p-highlight,
+.p-checkbox:not(.p-checkbox-disabled) .p-checkbox-box.p-highlight:hover {
+  background: var(--apollo-accent);
+  border-color: var(--apollo-accent);
+}
+
+.p-error {
+  color: var(--apollo-danger);
+}
+
+// Panel dropdown (appendTo body) dùng chung cho mọi màn hình
+.p-dropdown-panel {
+  max-width: calc(100vw - 20px);
   margin-top: 4px;
+  background: var(--apollo-surface);
+  border: 1px solid var(--apollo-border);
+  border-radius: var(--apollo-radius-block);
+  box-shadow: var(--apollo-shadow-overlay);
+  color: var(--apollo-text);
 }
 
-.p-dropdown-panel.p-component:not(.app-auth-apollo-dropdown-panel)
-  .p-dropdown-items
-  .p-dropdown-item {
-  color: #f8fafc;
-  padding: 0.65rem 1rem;
+.p-dropdown-panel .p-dropdown-items {
+  padding: 4px 0;
 }
 
-.p-dropdown-panel.p-component:not(.app-auth-apollo-dropdown-panel)
-  .p-dropdown-items
-  .p-dropdown-item.p-highlight {
-  background: #ffffff !important;
-  color: #0f172a !important;
+.p-dropdown-panel .p-dropdown-items .p-dropdown-item {
+  overflow-wrap: anywhere;
+  white-space: normal;
+  padding: 6px 10px;
+  color: var(--apollo-text);
 }
 
-.p-dropdown-panel.p-component:not(.app-auth-apollo-dropdown-panel)
-  .p-dropdown-items
-  .p-dropdown-item:not(.p-highlight):not(.p-disabled):hover {
-  background: rgba(255, 255, 255, 0.08);
-  color: #ffffff;
+.p-dropdown-panel .p-dropdown-items .p-dropdown-item.p-highlight {
+  background: var(--apollo-accent-soft);
+  color: var(--apollo-accent-hover);
 }
 
-.p-dropdown-panel.p-component:not(.app-auth-apollo-dropdown-panel)
-  .p-dropdown-items
-  .p-dropdown-item:not(.p-highlight):not(.p-disabled).p-focus {
-  background: rgba(255, 255, 255, 0.1);
-  color: #ffffff;
+.p-dropdown-panel .p-dropdown-items .p-dropdown-item:not(.p-highlight):not(.p-disabled):hover,
+.p-dropdown-panel .p-dropdown-items .p-dropdown-item:not(.p-highlight):not(.p-disabled).p-focus {
+  background: var(--apollo-surface-2);
+  color: var(--apollo-text);
 }
 
-// Auth register: platform dropdown panel (appendTo body, outside component encapsulation)
-.p-dropdown-panel.app-auth-apollo-dropdown-panel {
-  background: #141b2d;
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  border-radius: 8px;
-  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5);
+// Panel autocomplete (form tạo đơn): tên dài xuống dòng, không tràn màn hình hẹp.
+.p-autocomplete-panel {
+  max-width: calc(100vw - 20px);
 }
 
-.p-dropdown-panel.app-auth-apollo-dropdown-panel
-  .p-dropdown-items
-  .p-dropdown-item {
-  color: #ffffff;
+.p-autocomplete-panel .p-autocomplete-items .p-autocomplete-item {
+  overflow-wrap: anywhere;
+  white-space: normal;
 }
 
-.p-dropdown-panel.app-auth-apollo-dropdown-panel
-  .p-dropdown-items
-  .p-dropdown-item.p-highlight {
-  background: rgba(255, 255, 255, 0.12);
-  color: #ffffff;
+.p-icon-field-left > .p-inputtext {
+  padding-left: 30px;
 }
 
-.p-dropdown-panel.app-auth-apollo-dropdown-panel
-  .p-dropdown-items
-  .p-dropdown-item:not(.p-highlight):hover {
-  background: rgba(255, 255, 255, 0.08);
-  color: #ffffff;
+.p-autocomplete .p-autocomplete-dropdown.p-button {
+  height: auto;
+}
 }

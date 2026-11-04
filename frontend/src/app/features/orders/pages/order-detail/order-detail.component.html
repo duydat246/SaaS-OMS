@@ -1,34 +1,30 @@
 @if (loading()) {
-  <div class="text-center py-6 text-500">Đang tải...</div>
+  <div class="text-center py-6 muted">Đang tải...</div>
 } @else if (order()) {
-  <div class="flex flex-column gap-3">
-    <!-- Header -->
-    <div
-      class="flex flex-column sm:flex-row align-items-stretch sm:align-items-center justify-content-between gap-2"
-    >
-      <div class="flex align-items-center gap-2 flex-wrap min-w-0">
-        <a routerLink="/orders">
+  <div class="page-stack">
+    <div class="page-header">
+      <div class="page-header__title">
+        <a routerLink="/orders" tabindex="-1">
           <p-button
             icon="pi pi-arrow-left"
             [rounded]="true"
             [text]="true"
             severity="secondary"
+            ariaLabel="Quay lại danh sách đơn hàng"
           />
         </a>
-        <h2 class="m-0">Đơn #{{ order()!.id }}</h2>
+        <h2>Đơn #{{ order()!.id }}</h2>
         <p-tag
           [value]="orderStatusLabelVi(order()!.status)"
           [severity]="getSeverity(order()!.status)"
         />
       </div>
 
-      <!-- Status transitions -->
-      <div class="flex flex-column sm:flex-row gap-2 w-full sm:w-auto">
+      <div class="page-header__actions">
         @for (next of nextStatuses(); track next) {
           <p-button
             [label]="'Chuyển sang ' + orderStatusLabelVi(next)"
             size="small"
-            styleClass="w-full sm:w-auto"
             [severity]="next === 'CANCELLED' ? 'danger' : 'primary'"
             (click)="onSelectNextStatus(next)"
             [loading]="updating()"
@@ -37,82 +33,85 @@
       </div>
     </div>
 
-    <div class="grid order-detail-top-row">
-      <!-- Customer -->
-      <div class="col-12 md:col-6 order-detail-top-col">
-        <div class="order-detail-card-stretch">
-          <p-card header="Khách hàng" styleClass="order-detail-equal-card">
-            @if (order()!.customer) {
-              <p><strong>Họ tên:</strong> {{ order()!.customer!.fullName }}</p>
-              @if (order()!.customer!.phone) {
-                <p><strong>SĐT:</strong> {{ order()!.customer!.phone }}</p>
-              }
-              @if (order()!.customer!.email) {
-                <p><strong>Email:</strong> {{ order()!.customer!.email }}</p>
-              }
-            } @else {
-              <p class="text-500">Không có thông tin khách hàng</p>
-            }
-            @if (order()!.shippingAddress) {
-              <p>
-                <strong>Địa chỉ giao:</strong> {{ order()!.shippingAddress }}
-              </p>
-            }
-          </p-card>
-        </div>
-      </div>
-
-      <!-- Summary -->
-      <div class="col-12 md:col-6 order-detail-top-col">
-        <div class="order-detail-card-stretch">
-          <p-card header="Tóm tắt" styleClass="order-detail-equal-card">
-            <div class="order-detail-summary-inner flex flex-column gap-2">
-              <div class="flex justify-content-between">
-                <span>Tạm tính</span
-                ><span>{{ order()!.subtotal | number: "1.0-0" }}₫</span>
-              </div>
-              <div class="flex justify-content-between">
-                <span>Phí vận chuyển</span
-                ><span>{{ order()!.shippingFee | number: "1.0-0" }}₫</span>
-              </div>
-              <div class="flex justify-content-between">
-                <span>Giảm giá</span
-                ><span>-{{ order()!.discount | number: "1.0-0" }}₫</span>
-              </div>
-              <div class="order-detail-summary-footer mt-auto">
-                <hr class="order-detail-summary-hr" />
-                <div class="flex justify-content-between font-bold text-lg">
-                  <span>Tổng cộng</span
-                  ><span>{{ order()!.totalAmount | number: "1.0-0" }}₫</span>
-                </div>
-              </div>
+    <div class="order-detail-top">
+      <p-card header="Khách hàng" styleClass="h-full">
+        @if (order()!.customer) {
+          <div class="order-detail-lines">
+            <div class="summary-row">
+              <span>Họ tên</span>
+              <span class="order-detail-value">{{ order()!.customer!.fullName }}</span>
             </div>
-          </p-card>
+            @if (order()!.customer!.phone) {
+              <div class="summary-row">
+                <span>SĐT</span>
+                <span class="order-detail-value">{{ order()!.customer!.phone }}</span>
+              </div>
+            }
+            @if (order()!.customer!.email) {
+              <div class="summary-row">
+                <span>Email</span>
+                <span class="order-detail-value">{{ order()!.customer!.email }}</span>
+              </div>
+            }
+          </div>
+        } @else {
+          <p class="muted m-0">Không có thông tin khách hàng</p>
+        }
+        @if (order()!.shippingAddress) {
+          <div class="summary-row mt-2">
+            <span>Địa chỉ giao</span>
+            <span class="order-detail-value">{{ order()!.shippingAddress }}</span>
+          </div>
+        }
+      </p-card>
+
+      <p-card header="Tóm tắt" styleClass="h-full">
+        <div class="order-detail-lines">
+          <div class="summary-row">
+            <span>Tạm tính</span>
+            <span class="num">{{ order()!.subtotal | number: "1.0-0" }}₫</span>
+          </div>
+          <div class="summary-row">
+            <span>Phí vận chuyển</span>
+            <span class="num">{{ order()!.shippingFee | number: "1.0-0" }}₫</span>
+          </div>
+          <div class="summary-row">
+            <span>Giảm giá</span>
+            <span class="num">-{{ order()!.discount | number: "1.0-0" }}₫</span>
+          </div>
+          <div class="summary-row order-detail-total">
+            <span>Tổng cộng</span>
+            <span class="num">{{ order()!.totalAmount | number: "1.0-0" }}₫</span>
+          </div>
         </div>
-      </div>
+      </p-card>
     </div>
 
-    <!-- Items -->
     <p-card header="Sản phẩm">
-      <p-table [value]="order()!.items" styleClass="p-datatable-sm">
+      <p-table [value]="order()!.items" styleClass="p-datatable-sm" [tableStyle]="{ '--table-min': '620px' }">
         <ng-template pTemplate="header">
           <tr>
             <th>Sản phẩm</th>
             <th>Phân loại</th>
-            <th>SKU</th>
-            <th class="text-right">SL</th>
-            <th class="text-right">Đơn giá</th>
-            <th class="text-right">Thành tiền</th>
+            <th class="hide-sm">SKU</th>
+            <th class="num">SL</th>
+            <th class="num hide-sm">Đơn giá</th>
+            <th class="num">Thành tiền</th>
           </tr>
         </ng-template>
         <ng-template pTemplate="body" let-item>
           <tr>
-            <td>{{ item.productName }}</td>
+            <td>
+              {{ item.productName }}
+              <div class="show-sm item-meta muted">
+                SKU {{ item.skuCode ?? "—" }} · {{ item.unitPrice | number: "1.0-0" }}₫
+              </div>
+            </td>
             <td>{{ item.variant ?? "—" }}</td>
-            <td>{{ item.skuCode ?? "—" }}</td>
-            <td class="text-right">{{ item.quantity }}</td>
-            <td class="text-right">{{ item.unitPrice | number: "1.0-0" }}₫</td>
-            <td class="text-right font-medium">
+            <td class="hide-sm">{{ item.skuCode ?? "—" }}</td>
+            <td class="num">{{ item.quantity }}</td>
+            <td class="num hide-sm">{{ item.unitPrice | number: "1.0-0" }}₫</td>
+            <td class="num font-medium">
               {{ item.totalPrice | number: "1.0-0" }}₫
             </td>
           </tr>

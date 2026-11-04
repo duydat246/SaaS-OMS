@@ -43,6 +43,7 @@ type SkuFormValue = {
   variant: string;
   price: number | null;
   stock: number | null;
+  expectedStock: number | null;
 };
 
 // Khớp với ràng buộc của ProductRequest và SkuRequest ở backend.
@@ -107,6 +108,8 @@ export class ProductFormComponent {
   uploading = signal(false);
   primaryImageId = signal<number | null>(null);
   private readonly brokenImageIds = signal<ReadonlySet<number>>(new Set());
+  /** Tồn mới nhất theo id SKU, chỉ có ở dòng mà người dùng đã nhập số khác sau khi gặp 409. */
+  private readonly currentStockBySkuId = signal<ReadonlyMap<number, number>>(new Map());
   /** Danh sách ảnh không nằm trong form nên phải tự theo dõi thay đổi. */
   private imagesChanged = false;
   private saved = false;
@@ -239,7 +242,19 @@ export class ProductFormComponent {
       variant: [sku?.variant ?? "", [Validators.maxLength(VARIANT_MAX_LENGTH)]],
       price: [sku?.price ?? 0, [Validators.required, Validators.min(0), Validators.max(PRICE_MAX)]],
       stock: [sku?.stock ?? 0, [Validators.required, Validators.min(0), Validators.max(STOCK_MAX)]],
+      // Control ẩn: số tồn đã thấy lần cuối, backend dùng để phát hiện tồn đã bị đơn hàng thay đổi.
+      expectedStock: [sku?.stock ?? null],
     });
+  }
+
+  /** Tồn hiện tại để nhắc bên dưới ô nhập; null nếu không cần nhắc. */
+  currentStockHint(index: number): number | null {
+    const row = this.skuRows()[index];
+    if (row?.id == null) {
+      return null;
+    }
+    const current = this.currentStockBySkuId().get(row.id);
+    return current === undefined || current === row.stock ? null : current;
   }
 
   skuArrayValidator(): ValidatorFn {
@@ -583,6 +598,7 @@ export class ProductFormComponent {
       variant: sku.variant && sku.variant.trim() !== "" ? sku.variant.trim() : null,
       price: Number(sku.price ?? 0),
       stock: Number(sku.stock ?? 0),
+      expectedStock: sku.id != null ? sku.expectedStock : null,
     }));
 
     const imageIds = this.images().map((image) => image.id);
@@ -618,12 +634,61 @@ export class ProductFormComponent {
         this.router.navigate(["/products", product.id]);
       },
       error: (err) => {
-        this.saving.set(false);
         const detail =
           err?.error?.message ?? (editingId ? "Cập nhật sản phẩm thất bại." : "Tạo sản phẩm thất bại.");
         this.messageService.add({ severity: "error", summary: "Lỗi", detail });
+        if (editingId && err?.status === 409) {
+          this.refreshStockAfterConflict(editingId);
+          return;
+        }
+        this.saving.set(false);
       },
     });
+  }
+
+  /**
+   * Sau 409 chỉ cập nhật số tồn của các dòng SKU, không nạp lại form để giữ chỉnh sửa của người dùng.
+   * Không `product.set(...)`: `isPersistedImage` so với ảnh của lần nạp đầu.
+   */
+  private refreshStockAfterConflict(id: number): void {
+    this.productService
+      .getProduct(id)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (fresh) => {
+          this.applyFreshStock(fresh);
+          this.saving.set(false);
+        },
+        error: () => {
+          this.saving.set(false);
+          this.messageService.add({
+            severity: "warn",
+            summary: "Chưa tải được số mới",
+            detail: "Không lấy được tồn kho mới nhất, vui lòng thử lưu lại hoặc tải lại trang.",
+          });
+        },
+      });
+  }
+
+  private applyFreshStock(fresh: Product): void {
+    const freshStockById = new Map((fresh.skus ?? []).map((sku) => [sku.id, sku.stock]));
+    const hints = new Map<number, number>();
+
+    for (const control of this.skus.controls) {
+      const row = control.getRawValue() as SkuFormValue;
+      const freshStock = row.id != null ? freshStockById.get(row.id) : undefined;
+      if (row.id == null || freshStock === undefined) {
+        continue;
+      }
+      if (row.stock === row.expectedStock) {
+        // patchValue không đánh dấu dirty và không tự gửi lại.
+        control.patchValue({ stock: freshStock, expectedStock: freshStock });
+      } else {
+        control.patchValue({ expectedStock: freshStock });
+        hints.set(row.id, freshStock);
+      }
+    }
+    this.currentStockBySkuId.set(hints);
   }
 
   getSkuGroup(index: number): FormGroup {

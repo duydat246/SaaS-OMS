@@ -1,0 +1,19 @@
+:host {
+  display: block;
+  height: 100%;
+}
+
+.order-id {
+  color: var(--apollo-accent);
+  text-decoration: none;
+}
+
+.order-id:hover {
+  text-decoration: underline;
+}
+
+@media (max-width: 767.98px) {
+  :host {
+    height: auto;
+  }
+}

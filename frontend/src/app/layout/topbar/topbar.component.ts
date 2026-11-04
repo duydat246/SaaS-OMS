@@ -1,26 +1,21 @@
-import { Component, inject, OnDestroy, OnInit, signal } from "@angular/core";
+import { Component, computed, inject, OnDestroy, OnInit, signal } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { NavigationEnd, Router } from "@angular/router";
 import { ButtonModule } from "primeng/button";
-import { InputTextModule } from "primeng/inputtext";
-import { IconFieldModule } from "primeng/iconfield";
-import { InputIconModule } from "primeng/inputicon";
 import { TooltipModule } from "primeng/tooltip";
 import { AuthService } from "@core/auth/auth.service";
 import { ShellLayoutService } from "../shell-layout.service";
 import { filter, Subscription } from "rxjs";
 
+const ROLE_LABEL_VI: Record<string, string> = {
+  OWNER: "Chủ cửa hàng",
+  STAFF: "Nhân viên",
+};
+
 @Component({
   selector: "app-topbar",
   standalone: true,
-  imports: [
-    CommonModule,
-    ButtonModule,
-    InputTextModule,
-    IconFieldModule,
-    InputIconModule,
-    TooltipModule,
-  ],
+  imports: [CommonModule, ButtonModule, TooltipModule],
   template: `
     <header class="topbar">
       <div class="topbar-left">
@@ -34,31 +29,17 @@ import { filter, Subscription } from "rxjs";
           [attr.aria-expanded]="menuToggleAriaExpanded()"
           aria-controls="app-sidebar-nav"
           [pTooltip]="menuToggleTooltip()"
+          [ariaLabel]="menuToggleTooltip()"
           tooltipPosition="bottom"
           (click)="layout.toggleSidebar()"
         />
         <h1 class="page-title">{{ pageTitle() }}</h1>
       </div>
       <div class="topbar-right">
-        <p-iconField iconPosition="left" styleClass="topbar-search">
-          <p-inputIcon styleClass="pi pi-search" />
-          <input
-            pInputText
-            type="search"
-            placeholder="Tìm kiếm..."
-            autocomplete="off"
-          />
-        </p-iconField>
-        <p-button
-          class="topbar-globe"
-          icon="pi pi-globe"
-          [rounded]="true"
-          [text]="true"
-          severity="secondary"
-          type="button"
-        />
         <span class="user-name">{{ auth.currentUser()?.fullName }}</span>
-        <span class="user-role">{{ auth.currentUser()?.role }}</span>
+        @if (roleLabel()) {
+          <span class="user-role">{{ roleLabel() }}</span>
+        }
         <p-button
           icon="pi pi-sign-out"
           [rounded]="true"
@@ -66,6 +47,7 @@ import { filter, Subscription } from "rxjs";
           severity="secondary"
           (click)="auth.logout()"
           pTooltip="Đăng xuất"
+          ariaLabel="Đăng xuất"
           tooltipPosition="bottom"
           type="button"
         />
@@ -76,6 +58,10 @@ import { filter, Subscription } from "rxjs";
 export class TopbarComponent implements OnInit, OnDestroy {
   pageTitle = signal("Tổng quan");
   readonly layout = inject(ShellLayoutService);
+  readonly roleLabel = computed(() => {
+    const role = this.auth.currentUser()?.role;
+    return role ? (ROLE_LABEL_VI[role] ?? role) : "";
+  });
   private sub?: Subscription;
 
   constructor(

@@ -1,95 +1,70 @@
-<div class="dash-page">
-  <div
-    class="dash-header flex align-items-start justify-content-between flex-wrap gap-3 mb-4"
-  >
+<div class="page-stack dash-page">
+  <div class="page-header">
     <div>
-      <h2 class="dash-title m-0">Tổng quan</h2>
-      <p class="dash-subtitle m-0 mt-2">
+      <h2>Tổng quan</h2>
+      <p class="muted m-0">
         Chào mừng trở lại, {{ auth.currentUser()?.fullName }}
       </p>
     </div>
-    <a routerLink="/orders/new" class="w-full sm:w-auto">
-      <p-button
-        label="Tạo đơn hàng"
-        icon="pi pi-plus"
-        styleClass="dash-cta w-full sm:w-auto"
-      />
+    <a routerLink="/orders/new" tabindex="-1">
+      <p-button label="Tạo đơn hàng" icon="pi pi-plus" size="small" />
     </a>
   </div>
 
-  <div class="grid">
+  <div class="stat-strip" [class.stat-strip--loading]="statsLoading()">
     @for (s of stats(); track s.label) {
-      <div class="col-12 sm:col-6 xl:col-3">
-        <div
-          class="dash-stat-card"
-          [class.dash-stat-card--loading]="statsLoading()"
-        >
-          <div class="dash-stat-label">{{ s.label }}</div>
-          <div class="dash-stat-value">{{ s.value }}</div>
-          @if (s.trend !== null) {
-            <div
-              class="dash-stat-trend"
-              [class.dash-stat-trend--up]="s.up"
-              [class.dash-stat-trend--down]="!s.up"
-            >
-              {{ s.trend }}
-              @if (s.up) {
-                <i class="pi pi-arrow-up text-xs ml-1"></i>
-              } @else {
-                <i class="pi pi-arrow-down text-xs ml-1"></i>
-              }
-            </div>
-          }
-        </div>
+      <div class="stat-strip__item">
+        <span class="stat-strip__label">{{ s.label }}</span>
+        <span class="stat-strip__value">{{ s.value }}</span>
+        @if (s.trend !== null) {
+          <span
+            class="dash-stat-trend"
+            [class.dash-stat-trend--up]="s.up"
+            [class.dash-stat-trend--down]="!s.up"
+          >
+            {{ s.trend }}
+            @if (s.up) {
+              <i class="pi pi-arrow-up text-xs ml-1"></i>
+            } @else {
+              <i class="pi pi-arrow-down text-xs ml-1"></i>
+            }
+          </span>
+        }
       </div>
     }
   </div>
 
-  <div class="grid mt-1 align-items-stretch">
-    <div class="col-12 xl:col-8 flex">
-      <div class="dash-panel dash-panel--bar w-full h-full">
-        <div
-          class="dash-panel-head flex align-items-center justify-content-between flex-wrap gap-2 mb-3"
-        >
-          <h3 class="dash-panel-title m-0">Doanh thu &amp; lợi nhuận</h3>
-          <p-dropdown
-            [(ngModel)]="selectedPeriod"
-            [options]="periodOptions"
-            optionLabel="label"
-            optionValue="value"
-            styleClass="dash-period-dd"
-            [appendTo]="'body'"
-            panelStyleClass="apollo-dash-panel"
-          />
-        </div>
-        <div class="dash-chart-box dash-chart-box--bar-centered">
-          <div class="dash-chart-box-inner">
-            <p-chart type="bar" [data]="barData" [options]="barOptions" />
-          </div>
-        </div>
+  <div class="dash-row">
+    <div class="dash-panel">
+      <div class="dash-panel-head">
+        <h3 class="dash-panel-title">Doanh thu &amp; lợi nhuận</h3>
+        <span class="dash-demo-label">Dữ liệu minh hoạ</span>
+      </div>
+      <div class="dash-chart-box">
+        <p-chart type="bar" height="100%" [data]="barData" [options]="barOptions" />
       </div>
     </div>
-    <div class="col-12 xl:col-4 flex">
-      <div class="dash-panel dash-panel--tight w-full h-full">
-        <h3 class="dash-panel-title m-0 mb-3">Đơn theo danh mục</h3>
-        <div class="dash-chart-box dash-chart-box--donut">
-          <p-chart
-            type="doughnut"
-            [data]="doughnutData"
-            [options]="doughnutOptions"
-          />
-        </div>
+    <div class="dash-panel">
+      <div class="dash-panel-head">
+        <h3 class="dash-panel-title">Đơn theo danh mục</h3>
+        <span class="dash-demo-label">Dữ liệu minh hoạ</span>
+      </div>
+      <div class="dash-chart-box">
+        <p-chart
+          type="doughnut"
+          height="100%"
+          [data]="doughnutData"
+          [options]="doughnutOptions"
+        />
       </div>
     </div>
   </div>
 
-  <div class="grid mt-1">
-    <div class="col-12 xl:col-8">
+  <div class="dash-row">
+    <div>
       <div class="dash-panel">
-        <div
-          class="dash-panel-head flex align-items-center justify-content-between flex-wrap gap-2 mb-3"
-        >
-          <h3 class="dash-panel-title m-0">Đơn gần đây</h3>
+        <div class="dash-panel-head">
+          <h3 class="dash-panel-title">Đơn gần đây</h3>
           <div class="flex align-items-center gap-2">
             <p-iconField iconPosition="left" styleClass="dash-table-search">
               <p-inputIcon styleClass="pi pi-search" />
@@ -99,15 +74,17 @@
                 [ngModel]="searchTerm()"
                 (ngModelChange)="onSearchChange($event)"
                 placeholder="Tìm kiếm..."
-                class="p-inputtext-sm"
+                aria-label="Tìm đơn gần đây"
               />
             </p-iconField>
             <p-button
-              icon="pi pi-upload"
+              icon="pi pi-file-excel"
               [rounded]="true"
+              [outlined]="true"
+              severity="secondary"
               [loading]="exportLoading()"
-              styleClass="dash-export-btn"
               type="button"
+              ariaLabel="Xuất Excel"
               (onClick)="exportOrders()"
               pTooltip="Xuất Excel"
               tooltipPosition="top"
@@ -131,7 +108,7 @@
               <th>Mã đơn</th>
               <th>Khách hàng</th>
               <th>Nền tảng</th>
-              <th class="text-right">Tổng tiền</th>
+              <th class="num">Tổng tiền</th>
               <th>Trạng thái</th>
               <th style="width: 3rem"></th>
             </tr>
@@ -139,7 +116,7 @@
           <ng-template pTemplate="body" let-order>
             <tr>
               <td>
-                <code class="dash-code">#{{ order.id }}</code>
+                <code>#{{ order.id }}</code>
               </td>
               <td>{{ order.customer?.fullName ?? "—" }}</td>
               <td>
@@ -148,7 +125,7 @@
                   severity="secondary"
                 />
               </td>
-              <td class="text-right font-semibold">
+              <td class="num font-medium">
                 {{ order.totalAmount | number: "1.0-0" }}₫
               </td>
               <td>
@@ -158,13 +135,14 @@
                 />
               </td>
               <td>
-                <a [routerLink]="['/orders', order.id]">
+                <a [routerLink]="['/orders', order.id]" tabindex="-1">
                   <p-button
                     icon="pi pi-search"
                     [rounded]="true"
                     [text]="true"
                     severity="secondary"
                     type="button"
+                    ariaLabel="Xem chi tiết đơn hàng"
                   />
                 </a>
               </td>
@@ -172,7 +150,7 @@
           </ng-template>
           <ng-template pTemplate="emptymessage">
             <tr>
-              <td colspan="6" class="text-center py-4 dash-muted">
+              <td colspan="6" class="text-center py-4 muted">
                 Chưa có đơn hàng
               </td>
             </tr>
@@ -250,9 +228,12 @@
         }
       </div>
     </div>
-    <div class="col-12 xl:col-4">
+    <div>
       <div class="dash-panel">
-        <h3 class="dash-panel-title m-0 mb-3">Sản phẩm nổi bật</h3>
+        <div class="dash-panel-head">
+          <h3 class="dash-panel-title">Sản phẩm nổi bật</h3>
+          <span class="dash-demo-label">Dữ liệu minh hoạ</span>
+        </div>
         <ul class="dash-product-list list-none m-0 p-0">
           @for (p of topProducts; track p.name) {
             <li class="dash-product-row flex align-items-center gap-3">
@@ -273,7 +254,7 @@
                   }
                 </div>
               </div>
-              <div class="dash-product-price font-semibold">
+              <div class="dash-product-price num font-medium">
                 {{ p.price | number: "1.0-0" }}₫
               </div>
             </li>

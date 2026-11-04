@@ -1,108 +1,104 @@
 :host {
   display: block;
-}
-
-// Dùng bảng màu của shell, không dùng text-500/text-900 của PrimeFlex (chữ tối trên nền tối).
-.product-muted {
-  color: var(--apollo-muted, #94a3b8);
-}
-
-.product-name {
-  color: var(--apollo-text, #f1f5f9);
-  font-weight: 500;
-  text-decoration: none;
-}
-
-.product-name:hover {
-  text-decoration: underline;
-}
-
-.product-stats {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-  gap: 0.75rem;
-}
-
-.product-stat {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-  padding: 0.75rem 1rem;
-  border: 1px solid var(--apollo-border, rgba(148, 163, 184, 0.2));
-  border-radius: 8px;
-  background: var(--apollo-surface, transparent);
-}
-
-.product-stat__label {
-  color: var(--apollo-muted, #94a3b8);
-  font-size: 0.8rem;
-}
-
-.product-stat__value {
-  color: var(--apollo-text, #f1f5f9);
-  font-size: 1.35rem;
-  font-weight: 600;
-}
-
-.product-stat__value--danger {
-  color: #f87171;
-}
-
-.product-list-filters {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.product-search-input {
-  position: relative;
-  min-width: 0;
-
-  input {
-    padding-right: 2.25rem;
-  }
-}
-
-.product-search-input__clear {
-  position: absolute;
-  top: 50%;
-  right: 0.5rem;
-  transform: translateY(-50%);
-  border: 0;
-  background: transparent;
-  color: var(--apollo-muted, #94a3b8);
-  width: 1.5rem;
-  height: 1.5rem;
-  border-radius: 999px;
-  padding: 0;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.product-search-input__clear:hover {
-  color: var(--apollo-text, #f1f5f9);
-}
-
-.product-load-error {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 0.75rem;
-  padding: 1rem;
-  border: 1px solid #f87171;
-  border-radius: 8px;
-  color: var(--apollo-text, #f1f5f9);
+  height: 100%;
 }
 
 .product-image {
-  width: 48px;
-  height: 48px;
-  object-fit: cover;
-  border-radius: 4px;
-  border: 1px solid var(--apollo-border, rgba(148, 163, 184, 0.2));
   display: block;
+  width: 28px;
+  height: 28px;
+  object-fit: cover;
+  background: var(--apollo-surface-2);
+  border: 1px solid var(--apollo-border);
+  border-radius: var(--apollo-radius-control);
+}
+
+// Cột tên nhận phần còn lại của bảng và cắt chữ thay vì đẩy các cột số ra ngoài.
+.product-name-cell {
+  width: 100%;
+  max-width: 0;
+}
+
+.product-name {
+  display: block;
+  overflow: hidden;
+  color: var(--apollo-text);
+  font-weight: 500;
+  text-decoration: none;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.product-name:hover {
+  color: var(--apollo-accent);
+  text-decoration: underline;
+}
+
+.product-category {
+  display: block;
+  overflow: hidden;
+  font-size: 12px;
+  line-height: 14px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+// Tag đứng trước để cột số luôn thẳng hàng ở mép phải.
+.stock-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.stock-value {
+  min-width: 40px;
+  font-weight: 600;
+}
+
+@media (min-width: 768px) {
+  .filter-status {
+    flex-basis: 212px;
+  }
+}
+
+// Khoảng giá xuống dòng khi chưa đủ chỗ cho cả cột tên.
+@media (max-width: 1319.98px) {
+  // Đủ rộng để dấu gạch ngang nằm cùng dòng với giá đầu, khoảng giá chỉ chiếm hai dòng.
+  .price-range {
+    display: inline-block;
+    min-width: 86px;
+    white-space: normal;
+  }
+}
+
+// Cột tên hẹp nhất khi còn sidebar: cho hai dòng để phân biệt được các tên gần giống nhau.
+@media (min-width: 768px) and (max-width: 899.98px) {
+  .product-name {
+    display: -webkit-box;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+}
+
+@media (max-width: 767.98px) {
+  :host {
+    height: auto;
+  }
+
+  .product-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 2px 6px;
+    margin-top: 1px;
+    font-size: 12px;
+    line-height: 16px;
+  }
+
+  .product-meta .num {
+    white-space: normal;
+    text-align: left;
+  }
 }
