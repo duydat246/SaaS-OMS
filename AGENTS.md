@@ -393,7 +393,7 @@ Một bước chỉ được coi là xong khi:
 - Commit nhỏ, một mục đích; message tiếng Anh, mô tả ngắn gọn hành vi.
 - Agent **không** commit/push/merge/checkout/reset. Chỉ người dùng thực hiện.
 - Trước khi đề nghị commit: chạy build/test, kiểm tra `git diff`, không để file rác (`.history`, `dist`, log).
-- CI hiện build Docker cho cả `main` và `dev`, tag `latest`, chưa chạy test — đây là nợ cần xử lý (mục 12), không phải mẫu để nhân rộng.
+- CI: `dev` và pull request vào `main` chỉ chạy test. Chỉ push vào `main` (sau khi merge) mới build image, gắn tag `latest` và commit SHA, rồi deploy.
 
 ---
 
@@ -421,7 +421,7 @@ Một bước chỉ được coi là xong khi:
 | 5 | P1 | `.gitignore` chặn mọi `*.md` | `.gitignore:7` | Thêm `!AGENTS.md` (đã xử lý cùng file này) |
 | 6 | P1 | ~~Login chưa rate-limit; mật khẩu tối thiểu 6 ký tự~~ — đã xử lý 04/11/2026 | `LoginRateLimiter.java`, `RegisterRequest`, `frontend/nginx.conf` | Rate-limit theo (IP, email) và IP; mật khẩu đăng ký 8–72 ký tự. IP thật lấy từ `CF-Connecting-IP` qua nginx |
 | 7 | P1 | ~~Thiếu 401 entry point → trả 403 khi hết token~~ — đã xử lý 04/11/2026 | `RestAuthenticationEntryPoint.java`, `jwt.interceptor.ts` | Trả 401 + `ApiResponse`; interceptor chỉ refresh với 401, lỗi của retry trả về component |
-| 8 | P1 | CI deploy cả `dev` (đã thêm test trước deploy và tag SHA ngày 04/11/2026) | `.github/workflows/deploy.yml` | Còn lại: chỉ deploy từ `main`. Remote hiện chưa có nhánh `main`, cần người dùng quyết định quy trình |
+| 8 | P1 | ~~CI deploy cả `dev`, tag `latest`, không chạy test~~ — đã xử lý 04/11/2026 | `.github/workflows/deploy.yml` | Chỉ deploy khi push vào `main`; test chạy trước khi build; image có tag commit SHA |
 | 9 | P1 | Dashboard dùng số liệu giả (đã gắn nhãn "Dữ liệu minh hoạ" ngày 04/11/2026); export cắt cứng 1000 dòng | `dashboard.component.ts:108-152`, `dashboard.constants.ts:18`, `dashboard.component.ts:314` | Nối API thật; phân trang khi export và báo số dòng |
 | 10 | P2 | Order chưa kẹp `size`, bỏ qua `sort` | `OrderController.java:34-37` | Kẹp 1..100, nhận sort whitelist |
 | 11 | P2 | ~~`as any`, subscription không huỷ, `.css` trùng~~ — đã xử lý 03/11/2026 | `features/products/**` | Đã bỏ `any`, dùng `takeUntilDestroyed(destroyRef)`, xoá `.css` thừa |

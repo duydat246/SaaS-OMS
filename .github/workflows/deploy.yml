@@ -3,7 +3,10 @@ name: Build & Deploy
 on:
   push:
     branches: [main, dev]
+  pull_request:
+    branches: [main]
 
+# dev và pull request vào main chỉ chạy test. Chỉ push vào main (tức sau khi merge) mới build image và deploy.
 # Không đặt concurrency cấp workflow: cancel-in-progress ở cấp đó huỷ cả job deploy đang chạy dở trên VPS.
 # Thay vào đó: test và build-and-push huỷ bản cũ theo từng job, còn deploy xếp hàng không huỷ
 # và tự bỏ qua nếu commit không còn là đầu nhánh.
@@ -41,6 +44,7 @@ jobs:
 
   build-and-push:
     needs: test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     concurrency:
       group: build-and-push-${{ github.ref }}

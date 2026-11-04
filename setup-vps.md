@@ -144,7 +144,7 @@ systemctl status cloudflared
 # Trên máy local
 git add .
 git commit -m "initial deploy"
-git push origin dev
+git push origin dev:main
 ```
 
 Theo dõi tại **GitHub repo → tab Actions** — chờ ✅ xanh (~5-10 phút).
@@ -172,12 +172,15 @@ Truy cập domain → App hoạt động.
 ## Quy trình deploy hàng ngày
 
 ```bash
-# Sửa code xong, chỉ cần 3 lệnh:
+# Phát triển trên dev: push chỉ chạy test, không deploy
 git add .
 git commit -m "mô tả thay đổi"
 git push origin dev
 
-# GitHub Actions tự động:
+# Test xanh và đã nghiệm thu: merge dev vào main bằng pull request trên GitHub.
+# Merge xong là deploy.
+
+# Khi merge vào main, GitHub Actions tự động:
 # 1. Chạy test backend và build frontend; đỏ thì dừng, không deploy
 # 2. Build Docker image, push lên Docker Hub với tag latest và commit SHA
 # 3. SSH vào VPS → pull image theo SHA → restart
@@ -193,7 +196,7 @@ cp docker-compose.prod.yml docker-compose.prod.yml.bak
 curl -o docker-compose.prod.yml \
   https://raw.githubusercontent.com/duydat246/SaaS-OMS/dev/docker-compose.prod.yml
 ```
-Cách tải trên lấy bản đã có trên nhánh `dev`; nếu thay đổi chưa push thì chép file bằng `scp`.
+Cách tải trên lấy bản đã có trên nhánh `dev`, nên làm được trước khi merge vào `main`; nếu thay đổi chưa push thì chép file bằng `scp`.
 
 ---
 
@@ -245,7 +248,7 @@ docker compose -f docker-compose.prod.yml ps
   ```
 - Chỉ rollback được về commit đã build sau khi CI có tag SHA; bản cũ hơn chỉ có `latest`.
 - Rollback không đảo ngược migration. Nếu commit đích cũ hơn một migration đã chạy, kiểm tra schema hiện tại còn tương thích với code cũ trước khi rollback.
-- Lần push `dev` tiếp theo sẽ deploy đè lên bản đã rollback. Nếu lỗi chưa được sửa, `git revert` commit lỗi rồi push.
+- Lần merge vào `main` tiếp theo sẽ deploy đè lên bản đã rollback. Nếu lỗi chưa được sửa, `git revert` commit lỗi trước khi merge.
 - Muốn bản rollback giữ nguyên qua các lần restart thủ công, có thể ghi `IMAGE_TAG=<sha>` vào `.env`, và xoá dòng này khi đã xử lý xong. Biến `export` trong shell, gồm cả của CI, được ưu tiên hơn `.env`.
 
 ### Rate-limit đăng nhập và IP thật
