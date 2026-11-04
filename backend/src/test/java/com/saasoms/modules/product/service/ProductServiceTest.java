@@ -19,6 +19,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InOrder;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -30,17 +31,20 @@ import org.springframework.http.HttpStatus;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.tuple;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyCollection;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -185,7 +189,7 @@ class ProductServiceTest {
                 .thenReturn(List.of(sku(500L, product(99L, ProductStatus.ACTIVE), "SKU-1", "1.00", 1)));
 
         ProductRequest request = request("Áo thun", List.of(
-                new SkuRequest(null, "SKU-1", "M", new BigDecimal("1.00"), 1)));
+                new SkuRequest(null, "SKU-1", "M", new BigDecimal("1.00"), 1, null)));
 
         BusinessException ex = assertThrows(BusinessException.class,
                 () -> productService.createProduct(request));
@@ -202,7 +206,7 @@ class ProductServiceTest {
                 .thenReturn(List.of(sku(500L, product(99L, ProductStatus.ARCHIVED), "SKU-OLD", "1.00", 1)));
 
         ProductRequest request = request("Áo thun", List.of(
-                new SkuRequest(null, "SKU-OLD", "M", new BigDecimal("1.00"), 1)));
+                new SkuRequest(null, "SKU-OLD", "M", new BigDecimal("1.00"), 1, null)));
 
         BusinessException ex = assertThrows(BusinessException.class,
                 () -> productService.createProduct(request));
@@ -216,8 +220,8 @@ class ProductServiceTest {
         when(shopRepository.findById(TENANT_ID)).thenReturn(Optional.of(shop));
 
         ProductRequest request = request("Áo thun", List.of(
-                new SkuRequest(null, "SKU-1", "M", new BigDecimal("1.00"), 1),
-                new SkuRequest(null, "sku-1", "L", new BigDecimal("1.00"), 1)));
+                new SkuRequest(null, "SKU-1", "M", new BigDecimal("1.00"), 1, null),
+                new SkuRequest(null, "sku-1", "L", new BigDecimal("1.00"), 1, null)));
 
         BusinessException ex = assertThrows(BusinessException.class,
                 () -> productService.createProduct(request));
@@ -269,12 +273,11 @@ class ProductServiceTest {
     void updateProduct_sameSkuIdTwice_throwsBadRequest() {
         Product product = product(10L, ProductStatus.ACTIVE);
         when(productRepository.findByIdAndShopId(10L, TENANT_ID)).thenReturn(Optional.of(product));
-        when(skuRepository.findByShopIdAndProductId(TENANT_ID, 10L))
-                .thenReturn(List.of(sku(100L, product, "SKU-A", "1.00", 1)));
+        stubLockedSkus(sku(100L, product, "SKU-A", "1.00", 1));
 
         ProductRequest request = request("Áo thun", List.of(
-                new SkuRequest(100L, "SKU-A", null, new BigDecimal("2.00"), 2),
-                new SkuRequest(100L, "SKU-B", null, new BigDecimal("3.00"), 3)));
+                new SkuRequest(100L, "SKU-A", null, new BigDecimal("2.00"), 2, null),
+                new SkuRequest(100L, "SKU-B", null, new BigDecimal("3.00"), 3, null)));
 
         BusinessException ex = assertThrows(BusinessException.class,
                 () -> productService.updateProduct(10L, request));
@@ -289,11 +292,10 @@ class ProductServiceTest {
         LocalDateTime old = LocalDateTime.now().minusDays(1);
         product.setUpdatedAt(old);
         when(productRepository.findByIdAndShopId(10L, TENANT_ID)).thenReturn(Optional.of(product));
-        when(skuRepository.findByShopIdAndProductId(TENANT_ID, 10L))
-                .thenReturn(List.of(sku(100L, product, "SKU-A", "1.00", 1)));
+        stubLockedSkus(sku(100L, product, "SKU-A", "1.00", 1));
 
         ProductRequest request = request("Sản phẩm 10", List.of(
-                new SkuRequest(100L, "SKU-A", null, new BigDecimal("2.00"), 1)));
+                new SkuRequest(100L, "SKU-A", null, new BigDecimal("2.00"), 1, null)));
 
         ProductResponse response = productService.updateProduct(10L, request);
 
@@ -307,12 +309,14 @@ class ProductServiceTest {
         when(productRepository.findByIdAndShopId(10L, 2L)).thenReturn(Optional.empty());
 
         ProductRequest request = request("Áo thun", List.of(
-                new SkuRequest(null, "SKU-1", null, new BigDecimal("1.00"), 1)));
+                new SkuRequest(null, "SKU-1", null, new BigDecimal("1.00"), 1, null)));
 
         BusinessException ex = assertThrows(BusinessException.class,
                 () -> productService.updateProduct(10L, request));
 
         assertThat(ex.getStatus()).isEqualTo(HttpStatus.NOT_FOUND);
+        verify(skuRepository, never()).findIdsByShopIdAndProductId(any(), any());
+        verify(skuRepository, never()).findForUpdate(any(), anyCollection());
     }
 
     @Test
@@ -341,7 +345,7 @@ class ProductServiceTest {
         when(skuRepository.save(any(Sku.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         ProductRequest request = request("Áo thun", List.of(
-                new SkuRequest(null, null, "Mặc định", new BigDecimal("1.00"), 2)));
+                new SkuRequest(null, null, "Mặc định", new BigDecimal("1.00"), 2, null)));
 
         ProductResponse response = productService.createProduct(request);
 
@@ -366,11 +370,10 @@ class ProductServiceTest {
     void updateProduct_skuOfAnotherProduct_throwsBadRequest() {
         Product product = product(10L, ProductStatus.ACTIVE);
         when(productRepository.findByIdAndShopId(10L, TENANT_ID)).thenReturn(Optional.of(product));
-        when(skuRepository.findByShopIdAndProductId(TENANT_ID, 10L))
-                .thenReturn(List.of(sku(100L, product, "SKU-A", "1.00", 1)));
+        stubLockedSkus(sku(100L, product, "SKU-A", "1.00", 1));
 
         ProductRequest request = request("Áo thun", List.of(
-                new SkuRequest(999L, "SKU-X", null, new BigDecimal("2.00"), 2)));
+                new SkuRequest(999L, "SKU-X", null, new BigDecimal("2.00"), 2, null)));
 
         BusinessException ex = assertThrows(BusinessException.class,
                 () -> productService.updateProduct(10L, request));
@@ -386,15 +389,14 @@ class ProductServiceTest {
         Sku kept = sku(101L, product, "SKU-KEEP", "2.00", 3);
 
         when(productRepository.findByIdAndShopId(10L, TENANT_ID)).thenReturn(Optional.of(product));
-        when(skuRepository.findByShopIdAndProductId(TENANT_ID, 10L))
-                .thenReturn(List.of(removed, kept));
+        stubLockedSkus(removed, kept);
         when(skuRepository.findByShopIdAndSkuCodeIn(eq(TENANT_ID), anyCollection()))
                 .thenReturn(List.of());
         when(skuRepository.findUsedSkuIds(eq(TENANT_ID), anyCollection()))
                 .thenReturn(List.of(100L));
 
         ProductRequest request = request("Áo thun", List.of(
-                new SkuRequest(101L, "SKU-KEEP", null, new BigDecimal("2.00"), 3)));
+                new SkuRequest(101L, "SKU-KEEP", null, new BigDecimal("2.00"), 3, null)));
 
         BusinessException ex = assertThrows(BusinessException.class,
                 () -> productService.updateProduct(10L, request));
@@ -410,7 +412,7 @@ class ProductServiceTest {
         when(productRepository.findByIdAndShopId(10L, TENANT_ID)).thenReturn(Optional.of(product));
 
         ProductRequest request = request("Áo thun", List.of(
-                new SkuRequest(null, "SKU-1", null, new BigDecimal("1.00"), 1)));
+                new SkuRequest(null, "SKU-1", null, new BigDecimal("1.00"), 1, null)));
 
         BusinessException ex = assertThrows(BusinessException.class,
                 () -> productService.updateProduct(10L, request));
@@ -470,7 +472,242 @@ class ProductServiceTest {
         assertThat(response.getStatus()).isEqualTo(ProductStatus.ACTIVE);
     }
 
+    // ------------------------------------------------------------ STOCK CHECK
+
+    @Test
+    void updateProduct_stockChanged_throwsConflictWithCurrentStock() {
+        Product product = activeProduct();
+        Sku locked = sku(100L, product, "SKU-A", "1.00", 7);
+        stubLockedSkus(locked);
+
+        ProductRequest request = request("Áo thun", List.of(
+                new SkuRequest(100L, "SKU-A", null, new BigDecimal("1.00"), 10, 10)));
+
+        BusinessException ex = assertThrows(BusinessException.class,
+                () -> productService.updateProduct(10L, request));
+
+        assertThat(ex.getStatus()).isEqualTo(HttpStatus.CONFLICT);
+        assertThat(ex.getMessage()).isEqualTo(
+                "Tồn kho đã thay đổi: \"SKU-A\" hiện còn 7 (lúc mở form là 10). "
+                        + "Vui lòng kiểm tra lại trước khi lưu.");
+        assertThat(locked.getStock()).isEqualTo(7);
+        verify(skuRepository, never()).saveAll(anyCollection());
+        verify(skuRepository, never()).deleteAll(anyCollection());
+        verify(productRepository, never()).save(any(Product.class));
+    }
+
+    @Test
+    void updateProduct_stockChanged_blocksDeletingOtherSku() {
+        Product product = activeProduct();
+        Sku removed = sku(100L, product, "SKU-OLD", "1.00", 1);
+        Sku kept = sku(101L, product, "SKU-A", "1.00", 7);
+        stubLockedSkus(removed, kept);
+
+        ProductRequest request = request("Áo thun", List.of(
+                new SkuRequest(101L, "SKU-A", null, new BigDecimal("1.00"), 10, 10)));
+
+        BusinessException ex = assertThrows(BusinessException.class,
+                () -> productService.updateProduct(10L, request));
+
+        assertThat(ex.getStatus()).isEqualTo(HttpStatus.CONFLICT);
+        verify(skuRepository, never()).findUsedSkuIds(any(), anyCollection());
+        verify(skuRepository, never()).deleteAll(anyCollection());
+    }
+
+    @Test
+    void updateProduct_stockChanged_messageUsesCurrentSkuCode() {
+        Product product = activeProduct();
+        Sku locked = sku(100L, product, "SKU-A", "1.00", 7);
+        stubLockedSkus(locked);
+
+        ProductRequest request = request("Áo thun", List.of(
+                new SkuRequest(100L, "SKU-MOI", null, new BigDecimal("1.00"), 10, 10)));
+
+        BusinessException ex = assertThrows(BusinessException.class,
+                () -> productService.updateProduct(10L, request));
+
+        assertThat(ex.getMessage()).contains("\"SKU-A\"").doesNotContain("SKU-MOI");
+        assertThat(locked.getSkuCode()).isEqualTo("SKU-A");
+    }
+
+    @Test
+    void updateProduct_expectedMatches_updatesStock() {
+        Product product = activeProduct();
+        Sku locked = sku(100L, product, "SKU-A", "1.00", 1000);
+        stubLockedSkus(locked);
+
+        ProductRequest request = request("Áo thun", List.of(
+                new SkuRequest(100L, "SKU-A", null, new BigDecimal("1.00"), 2000, 1000)));
+
+        productService.updateProduct(10L, request);
+
+        assertThat(locked.getStock()).isEqualTo(2000);
+        verify(skuRepository).saveAll(anyCollection());
+    }
+
+    @Test
+    void updateProduct_locksSkusBeforeLoading() {
+        Product product = activeProduct();
+        stubLockedSkus(sku(100L, product, "SKU-A", "1.00", 7));
+
+        ProductRequest request = request("Áo thun", List.of(
+                new SkuRequest(100L, "SKU-A", null, new BigDecimal("1.00"), 10, 10)));
+
+        assertThrows(BusinessException.class, () -> productService.updateProduct(10L, request));
+
+        InOrder order = inOrder(skuRepository);
+        order.verify(skuRepository).findIdsByShopIdAndProductId(TENANT_ID, 10L);
+        order.verify(skuRepository).findForUpdate(TENANT_ID, List.of(100L));
+        order.verify(skuRepository).findByShopIdAndSkuCodeIn(eq(TENANT_ID), anyCollection());
+        verify(skuRepository, never()).findByShopIdAndProductId(any(), any());
+    }
+
+    @Test
+    void updateProduct_locksSkusBeingDeleted() {
+        Product product = activeProduct();
+        Sku removed = sku(100L, product, "SKU-OLD", "1.00", 1);
+        Sku kept = sku(101L, product, "SKU-KEEP", "2.00", 3);
+        stubLockedSkus(removed, kept);
+        when(skuRepository.findUsedSkuIds(eq(TENANT_ID), anyCollection())).thenReturn(List.of());
+
+        ProductRequest request = request("Áo thun", List.of(
+                new SkuRequest(101L, "SKU-KEEP", null, new BigDecimal("2.00"), 3, 3)));
+
+        productService.updateProduct(10L, request);
+
+        verify(skuRepository).findForUpdate(TENANT_ID, List.of(100L, 101L));
+        verify(skuRepository).deleteAll(List.of(removed));
+    }
+
+    @Test
+    void updateProduct_expectedStockNull_sameStock_succeeds() {
+        Product product = activeProduct();
+        Sku locked = sku(100L, product, "SKU-A", "1.00", 1000);
+        stubLockedSkus(locked);
+
+        ProductRequest request = request("Áo thun", List.of(
+                new SkuRequest(100L, "SKU-A", null, new BigDecimal("5.00"), 1000, null)));
+
+        productService.updateProduct(10L, request);
+
+        assertThat(locked.getStock()).isEqualTo(1000);
+        assertThat(locked.getPrice()).isEqualByComparingTo("5.00");
+        verify(skuRepository).saveAll(anyCollection());
+    }
+
+    @Test
+    void updateProduct_expectedStockNull_differentStock_throwsConflict() {
+        Product product = activeProduct();
+        Sku locked = sku(100L, product, "SKU-A", "1.00", 7);
+        stubLockedSkus(locked);
+
+        ProductRequest request = request("Áo thun", List.of(
+                new SkuRequest(100L, "SKU-A", null, new BigDecimal("1.00"), 10, null)));
+
+        BusinessException ex = assertThrows(BusinessException.class,
+                () -> productService.updateProduct(10L, request));
+
+        assertThat(ex.getStatus()).isEqualTo(HttpStatus.CONFLICT);
+        assertThat(ex.getMessage()).isEqualTo(
+                "Tồn kho của \"SKU-A\" hiện là 7, khác giá trị gửi lên. "
+                        + "Vui lòng tải lại trang để xem số mới nhất.");
+        assertThat(locked.getStock()).isEqualTo(7);
+        verify(skuRepository, never()).saveAll(anyCollection());
+    }
+
+    @Test
+    void updateProduct_newSku_ignoresExpectedStock() {
+        Product product = activeProduct();
+        stubLockedSkus(sku(100L, product, "SKU-A", "1.00", 7));
+
+        ProductRequest request = request("Áo thun", List.of(
+                new SkuRequest(100L, "SKU-A", null, new BigDecimal("1.00"), 7, 7),
+                new SkuRequest(null, "SKU-B", null, new BigDecimal("1.00"), 4, 999)));
+
+        productService.updateProduct(10L, request);
+
+        assertThat(savedSkus()).extracting(Sku::getSkuCode, Sku::getStock)
+                .containsExactlyInAnyOrder(tuple("SKU-A", 7), tuple("SKU-B", 4));
+    }
+
+    @Test
+    void updateProduct_multipleSkusChanged_listsAll() {
+        Product product = activeProduct();
+        stubLockedSkus(
+                sku(100L, product, "SKU-A", "1.00", 7),
+                sku(101L, product, "SKU-B", "1.00", 2),
+                sku(102L, product, "SKU-C", "1.00", 5));
+
+        ProductRequest request = request("Áo thun", List.of(
+                new SkuRequest(100L, "SKU-A", null, new BigDecimal("1.00"), 10, 10),
+                new SkuRequest(101L, "SKU-B", null, new BigDecimal("1.00"), 9, null),
+                new SkuRequest(102L, "SKU-C", null, new BigDecimal("1.00"), 8, 5)));
+
+        BusinessException ex = assertThrows(BusinessException.class,
+                () -> productService.updateProduct(10L, request));
+
+        assertThat(ex.getStatus()).isEqualTo(HttpStatus.CONFLICT);
+        assertThat(ex.getMessage()).isEqualTo(
+                "Tồn kho đã thay đổi: \"SKU-A\" hiện còn 7 (lúc mở form là 10). "
+                        + "Vui lòng kiểm tra lại trước khi lưu.; "
+                        + "Tồn kho của \"SKU-B\" hiện là 2, khác giá trị gửi lên. "
+                        + "Vui lòng tải lại trang để xem số mới nhất.");
+    }
+
+    @Test
+    void updateProduct_noExistingSkus_skipsLock() {
+        activeProduct();
+        when(skuRepository.findIdsByShopIdAndProductId(TENANT_ID, 10L)).thenReturn(List.of());
+
+        ProductRequest request = request("Áo thun", List.of(
+                new SkuRequest(null, "SKU-B", null, new BigDecimal("1.00"), 4, null)));
+
+        productService.updateProduct(10L, request);
+
+        verify(skuRepository, never()).findForUpdate(any(), anyCollection());
+        assertThat(savedSkus()).extracting(Sku::getStock).containsExactly(4);
+    }
+
+    @Test
+    void createProduct_ignoresExpectedStock() {
+        when(shopRepository.findById(TENANT_ID)).thenReturn(Optional.of(shop));
+        when(productRepository.save(any(Product.class))).thenAnswer(invocation -> {
+            Product saved = invocation.getArgument(0);
+            saved.setId(10L);
+            return saved;
+        });
+        when(skuRepository.save(any(Sku.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        ProductRequest request = request("Áo thun", List.of(
+                new SkuRequest(null, "SKU-1", null, new BigDecimal("1.00"), 2, 999)));
+
+        ProductResponse response = productService.createProduct(request);
+
+        assertThat(response.getSkus()).hasSize(1);
+        assertThat(response.getSkus().get(0).getStock()).isEqualTo(2);
+        verify(skuRepository, never()).findForUpdate(any(), anyCollection());
+    }
+
     // ---------------------------------------------------------------- FIXTURE
+
+    private Product activeProduct() {
+        Product product = product(10L, ProductStatus.ACTIVE);
+        when(productRepository.findByIdAndShopId(10L, TENANT_ID)).thenReturn(Optional.of(product));
+        return product;
+    }
+
+    private void stubLockedSkus(Sku... skus) {
+        List<Long> ids = Arrays.stream(skus).map(Sku::getId).toList();
+        when(skuRepository.findIdsByShopIdAndProductId(TENANT_ID, 10L)).thenReturn(ids);
+        when(skuRepository.findForUpdate(TENANT_ID, ids)).thenReturn(List.of(skus));
+    }
+
+    @SuppressWarnings("unchecked")
+    private List<Sku> savedSkus() {
+        ArgumentCaptor<List<Sku>> captor = ArgumentCaptor.forClass(List.class);
+        verify(skuRepository).saveAll(captor.capture());
+        return captor.getValue();
+    }
 
     private Product product(Long id, ProductStatus status) {
         return Product.builder()

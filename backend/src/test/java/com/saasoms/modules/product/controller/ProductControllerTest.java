@@ -1,5 +1,6 @@
 package com.saasoms.modules.product.controller;
 
+import com.saasoms.common.exception.BusinessException;
 import com.saasoms.common.exception.GlobalExceptionHandler;
 import com.saasoms.common.response.PageResponse;
 import com.saasoms.modules.product.dto.ProductRequest;
@@ -12,6 +13,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.dao.CannotAcquireLockException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
@@ -26,7 +28,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.not;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -292,6 +296,113 @@ class ProductControllerTest {
                         .content(body))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message", containsString("Giá")));
+    }
+
+    // ---------------------------------------------------------- EXPECTED STOCK
+
+    @Test
+    void update_negativeExpectedStock_returns400() throws Exception {
+        String body = """
+                {"name":"Áo","skus":[{"id":1,"skuCode":"SKU-1","price":1,"stock":1,"expectedStock":-1}]}
+                """;
+
+        mockMvc.perform(put("/api/products/10")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value("Tồn kho gốc phải lớn hơn hoặc bằng 0"));
+
+        verifyNoInteractions(productService);
+    }
+
+    @Test
+    void update_expectedStockWrongType_returns400() throws Exception {
+        String body = """
+                {"name":"Áo","skus":[{"id":1,"skuCode":"SKU-1","price":1,"stock":1,"expectedStock":"abc"}]}
+                """;
+
+        mockMvc.perform(put("/api/products/10")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false));
+
+        verifyNoInteractions(productService);
+    }
+
+    @Test
+    void update_withoutExpectedStock_returns200() throws Exception {
+        when(productService.updateProduct(eq(10L), any(ProductRequest.class))).thenReturn(sampleResponse());
+
+        String body = """
+                {"name":"Áo","skus":[{"id":1,"skuCode":"SKU-1","price":1,"stock":1}]}
+                """;
+
+        mockMvc.perform(put("/api/products/10")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true));
+
+        ArgumentCaptor<ProductRequest> captor = ArgumentCaptor.forClass(ProductRequest.class);
+        verify(productService).updateProduct(eq(10L), captor.capture());
+        assertThat(captor.getValue().getSkus().get(0).getExpectedStock()).isNull();
+    }
+
+    @Test
+    void update_withExpectedStock_passesValueToService() throws Exception {
+        when(productService.updateProduct(eq(10L), any(ProductRequest.class))).thenReturn(sampleResponse());
+
+        String body = """
+                {"name":"Áo","skus":[{"id":1,"skuCode":"SKU-1","price":1,"stock":1,"expectedStock":0}]}
+                """;
+
+        mockMvc.perform(put("/api/products/10")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isOk());
+
+        ArgumentCaptor<ProductRequest> captor = ArgumentCaptor.forClass(ProductRequest.class);
+        verify(productService).updateProduct(eq(10L), captor.capture());
+        assertThat(captor.getValue().getSkus().get(0).getExpectedStock()).isZero();
+    }
+
+    @Test
+    void update_stockConflict_returns409WithMessage() throws Exception {
+        String message = "Tồn kho đã thay đổi: \"SKU-1\" hiện còn 7 (lúc mở form là 10). "
+                + "Vui lòng kiểm tra lại trước khi lưu.";
+        when(productService.updateProduct(eq(10L), any(ProductRequest.class)))
+                .thenThrow(BusinessException.conflict(message));
+
+        String body = """
+                {"name":"Áo","skus":[{"id":1,"skuCode":"SKU-1","price":1,"stock":10,"expectedStock":10}]}
+                """;
+
+        mockMvc.perform(put("/api/products/10")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value(message));
+    }
+
+    @Test
+    void update_lockFailure_returns409() throws Exception {
+        when(productService.updateProduct(eq(10L), any(ProductRequest.class)))
+                .thenThrow(new CannotAcquireLockException("Deadlock found when trying to get lock"));
+
+        String body = """
+                {"name":"Áo","skus":[{"id":1,"skuCode":"SKU-1","price":1,"stock":1}]}
+                """;
+
+        mockMvc.perform(put("/api/products/10")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message")
+                        .value("Dữ liệu đang được cập nhật bởi thao tác khác, vui lòng thử lại"));
     }
 
     // ---------------------------------------------------------------- FIXTURE

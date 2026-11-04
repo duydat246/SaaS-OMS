@@ -20,11 +20,18 @@ public interface SkuRepository extends JpaRepository<Sku, Long> {
     List<Sku> findByShopIdAndProductId(Long shopId, Long productId);
 
     /**
+     * Chỉ lấy id, không nạp entity: phải gọi trước {@link #findForUpdate} để persistence context
+     * chưa giữ bản SKU cũ, nếu không Hibernate sẽ trả lại bản đó thay vì số vừa đọc khi khoá.
+     */
+    @Query("SELECT s.id FROM Sku s WHERE s.shop.id = :shopId AND s.product.id = :productId")
+    List<Long> findIdsByShopIdAndProductId(@Param("shopId") Long shopId, @Param("productId") Long productId);
+
+    /**
      * Khoá biến thể theo tenant để trừ/hoàn tồn kho an toàn khi nhiều đơn
      * được xác nhận cùng lúc. Bắt buộc gọi trong transaction.
      */
     @Lock(LockModeType.PESSIMISTIC_WRITE)
-    @Query("SELECT s FROM Sku s WHERE s.shop.id = :shopId AND s.id IN :ids")
+    @Query("SELECT s FROM Sku s WHERE s.shop.id = :shopId AND s.id IN :ids ORDER BY s.id")
     List<Sku> findForUpdate(@Param("shopId") Long shopId, @Param("ids") Collection<Long> ids);
 
 

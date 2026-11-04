@@ -185,7 +185,10 @@ public class ProductService {
         String name = requireName(req.getName());
         requireSkus(req.getSkus());
 
-        List<Sku> existing = skuRepository.findByShopIdAndProductId(tenantId, id);
+        // Lấy id rồi mới khoá: nếu nạp entity trước, Hibernate trả lại instance đã managed
+        // với stock cũ và phép so sánh tồn kho bên dưới sẽ pass sai.
+        List<Long> skuIds = skuRepository.findIdsByShopIdAndProductId(tenantId, id);
+        List<Sku> existing = skuIds.isEmpty() ? List.of() : skuRepository.findForUpdate(tenantId, skuIds);
         Map<Long, Sku> existingById = existing.stream()
                 .filter(sku -> sku.getId() != null)
                 .collect(Collectors.toMap(Sku::getId, Function.identity(), (a, b) -> a));
@@ -227,6 +230,7 @@ public class ProductService {
 
         assertNoDuplicateFinalCodes(requestedSkus);
         assertSkuCodesNotUsedByOtherProducts(tenantId, product.getId(), requestedSkus);
+        assertStockUnchanged(requestedSkus);
 
         // Kiểm tra SKU bị xoá có nằm trong đơn hàng không (làm TRƯỚC khi xoá)
         if (!toDelete.isEmpty()) {
@@ -508,6 +512,38 @@ public class ProductService {
 
             throw BusinessException.conflict(
                     "Mã SKU \"" + code + "\" đã tồn tại trong cửa hàng.");
+        }
+    }
+
+    /**
+     * Tồn kho có thể bị luồng đơn hàng đổi trong lúc người dùng mở form, nên chỉ ghi khi số
+     * client đã thấy còn khớp. Client không gửi expectedStock thì stock gửi lên phải khớp tồn hiện tại.
+     * Phải gọi sau khi đã khoá SKU, và trước khi ghi bất cứ thứ gì.
+     */
+    private static void assertStockUnchanged(List<RequestedSku> requestedSkus) {
+        List<String> changes = new ArrayList<>();
+        for (RequestedSku item : requestedSkus) {
+            if (item.current() == null) {
+                continue;
+            }
+
+            String code = item.current().getSkuCode();
+            Integer currentStock = item.current().getStock();
+            Integer expectedStock = item.request().getExpectedStock();
+
+            if (expectedStock != null) {
+                if (!Objects.equals(currentStock, expectedStock)) {
+                    changes.add("Tồn kho đã thay đổi: \"" + code + "\" hiện còn " + currentStock
+                            + " (lúc mở form là " + expectedStock + "). Vui lòng kiểm tra lại trước khi lưu.");
+                }
+            } else if (!Objects.equals(currentStock, safeStock(item.request().getStock()))) {
+                changes.add("Tồn kho của \"" + code + "\" hiện là " + currentStock
+                        + ", khác giá trị gửi lên. Vui lòng tải lại trang để xem số mới nhất.");
+            }
+        }
+
+        if (!changes.isEmpty()) {
+            throw BusinessException.conflict(String.join("; ", changes));
         }
     }
 

@@ -32,4 +32,7 @@ public class SkuRequest {
     @NotNull(message = "Tồn kho không được để trống")
     @Min(value = 0, message = "Tồn kho phải lớn hơn hoặc bằng 0")
     private Integer stock;
+
+    @Min(value = 0, message = "Tồn kho gốc phải lớn hơn hoặc bằng 0")
+    private Integer expectedStock;
 }
