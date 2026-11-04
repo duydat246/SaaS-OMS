@@ -40,3 +40,32 @@ springdoc:
 
 server:
   port: 8080
+
+---
+# Production: không có giá trị mặc định cho secret, thiếu biến thì không khởi động được.
+# Đặt ở đây vì backend/.gitignore chặn application-prod.yml, file đó sẽ không vào image CI.
+spring:
+  config:
+    activate:
+      on-profile: prod
+  jpa:
+    show-sql: false
+
+logging:
+  level:
+    root: INFO
+    com.saasoms: INFO
+
+app:
+  cors:
+    allowed-origins: ${APP_CORS_ALLOWED_ORIGINS}
+  jwt:
+    secret: ${JWT_SECRET}
+  media:
+    signing-secret: ${APP_MEDIA_SECRET}
+
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false

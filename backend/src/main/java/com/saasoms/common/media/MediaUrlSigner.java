@@ -1,5 +1,6 @@
 package com.saasoms.common.media;
 
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -22,6 +23,18 @@ public class MediaUrlSigner {
     private static final long DEFAULT_TTL_SECONDS = 3600L;
 
     private final MediaProperties mediaProperties;
+
+    /**
+     * Từ chối khởi động khi thiếu secret. @ConfigurationProperties giữ nguyên placeholder
+     * không phân giải được, nên nếu không chặn thì URL sẽ được ký bằng chính chuỗi "${...}".
+     */
+    @PostConstruct
+    void validateSecret() {
+        String secret = mediaProperties.getSigningSecret();
+        if (secret == null || secret.isBlank() || secret.contains("${")) {
+            throw new IllegalStateException("Thiếu cấu hình app.media.signing-secret (APP_MEDIA_SECRET)");
+        }
+    }
 
     public String sign(Long imageId, Long tenantId, long expiresAtEpochSecond) {
         return encode(hmac(payload(imageId, tenantId, expiresAtEpochSecond)));

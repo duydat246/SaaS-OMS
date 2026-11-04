@@ -6,6 +6,8 @@ import org.junit.jupiter.api.Test;
 import java.time.Instant;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class MediaUrlSignerTest {
 
@@ -20,6 +22,29 @@ class MediaUrlSignerTest {
         properties.setSigningSecret("test-secret-key-at-least-32-characters-long");
         properties.setUrlTtlSeconds(600);
         signer = new MediaUrlSigner(properties);
+    }
+
+    private static MediaUrlSigner signerWithSecret(String secret) {
+        MediaProperties properties = new MediaProperties();
+        properties.setSigningSecret(secret);
+        return new MediaUrlSigner(properties);
+    }
+
+    @Test
+    void validateSecret_unresolvedPlaceholder_throws() {
+        assertThatThrownBy(() -> signerWithSecret("${APP_MEDIA_SECRET}").validateSecret())
+                .isInstanceOf(IllegalStateException.class);
+    }
+
+    @Test
+    void validateSecret_blank_throws() {
+        assertThatThrownBy(() -> signerWithSecret("  ").validateSecret())
+                .isInstanceOf(IllegalStateException.class);
+    }
+
+    @Test
+    void validateSecret_realValue_passes() {
+        assertThatCode(() -> signer.validateSecret()).doesNotThrowAnyException();
     }
 
     @Test

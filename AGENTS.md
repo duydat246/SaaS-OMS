@@ -415,9 +415,9 @@ Một bước chỉ được coi là xong khi:
 | # | Mức | Vấn đề | Bằng chứng | Hướng xử lý |
 | --- | --- | --- | --- | --- |
 | 1 | P0 | ~~nginx phản chiếu `Origin` bất kỳ + strip `Origin`, bỏ qua allowlist CORS~~ — đã xử lý 04/11/2026 | `frontend/nginx.conf` | Đã bỏ block CORS và `proxy_set_header Origin ""`; allowlist do Spring áp dụng qua `APP_CORS_ALLOWED_ORIGINS` |
-| 2 | P0 | Prod chạy profile `dev` (bật `show-sql`, log DEBUG) | `docker-compose.prod.yml:33`, `application-dev.yml:8,12` | Tạo `application-prod.yml`, đổi `SPRING_PROFILES_ACTIVE=prod` |
-| 3 | P0 | Swagger/`/api-docs` mở công khai | `SecurityConfig.java:44` | Chỉ mở ở dev hoặc chặn bằng role |
-| 4 | P0 | Secret mặc định trong repo (JWT, MySQL) | `docker-compose.yml:7,8,29`, `application-dev.yml:5` | Bắt buộc env, xoá default dùng được ở prod |
+| 2 | P0 | ~~Prod chạy profile `dev`~~ — đã xử lý 04/11/2026 | `docker-compose.prod.yml`, `application.yml` | Đã đổi `SPRING_PROFILES_ACTIVE=prod`. Cấu hình prod nằm trong `application.yml` vì `backend/.gitignore` chặn `application-prod.yml` |
+| 3 | P0 | ~~Swagger/`/api-docs` mở công khai~~ — đã xử lý 04/11/2026 | `SecurityConfig.java`, `application.yml` | Profile prod tắt springdoc và không `permitAll` các đường dẫn Swagger; dev giữ nguyên |
+| 4 | P0 | ~~Secret mặc định dùng được ở prod~~ — đã xử lý 04/11/2026 | `application.yml`, `docker-compose.prod.yml`, `MediaUrlSigner.java` | Profile prod không có default; thiếu `JWT_SECRET` hoặc `APP_MEDIA_SECRET` thì compose và ứng dụng đều từ chối chạy. Giá trị `dev` vẫn còn cho môi trường dev |
 | 5 | P1 | `.gitignore` chặn mọi `*.md` | `.gitignore:7` | Thêm `!AGENTS.md` (đã xử lý cùng file này) |
 | 6 | P1 | Login chưa rate-limit; mật khẩu tối thiểu 6 ký tự | `AuthService.java:63`, `RegisterRequest` | Rate-limit theo IP/email, nâng chính sách mật khẩu |
 | 7 | P1 | Thiếu 401 entry point → trả 403 khi hết token | `SecurityConfig.java` | Thêm `AuthenticationEntryPoint` trả 401 + `ApiResponse` |
