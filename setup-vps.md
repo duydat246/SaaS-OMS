@@ -79,16 +79,21 @@ DB_USERNAME=saasoms_user
 DB_PASSWORD=your_strong_password
 MYSQL_ROOT_PASSWORD=your_root_password
 JWT_SECRET=your_jwt_secret_32_chars_minimum
+APP_MEDIA_SECRET=your_media_secret_32_chars_minimum
 DOCKERHUB_USERNAME=your_dockerhub_username
 APP_CORS_ALLOWED_ORIGINS=https://yourdomain.com
 ```
 
 `APP_CORS_ALLOWED_ORIGINS` phải khớp chính xác địa chỉ người dùng mở app: đúng `https`, đúng tên miền, không có `/` ở cuối, nhiều giá trị thì ngăn cách bằng dấu phẩy và không có dấu cách. Sai giá trị thì mọi request có `Origin`, gồm cả đăng nhập, bị 403 `Invalid CORS request`.
 
-Tạo JWT_SECRET ngẫu nhiên:
+`JWT_SECRET` và `APP_MEDIA_SECRET` đều bắt buộc: thiếu một trong hai thì `docker compose` báo lỗi và không chạy. Không đặt `IMAGE_TAG` trong `.env` khi triển khai bình thường, xem [Rollback theo commit](#rollback-theo-commit).
+
+Tạo `JWT_SECRET` và `APP_MEDIA_SECRET` ngẫu nhiên, mỗi biến một giá trị riêng:
 ```bash
 openssl rand -hex 32
 ```
+
+`docker-compose.prod.yml` chỉ mở cổng 80 trên `127.0.0.1`: từ Internet không vào thẳng được, mọi lượt truy cập đi qua Cloudflare Tunnel ở Phần 5.
 
 ---
 
@@ -157,7 +162,7 @@ Kết quả mong đợi:
 ```
 saasoms-mysql-1     Up (healthy)
 saasoms-backend-1   Up
-saasoms-frontend-1  Up  0.0.0.0:80->80/tcp
+saasoms-frontend-1  Up  127.0.0.1:80->80/tcp
 ```
 
 Truy cập domain → App hoạt động.
@@ -173,10 +178,22 @@ git commit -m "mô tả thay đổi"
 git push origin dev
 
 # GitHub Actions tự động:
-# 1. Build Docker image (~5 phút)
-# 2. Push lên Docker Hub
-# 3. SSH vào VPS → pull image mới → restart
+# 1. Chạy test backend và build frontend; đỏ thì dừng, không deploy
+# 2. Build Docker image, push lên Docker Hub với tag latest và commit SHA
+# 3. SSH vào VPS → pull image theo SHA → restart
+# 4. Chờ backend sẵn sàng tối đa 6 phút; không đạt thì in log và báo job đỏ
 ```
+
+Job đỏ ở bước 4 không tự rollback: phiên bản mới vẫn đang chạy, cần xử lý theo [Rollback theo commit](#rollback-theo-commit).
+
+CI không đồng bộ `docker-compose.prod.yml` lên VPS. Khi file này thay đổi, phải cập nhật bản trên VPS trước khi push:
+```bash
+cd /var/www/saasoms
+cp docker-compose.prod.yml docker-compose.prod.yml.bak
+curl -o docker-compose.prod.yml \
+  https://raw.githubusercontent.com/duydat246/SaaS-OMS/dev/docker-compose.prod.yml
+```
+Cách tải trên lấy bản đã có trên nhánh `dev`; nếu thay đổi chưa push thì chép file bằng `scp`.
 
 ---
 
@@ -197,11 +214,58 @@ docker compose -f docker-compose.prod.yml logs -f mysql
 ```
 
 ### Restart thủ công
+
+`IMAGE_TAG` chỉ tồn tại trong phiên deploy của CI, không được lưu lại trên VPS. Phải tự đặt trước khi chạy `pull` hoặc `up`. Nếu không, compose dùng `latest`, tức bản build mới nhất, kể cả bản vừa deploy lỗi hoặc bản đã rollback khỏi.
+
 ```bash
 cd /var/www/saasoms
-docker compose -f docker-compose.prod.yml pull
+# Giữ đúng phiên bản đang chạy
+export IMAGE_TAG=$(docker inspect --format '{{.Config.Image}}' saasoms-backend-1 | cut -d: -f2)
+echo "$IMAGE_TAG"
 docker compose -f docker-compose.prod.yml up -d --force-recreate
 ```
+
+Khởi động lại VPS thì không cần bước này: `restart: always` chạy lại đúng container đang có.
+
+### Rollback theo commit
+
+Mỗi lần CI chạy, image được đẩy lên Docker Hub với tag là commit SHA đầy đủ. Lấy SHA ở tab Actions, `git log` hoặc trang tag trên Docker Hub.
+
+```bash
+cd /var/www/saasoms
+export IMAGE_TAG=<sha-đầy-đủ-của-commit>
+docker compose -f docker-compose.prod.yml pull
+docker compose -f docker-compose.prod.yml up -d
+docker compose -f docker-compose.prod.yml ps
+```
+
+- Kiểm tra backend đã sẵn sàng: lệnh sau trả `400` là đạt.
+  ```bash
+  curl -s -o /dev/null -w '%{http_code}\n' -X POST -H 'Content-Type: application/json' -d '{}' http://127.0.0.1/auth/refresh
+  ```
+- Chỉ rollback được về commit đã build sau khi CI có tag SHA; bản cũ hơn chỉ có `latest`.
+- Rollback không đảo ngược migration. Nếu commit đích cũ hơn một migration đã chạy, kiểm tra schema hiện tại còn tương thích với code cũ trước khi rollback.
+- Lần push `dev` tiếp theo sẽ deploy đè lên bản đã rollback. Nếu lỗi chưa được sửa, `git revert` commit lỗi rồi push.
+- Muốn bản rollback giữ nguyên qua các lần restart thủ công, có thể ghi `IMAGE_TAG=<sha>` vào `.env`, và xoá dòng này khi đã xử lý xong. Biến `export` trong shell, gồm cả của CI, được ưu tiên hơn `.env`.
+
+### Rate-limit đăng nhập và IP thật
+
+Sau khi deploy trên VPS mới hoặc khi tạo lại mạng Docker, phải kiểm tra backend nhận đúng IP thật của người dùng. Rate-limit đếm theo IP mà nginx chuyển cho backend, và nginx chỉ tin `CF-Connecting-IP` khi kết nối đến từ dải `set_real_ip_from 172.16.0.0/12` trong `frontend/nginx.conf`. Dải này phải chứa gateway của mạng Docker, vì cloudflared chạy trên host và đi vào container qua gateway đó.
+
+1. Xem gateway của mạng. Tên mạng là `<thư mục deploy>_saasoms-net`; nếu không chắc thì tìm bằng `docker network ls`.
+   ```bash
+   docker network inspect saasoms_saasoms-net --format '{{json .IPAM.Config}}'
+   ```
+   `Gateway` phải nằm trong `172.16.0.0` đến `172.31.255.255`.
+2. Mở app qua tên miền từ máy của bạn, rồi xem cột đầu tiên của log nginx.
+   ```bash
+   docker compose -f docker-compose.prod.yml logs --tail=20 frontend
+   ```
+   Phải thấy IP công khai của máy bạn, không phải IP gateway. Dòng do curl từ `127.0.0.1` trên VPS, gồm cả healthcheck của CI, vẫn hiện gateway vì không đi qua Cloudflare, đây là bình thường.
+
+Nếu lệch, mọi người dùng bị tính chung một IP: 30 lần đăng nhập sai trên toàn hệ thống sẽ chặn đăng nhập của tất cả mọi người trong 15 phút, và 10 lần đăng ký trong 1 giờ sẽ chặn đăng ký. Cách xử lý: sửa `set_real_ip_from` thành dải chứa gateway rồi deploy lại, vì `nginx.conf` được đóng trong image frontend.
+
+Các lệnh và kết quả mong đợi ở mục này chưa được chạy thử trên VPS thật.
 
 ### Kiểm tra RAM
 ```bash

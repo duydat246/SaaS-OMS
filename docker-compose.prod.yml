@@ -27,7 +27,7 @@ services:
       retries: 10
 
   backend:
-    image: ${DOCKERHUB_USERNAME}/saasoms-backend:latest
+    image: ${DOCKERHUB_USERNAME}/saasoms-backend:${IMAGE_TAG:-latest}
     restart: always
     environment:
       SPRING_PROFILES_ACTIVE: prod
@@ -52,10 +52,10 @@ services:
           memory: 320M
 
   frontend:
-    image: ${DOCKERHUB_USERNAME}/saasoms-frontend:latest
+    image: ${DOCKERHUB_USERNAME}/saasoms-frontend:${IMAGE_TAG:-latest}
     restart: always
     ports:
-      - "80:80"
+      - "127.0.0.1:80:80"
     depends_on:
       - backend
     networks:

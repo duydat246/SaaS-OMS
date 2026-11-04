@@ -419,13 +419,13 @@ Một bước chỉ được coi là xong khi:
 | 3 | P0 | ~~Swagger/`/api-docs` mở công khai~~ — đã xử lý 04/11/2026 | `SecurityConfig.java`, `application.yml` | Profile prod tắt springdoc và không `permitAll` các đường dẫn Swagger; dev giữ nguyên |
 | 4 | P0 | ~~Secret mặc định dùng được ở prod~~ — đã xử lý 04/11/2026 | `application.yml`, `docker-compose.prod.yml`, `MediaUrlSigner.java` | Profile prod không có default; thiếu `JWT_SECRET` hoặc `APP_MEDIA_SECRET` thì compose và ứng dụng đều từ chối chạy. Giá trị `dev` vẫn còn cho môi trường dev |
 | 5 | P1 | `.gitignore` chặn mọi `*.md` | `.gitignore:7` | Thêm `!AGENTS.md` (đã xử lý cùng file này) |
-| 6 | P1 | Login chưa rate-limit; mật khẩu tối thiểu 6 ký tự | `AuthService.java:63`, `RegisterRequest` | Rate-limit theo IP/email, nâng chính sách mật khẩu |
-| 7 | P1 | Thiếu 401 entry point → trả 403 khi hết token | `SecurityConfig.java` | Thêm `AuthenticationEntryPoint` trả 401 + `ApiResponse` |
-| 8 | P1 | CI deploy cả `dev`, tag `latest`, không chạy test | `.github/workflows/deploy.yml:5,24,31` | Chỉ deploy từ `main`, tag SHA, thêm `mvn test` + `npm build` |
+| 6 | P1 | ~~Login chưa rate-limit; mật khẩu tối thiểu 6 ký tự~~ — đã xử lý 04/11/2026 | `LoginRateLimiter.java`, `RegisterRequest`, `frontend/nginx.conf` | Rate-limit theo (IP, email) và IP; mật khẩu đăng ký 8–72 ký tự. IP thật lấy từ `CF-Connecting-IP` qua nginx |
+| 7 | P1 | ~~Thiếu 401 entry point → trả 403 khi hết token~~ — đã xử lý 04/11/2026 | `RestAuthenticationEntryPoint.java`, `jwt.interceptor.ts` | Trả 401 + `ApiResponse`; interceptor chỉ refresh với 401, lỗi của retry trả về component |
+| 8 | P1 | CI deploy cả `dev` (đã thêm test trước deploy và tag SHA ngày 04/11/2026) | `.github/workflows/deploy.yml` | Còn lại: chỉ deploy từ `main`. Remote hiện chưa có nhánh `main`, cần người dùng quyết định quy trình |
 | 9 | P1 | Dashboard dùng số liệu giả (đã gắn nhãn "Dữ liệu minh hoạ" ngày 04/11/2026); export cắt cứng 1000 dòng | `dashboard.component.ts:108-152`, `dashboard.constants.ts:18`, `dashboard.component.ts:314` | Nối API thật; phân trang khi export và báo số dòng |
 | 10 | P2 | Order chưa kẹp `size`, bỏ qua `sort` | `OrderController.java:34-37` | Kẹp 1..100, nhận sort whitelist |
 | 11 | P2 | ~~`as any`, subscription không huỷ, `.css` trùng~~ — đã xử lý 03/11/2026 | `features/products/**` | Đã bỏ `any`, dùng `takeUntilDestroyed(destroyRef)`, xoá `.css` thừa |
-| 12 | P2 | Message lỗi lẫn Anh/Việt | `GlobalExceptionHandler.java:41,46,52`, `OrderService` | Chuẩn hoá message tiếng Việt |
+| 12 | P2 | Message lỗi lẫn Anh/Việt (đã chuẩn hoá `auth` và `GlobalExceptionHandler` ngày 04/11/2026) | `order/dto/UpdateStatusRequest.java:9` | Còn lại dòng này trong vùng cấm `modules/order` |
 | 13 | P2 | Tài liệu lệch code (localStorage, thiếu route products) | `frontend/CLAUDE.md:34,38-44` | Cập nhật tài liệu khi chạm; code là chuẩn |
 | 14 | P2 | ~~`ordered_at` không bao giờ được ghi~~ — đã xử lý 23/10/2026 | `OrderService.createOrder()` | Đã set `orderedAt` khi tạo đơn tay |
 | 15 | P2 | Tích hợp TikTok/Shopee chưa có dù schema sẵn | `platform_connections` | Để sprint riêng, không tự làm |
