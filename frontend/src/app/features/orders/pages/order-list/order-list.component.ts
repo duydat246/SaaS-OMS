@@ -7,7 +7,6 @@ import { ButtonModule } from "primeng/button";
 import { InputTextModule } from "primeng/inputtext";
 import { TagModule } from "primeng/tag";
 import { DropdownModule } from "primeng/dropdown";
-import { CardModule } from "primeng/card";
 import {
   Order,
   OrderFilters,
@@ -43,7 +42,6 @@ type TagSeverity =
     InputTextModule,
     TagModule,
     DropdownModule,
-    CardModule,
   ],
   templateUrl: "./order-list.component.html",
   styleUrls: ["./order-list.component.scss"],

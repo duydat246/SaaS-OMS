@@ -86,7 +86,9 @@
                 inputId="shipping-fee"
                 formControlName="shippingFee"
                 [min]="0"
+                [maxFractionDigits]="0"
                 mode="decimal"
+                locale="vi-VN"
                 class="w-full"
                 inputStyleClass="w-full num"
               />
@@ -97,7 +99,9 @@
                 inputId="discount"
                 formControlName="discount"
                 [min]="0"
+                [maxFractionDigits]="0"
                 mode="decimal"
+                locale="vi-VN"
                 class="w-full"
                 inputStyleClass="w-full num"
               />
@@ -105,11 +109,11 @@
 
             <div class="summary-row order-form-subtotal">
               <span>Tạm tính</span>
-              <span class="num font-medium">{{ summary().subtotal | number: "1.0-0" }}₫</span>
+              <span class="num font-medium">{{ summary().subtotal | currency }}</span>
             </div>
             <div class="summary-row order-form-total">
               <span>Tổng cộng</span>
-              <span class="num">{{ summary().total | number: "1.0-0" }}₫</span>
+              <span class="num">{{ summary().total | currency }}</span>
             </div>
           </div>
         </p-card>
@@ -195,11 +199,13 @@
                       formControlName="quantity"
                       [min]="1"
                       [max]="maxQuantity(line)"
+                      [maxFractionDigits]="0"
+                      locale="vi-VN"
                       class="w-full"
                       inputStyleClass="w-full num"
                       (onBlur)="clampQuantity(line)"
                     />
-                    <small class="muted">Tồn kho: {{ maxQuantity(line) }}</small>
+                    <small class="muted">Tồn kho: {{ line.controls.sku.value?.stock ?? "—" }}</small>
                     @if (
                       line.controls.quantity.touched &&
                       line.controls.quantity.invalid
@@ -213,11 +219,11 @@
                   <div class="col-6 md:col-2">
                     <span class="font-medium text-sm block">Thành tiền</span>
                     <span class="num font-medium block mt-2">
-                      {{ lineTotal(line) | number: "1.0-0" }}₫
+                      {{ lineTotal(line) | currency }}
                     </span>
                     <small class="muted">
                       Đơn giá:
-                      {{ line.controls.sku.value?.price | number: "1.0-0" }}₫
+                      {{ line.controls.sku.value ? (line.controls.sku.value.price | currency) : "—" }}
                     </small>
                   </div>
 

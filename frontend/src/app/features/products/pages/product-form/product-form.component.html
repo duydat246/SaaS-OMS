@@ -142,6 +142,7 @@
                       [max]="priceMax"
                       [maxFractionDigits]="2"
                       mode="decimal"
+                      locale="vi-VN"
                       styleClass="w-full"
                       inputStyleClass="w-full num"
                     />
@@ -157,6 +158,7 @@
                       [min]="0"
                       [max]="stockMax"
                       [maxFractionDigits]="0"
+                      locale="vi-VN"
                       styleClass="w-full"
                       inputStyleClass="w-full num"
                     />
@@ -182,6 +184,8 @@
               }
             </tbody>
           </table>
+
+          <small class="muted mt-1 block">Giá: phần lẻ dùng dấu phẩy, ví dụ 12,5.</small>
 
           @if (skus.errors?.['duplicateSku'] && skus.touched) {
             <small class="field-error mt-2 block">Mã SKU không được trùng lặp (không phân biệt hoa thường).</small>

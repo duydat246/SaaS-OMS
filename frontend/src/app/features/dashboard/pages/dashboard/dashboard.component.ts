@@ -23,6 +23,7 @@ import { TooltipModule } from "primeng/tooltip";
 import { AuthService } from "@core/auth/auth.service";
 import { OrderService } from "@features/orders/services/order.service";
 import { ExcelExportService } from "@shared/services/excel-export.service";
+import { formatVnd } from "@shared/utils/format-vnd";
 import {
   Order,
   OrderStats,
@@ -350,7 +351,7 @@ export class DashboardComponent implements OnInit {
       },
       {
         label: "Doanh thu",
-        value: this.formatCompactVnd(revenue),
+        value: formatVnd(revenue),
         trend: null,
         up: true,
       },
@@ -365,23 +366,6 @@ export class DashboardComponent implements OnInit {
 
   private formatCount(n: number): string {
     return Number.isFinite(n) ? String(Math.max(0, Math.trunc(n))) : "0";
-  }
-
-  /** Short VND for cards, e.g. ₫ 42M */
-  private formatCompactVnd(amount: number): string {
-    const v = Math.abs(amount);
-    if (v >= 1_000_000_000) {
-      const b = amount / 1_000_000_000;
-      const t = b % 1 === 0 ? b.toFixed(0) : b.toFixed(1);
-      return `₫ ${t}B`;
-    }
-    if (v >= 1_000_000) {
-      return `₫ ${Math.round(amount / 1_000_000)}M`;
-    }
-    if (v >= 1_000) {
-      return `₫ ${Math.round(amount / 1_000)}K`;
-    }
-    return `₫ ${Math.round(amount)}`;
   }
 
   getSeverity(status: OrderStatus): StatusSeverity {

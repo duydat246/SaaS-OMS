@@ -71,8 +71,8 @@
   }
 }
 
-// Cột tên hẹp nhất khi còn sidebar: cho hai dòng để phân biệt được các tên gần giống nhau.
-@media (min-width: 768px) and (max-width: 899.98px) {
+// Cột tên hẹp: cho hai dòng để phân biệt được các tên gần giống nhau.
+@media (max-width: 899.98px) {
   .product-name {
     display: -webkit-box;
     white-space: normal;

@@ -101,7 +101,7 @@
 
     <div class="detail-layout">
       <p-card header="Danh sách SKU">
-        <p-table [value]="product()!.skus" styleClass="p-datatable-sm" [tableStyle]="{ '--table-min': '520px' }">
+        <p-table [value]="product()!.skus" styleClass="p-datatable-sm" [tableStyle]="{ '--table-min': '520px', '--table-min-md': '0px' }">
           <ng-template pTemplate="header">
             <tr>
               <th>Mã SKU</th>

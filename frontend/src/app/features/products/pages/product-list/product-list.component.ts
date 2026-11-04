@@ -19,7 +19,6 @@ import { InputTextModule } from "primeng/inputtext";
 import { TagModule } from "primeng/tag";
 import { TooltipModule } from "primeng/tooltip";
 import { DropdownModule } from "primeng/dropdown";
-import { CardModule } from "primeng/card";
 import { PageMeta } from "@core/models/api.model";
 import { ExcelExportService } from "@shared/services/excel-export.service";
 import { Product, ProductFilters, ProductStats, ProductStatus } from "@features/products/models/product.model";
@@ -61,7 +60,6 @@ const SEARCH_DEBOUNCE_MS = 350;
     TagModule,
     TooltipModule,
     DropdownModule,
-    CardModule,
   ],
   providers: [ConfirmationService],
   templateUrl: "./product-list.component.html",

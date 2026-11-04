@@ -21,7 +21,7 @@
           type="button"
           class="search-clear"
           (click)="clearSearch()"
-          aria-label="Xóa tìm kiếm"
+          aria-label="Xoá tìm kiếm"
         >
           <i class="pi pi-times"></i>
         </button>
@@ -51,6 +51,7 @@
   <p-table
     [value]="orders()"
     [loading]="loading()"
+    [first]="meta().page * meta().size"
     [rows]="meta().size"
     [totalRecords]="meta().totalElements"
     [lazy]="true"
@@ -97,7 +98,7 @@
           />
         </td>
         <td class="num font-medium">
-          {{ order.totalAmount | number: "1.0-0" }}₫
+          {{ order.totalAmount | currency }}
         </td>
         <td class="muted white-space-nowrap hide-sm hide-md">{{ order.createdAt | date: "dd/MM HH:mm" }}</td>
         <td class="hide-sm" (click)="$event.stopPropagation()">

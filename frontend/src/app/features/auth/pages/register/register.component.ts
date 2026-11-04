@@ -43,7 +43,7 @@ export class RegisterComponent {
     platform: [REGISTER_DEFAULT_PLATFORM, Validators.required],
     fullName: ["", Validators.required],
     email: ["", [Validators.required, Validators.email]],
-    password: ["", [Validators.required, Validators.minLength(6)]],
+    password: ["", [Validators.required, Validators.minLength(8), Validators.maxLength(72)]],
     acceptTerms: [false, Validators.requiredTrue],
   });
 

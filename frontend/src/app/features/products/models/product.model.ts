@@ -75,4 +75,6 @@ export interface ProductRequest {
   imageIds: number[];
   primaryImageId: number | null;
   skus: SkuRequest[];
+  /** Id các SKU client đã thấy; backend trả 409 nếu có SKU được thêm hoặc xoá ở nơi khác. Chỉ dùng cho PUT. */
+  knownSkuIds?: number[];
 }

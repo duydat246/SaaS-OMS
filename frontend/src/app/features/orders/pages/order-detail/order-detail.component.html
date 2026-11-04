@@ -69,33 +69,33 @@
         <div class="order-detail-lines">
           <div class="summary-row">
             <span>Tạm tính</span>
-            <span class="num">{{ order()!.subtotal | number: "1.0-0" }}₫</span>
+            <span class="num">{{ order()!.subtotal | currency }}</span>
           </div>
           <div class="summary-row">
             <span>Phí vận chuyển</span>
-            <span class="num">{{ order()!.shippingFee | number: "1.0-0" }}₫</span>
+            <span class="num">{{ order()!.shippingFee | currency }}</span>
           </div>
           <div class="summary-row">
             <span>Giảm giá</span>
-            <span class="num">-{{ order()!.discount | number: "1.0-0" }}₫</span>
+            <span class="num">{{ order()!.discount > 0 ? "-" : "" }}{{ order()!.discount | currency }}</span>
           </div>
           <div class="summary-row order-detail-total">
             <span>Tổng cộng</span>
-            <span class="num">{{ order()!.totalAmount | number: "1.0-0" }}₫</span>
+            <span class="num">{{ order()!.totalAmount | currency }}</span>
           </div>
         </div>
       </p-card>
     </div>
 
     <p-card header="Sản phẩm">
-      <p-table [value]="order()!.items" styleClass="p-datatable-sm" [tableStyle]="{ '--table-min': '620px' }">
+      <p-table [value]="order()!.items" styleClass="p-datatable-sm" [tableStyle]="{ '--table-min': '620px', '--table-min-md': '0px' }">
         <ng-template pTemplate="header">
           <tr>
             <th>Sản phẩm</th>
             <th>Phân loại</th>
-            <th class="hide-sm">SKU</th>
+            <th class="hide-sm hide-md">SKU</th>
             <th class="num">SL</th>
-            <th class="num hide-sm">Đơn giá</th>
+            <th class="num hide-sm hide-md">Đơn giá</th>
             <th class="num">Thành tiền</th>
           </tr>
         </ng-template>
@@ -104,15 +104,15 @@
             <td>
               {{ item.productName }}
               <div class="show-sm item-meta muted">
-                SKU {{ item.skuCode ?? "—" }} · {{ item.unitPrice | number: "1.0-0" }}₫
+                SKU {{ item.skuCode ?? "—" }} · {{ item.unitPrice | currency }}
               </div>
             </td>
             <td>{{ item.variant ?? "—" }}</td>
-            <td class="hide-sm">{{ item.skuCode ?? "—" }}</td>
+            <td class="hide-sm hide-md">{{ item.skuCode ?? "—" }}</td>
             <td class="num">{{ item.quantity }}</td>
-            <td class="num hide-sm">{{ item.unitPrice | number: "1.0-0" }}₫</td>
+            <td class="num hide-sm hide-md">{{ item.unitPrice | currency }}</td>
             <td class="num font-medium">
-              {{ item.totalPrice | number: "1.0-0" }}₫
+              {{ item.totalPrice | currency }}
             </td>
           </tr>
         </ng-template>
@@ -132,10 +132,10 @@
     [closable]="false"
     [draggable]="false"
     [resizable]="false"
-    header="Xác nhận hủy"
+    header="Xác nhận huỷ"
     [style]="{ width: '30rem', 'max-width': 'calc(100vw - 2rem)' }"
   >
-    <p class="m-0">Bạn có chắc chắn hủy đơn này?</p>
+    <p class="m-0">Bạn có chắc chắn huỷ đơn này?</p>
 
     <ng-template pTemplate="footer">
       <div class="flex justify-content-end gap-2">
@@ -146,7 +146,7 @@
           (click)="closeCancelDialog()"
         />
         <p-button
-          label="Hủy"
+          label="Huỷ"
           severity="danger"
           (click)="confirmCancelOrder()"
         />

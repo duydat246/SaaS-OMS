@@ -47,8 +47,10 @@ body {
   outline-offset: 1px;
 }
 
-// Nhãn dropdown có tabindex=0 nhưng vòng focus đã vẽ trên cả .p-dropdown.p-focus.
-.p-dropdown .p-dropdown-label:focus-visible {
+// Ô nhập luôn khớp :focus-visible, kể cả khi bấm chuột, và đã có viền cộng vòng focus trong @layer primeng.
+// Rule ngoài layer luôn thắng `outline: none` trong layer nên phải tắt ở đây, nếu không sẽ thấy hai viền.
+// Nhãn dropdown cũng là .p-inputtext; vòng focus của nó vẽ trên .p-dropdown.p-focus.
+.p-inputtext:focus-visible {
   outline: none;
 }
 

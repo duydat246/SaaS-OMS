@@ -175,6 +175,7 @@
           <td class="product-name-cell">
             <a
               class="product-name"
+              [title]="product.name"
               [routerLink]="['/products', product.id]"
               (click)="$event.stopPropagation()"
             >{{ product.name }}</a>

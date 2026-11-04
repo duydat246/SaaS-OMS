@@ -126,7 +126,7 @@
                 />
               </td>
               <td class="num font-medium">
-                {{ order.totalAmount | number: "1.0-0" }}₫
+                {{ order.totalAmount | currency }}
               </td>
               <td>
                 <p-tag
@@ -255,7 +255,7 @@
                 </div>
               </div>
               <div class="dash-product-price num font-medium">
-                {{ p.price | number: "1.0-0" }}₫
+                {{ p.price | currency }}
               </div>
             </li>
           }

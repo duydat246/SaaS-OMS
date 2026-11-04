@@ -17,7 +17,7 @@ export const ORDER_STATUS_LABEL_VI: Record<OrderStatus, string> = {
   CONFIRMED: "Đã xác nhận",
   SHIPPED: "Đang giao hàng",
   DELIVERED: "Đã giao hàng",
-  CANCELLED: "Đã hủy",
+  CANCELLED: "Đã huỷ",
 };
 
 /** Lấy nhãn tiếng Việt; nếu lạ (API mới) thì trả về mã gốc */

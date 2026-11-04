@@ -127,4 +127,18 @@
   .dash-chart-box {
     height: 220px;
   }
+
+  // Doanh thu hiện số đầy đủ, có thể dài hơn phần còn lại của dải: cho xuống hàng riêng thay vì bị cắt.
+  .stat-strip {
+    flex-wrap: wrap;
+  }
+
+  .stat-strip__item:nth-child(3) {
+    border-right: 0;
+  }
+
+  .stat-strip__item:last-child {
+    flex-basis: 100%;
+    border-top: 1px solid var(--apollo-border);
+  }
 }

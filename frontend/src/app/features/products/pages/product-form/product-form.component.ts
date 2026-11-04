@@ -110,6 +110,8 @@ export class ProductFormComponent {
   private readonly brokenImageIds = signal<ReadonlySet<number>>(new Set());
   /** Tồn mới nhất theo id SKU, chỉ có ở dòng mà người dùng đã nhập số khác sau khi gặp 409. */
   private readonly currentStockBySkuId = signal<ReadonlyMap<number, number>>(new Map());
+  /** Id SKU đã thấy từ máy chủ, gồm cả dòng người dùng tự xoá: phân biệt với SKU được thêm ở nơi khác. */
+  private knownSkuIds = new Set<number>();
   /** Danh sách ảnh không nằm trong form nên phải tự theo dõi thay đổi. */
   private imagesChanged = false;
   private saved = false;
@@ -310,6 +312,7 @@ export class ProductFormComponent {
           return;
         }
         this.product.set(product);
+        this.knownSkuIds = new Set((product.skus ?? []).map((sku) => sku.id));
         this.form.patchValue({
           name: product.name,
           description: product.description ?? "",
@@ -608,6 +611,8 @@ export class ProductFormComponent {
         ? selectedPrimaryId
         : (imageIds[0] ?? null);
 
+    const editingId = this.isEdit() ? this.productId() : null;
+
     const req: ProductRequest = {
       name: (formValue.name ?? "").trim(),
       description: formValue.description?.trim() || null,
@@ -616,9 +621,9 @@ export class ProductFormComponent {
       imageIds,
       primaryImageId,
       skus,
+      knownSkuIds: editingId ? [...this.knownSkuIds] : undefined,
     };
 
-    const editingId = this.isEdit() ? this.productId() : null;
     const save$ = editingId
       ? this.productService.updateProduct(editingId, req)
       : this.productService.createProduct(req);
@@ -647,7 +652,7 @@ export class ProductFormComponent {
   }
 
   /**
-   * Sau 409 chỉ cập nhật số tồn của các dòng SKU, không nạp lại form để giữ chỉnh sửa của người dùng.
+   * Sau 409 chỉ cập nhật tồn và danh sách dòng SKU, không nạp lại form để giữ chỉnh sửa của người dùng.
    * Không `product.set(...)`: `isPersistedImage` so với ảnh của lần nạp đầu.
    */
   private refreshStockAfterConflict(id: number): void {
@@ -671,8 +676,10 @@ export class ProductFormComponent {
   }
 
   private applyFreshStock(fresh: Product): void {
-    const freshStockById = new Map((fresh.skus ?? []).map((sku) => [sku.id, sku.stock]));
+    const freshSkus = fresh.skus ?? [];
+    const freshStockById = new Map(freshSkus.map((sku) => [sku.id, sku.stock]));
     const hints = new Map<number, number>();
+    const skuListChanges = this.applyFreshSkuList(freshSkus);
 
     for (const control of this.skus.controls) {
       const row = control.getRawValue() as SkuFormValue;
@@ -689,6 +696,48 @@ export class ProductFormComponent {
       }
     }
     this.currentStockBySkuId.set(hints);
+
+    if (skuListChanges.added > 0 || skuListChanges.removed > 0) {
+      this.messageService.add({
+        severity: "warn",
+        summary: "Danh sách biến thể đã thay đổi",
+        detail:
+          `Đã thêm ${skuListChanges.added} và bỏ ${skuListChanges.removed} biến thể theo dữ liệu mới nhất. ` +
+          "Vui lòng kiểm tra lại trước khi lưu.",
+      });
+    }
+  }
+
+  /**
+   * Đưa danh sách dòng về khớp máy chủ: thêm SKU chưa từng thấy, bỏ dòng có SKU đã mất.
+   * Dòng người dùng tự xoá có id trong `knownSkuIds` nên không quay lại. Không làm vậy thì lần lưu sau lại 409.
+   */
+  private applyFreshSkuList(freshSkus: Sku[]): { added: number; removed: number } {
+    const freshIds = new Set(freshSkus.map((sku) => sku.id));
+    const newSkus = freshSkus.filter((sku) => !this.knownSkuIds.has(sku.id));
+
+    let removed = 0;
+    for (let i = this.skus.length - 1; i >= 0; i--) {
+      const id = (this.skus.at(i).getRawValue() as SkuFormValue).id;
+      if (id != null && !freshIds.has(id)) {
+        this.skus.removeAt(i);
+        removed++;
+      }
+    }
+    for (const sku of newSkus) {
+      this.skus.push(this.createSkuGroup(sku));
+    }
+    this.knownSkuIds = freshIds;
+
+    // Mọi dòng còn lại đều đã bị xoá: sản phẩm phải có ít nhất 1 SKU, đưa lại danh sách của máy chủ.
+    let added = newSkus.length;
+    if (this.skus.length === 0) {
+      for (const sku of freshSkus) {
+        this.skus.push(this.createSkuGroup(sku));
+        added++;
+      }
+    }
+    return { added, removed };
   }
 
   getSkuGroup(index: number): FormGroup {

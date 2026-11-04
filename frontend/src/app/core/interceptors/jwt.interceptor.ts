@@ -7,14 +7,20 @@ import {
 import { inject } from "@angular/core";
 import { catchError, switchMap, throwError } from "rxjs";
 import { AuthService } from "@core/auth/auth.service";
-import { Router } from "@angular/router";
+
+/** Máy chủ hoặc mạng lỗi tạm thời: refresh token có thể vẫn còn hạn nên không được xoá phiên. */
+function isTransientFailure(error: unknown): boolean {
+  return (
+    error instanceof HttpErrorResponse &&
+    (error.status === 0 || error.status >= 500)
+  );
+}
 
 export const jwtInterceptor: HttpInterceptorFn = (
   req: HttpRequest<unknown>,
   next: HttpHandlerFn,
 ) => {
   const auth = inject(AuthService);
-  const router = inject(Router);
 
   const token = auth.getAccessToken();
   const authReq = token
@@ -23,33 +29,27 @@ export const jwtInterceptor: HttpInterceptorFn = (
 
   return next(authReq).pipe(
     catchError((error: HttpErrorResponse) => {
-      // Lỗi 401/403 tạm thời được nuốt ở đây: refresh + retry; subscriber chỉ nhận kết quả sau cùng
-      // (thành công hoặc lỗi thật) — UI không nên toast lỗi cho lần gọi API “hết token” trước khi retry.
-      /*
-       * 401: chuẩn “chưa / không còn xác thực”.
-       * 403: Spring Security với JWT custom thường trả 403 khi JWT hết hạn/sai vì user vẫn là anonymous
-       *       nhưng endpoint yêu cầu authenticated() — không phải lúc nào cũng là “đủ quyền nhưng bị cấm”.
-       */
-      const tryRefresh =
-        (error.status === 401 || error.status === 403) &&
-        !req.url.includes("/auth/");
-
-      if (tryRefresh) {
-        return auth.refresh().pipe(
-          switchMap(() => {
-            const newToken = auth.getAccessToken();
-            const retried = req.clone({
-              setHeaders: { Authorization: `Bearer ${newToken}` },
-            });
-            return next(retried);
-          }),
-          catchError(() => {
-            auth.logout();
-            return throwError(() => error);
-          }),
-        );
+      // 401 của /auth/* là lỗi nghiệp vụ, ví dụ sai mật khẩu; 403 là thiếu quyền thật, refresh không giải quyết được.
+      if (error.status !== 401 || req.url.includes("/auth/")) {
+        return throwError(() => error);
       }
-      return throwError(() => error);
+
+      // catchError phải đứng trước switchMap: chỉ bắt lỗi của bước refresh.
+      // Lỗi của request retry (ví dụ PUT trả 409) đi thẳng về component, không làm mất phiên.
+      return auth.refresh().pipe(
+        catchError((refreshError: unknown) => {
+          if (!isTransientFailure(refreshError)) {
+            auth.logout();
+          }
+          return throwError(() => error);
+        }),
+        switchMap(() => {
+          const retried = req.clone({
+            setHeaders: { Authorization: `Bearer ${auth.getAccessToken()}` },
+          });
+          return next(retried);
+        }),
+      );
     }),
   );
 };

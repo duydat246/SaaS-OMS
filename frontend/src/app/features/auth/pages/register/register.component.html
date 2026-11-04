@@ -76,16 +76,25 @@
         />
       </p-iconField>
 
-      <div class="app-auth-apollo__password-wrap">
-        <i class="pi pi-lock app-auth-apollo__pwd-icon" aria-hidden="true"></i>
-        <p-password
-          formControlName="password"
-          [toggleMask]="true"
-          [feedback]="false"
-          placeholder="Mật khẩu"
-          styleClass="w-full"
-          inputStyleClass="w-full"
-        />
+      <div>
+        <div class="app-auth-apollo__password-wrap">
+          <i class="pi pi-lock app-auth-apollo__pwd-icon" aria-hidden="true"></i>
+          <p-password
+            formControlName="password"
+            [toggleMask]="true"
+            [feedback]="false"
+            placeholder="Mật khẩu"
+            styleClass="w-full"
+            inputStyleClass="w-full"
+          />
+        </div>
+        <small
+          class="block mt-1"
+          [class.muted]="!(form.controls.password.dirty && form.controls.password.invalid)"
+          [class.field-error]="form.controls.password.dirty && form.controls.password.invalid"
+        >
+          Mật khẩu từ 8 đến 72 ký tự.
+        </small>
       </div>
 
       <div class="flex align-items-start gap-2" style="margin-top: 0.15rem">

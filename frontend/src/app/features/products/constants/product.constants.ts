@@ -1,4 +1,7 @@
 import { ProductStatus } from "@features/products/models/product.model";
+import { formatVnd } from "@shared/utils/format-vnd";
+
+export { formatVnd };
 
 export type TagSeverity = "success" | "info" | "secondary" | "contrast" | "warning" | "danger";
 
@@ -56,14 +59,6 @@ export function stockLabelVi(stock: number): string {
 export function stockSeverity(stock: number): TagSeverity {
   if (stock <= 0) return "danger";
   return stock <= LOW_STOCK_THRESHOLD ? "warning" : "success";
-}
-
-export function formatVnd(value: number): string {
-  return new Intl.NumberFormat("vi-VN", {
-    style: "currency",
-    currency: "VND",
-    maximumFractionDigits: 0,
-  }).format(value);
 }
 
 export function formatPriceRange(min: number | null, max: number | null): string {
