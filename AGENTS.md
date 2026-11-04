@@ -414,7 +414,7 @@ Một bước chỉ được coi là xong khi:
 
 | # | Mức | Vấn đề | Bằng chứng | Hướng xử lý |
 | --- | --- | --- | --- | --- |
-| 1 | P0 | nginx phản chiếu `Origin` bất kỳ + strip `Origin`, bỏ qua allowlist CORS | `frontend/nginx.conf:10,21,25,43,47` | Bỏ toàn bộ block CORS và `proxy_set_header Origin ""`; app/API cùng origin |
+| 1 | P0 | ~~nginx phản chiếu `Origin` bất kỳ + strip `Origin`, bỏ qua allowlist CORS~~ — đã xử lý 04/11/2026 | `frontend/nginx.conf` | Đã bỏ block CORS và `proxy_set_header Origin ""`; allowlist do Spring áp dụng qua `APP_CORS_ALLOWED_ORIGINS` |
 | 2 | P0 | Prod chạy profile `dev` (bật `show-sql`, log DEBUG) | `docker-compose.prod.yml:33`, `application-dev.yml:8,12` | Tạo `application-prod.yml`, đổi `SPRING_PROFILES_ACTIVE=prod` |
 | 3 | P0 | Swagger/`/api-docs` mở công khai | `SecurityConfig.java:44` | Chỉ mở ở dev hoặc chặn bằng role |
 | 4 | P0 | Secret mặc định trong repo (JWT, MySQL) | `docker-compose.yml:7,8,29`, `application-dev.yml:5` | Bắt buộc env, xoá default dùng được ở prod |

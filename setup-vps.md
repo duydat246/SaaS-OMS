@@ -83,6 +83,8 @@ DOCKERHUB_USERNAME=your_dockerhub_username
 APP_CORS_ALLOWED_ORIGINS=https://yourdomain.com
 ```
 
+`APP_CORS_ALLOWED_ORIGINS` phải khớp chính xác địa chỉ người dùng mở app: đúng `https`, đúng tên miền, không có `/` ở cuối, nhiều giá trị thì ngăn cách bằng dấu phẩy và không có dấu cách. Sai giá trị thì mọi request có `Origin`, gồm cả đăng nhập, bị 403 `Invalid CORS request`.
+
 Tạo JWT_SECRET ngẫu nhiên:
 ```bash
 openssl rand -hex 32
