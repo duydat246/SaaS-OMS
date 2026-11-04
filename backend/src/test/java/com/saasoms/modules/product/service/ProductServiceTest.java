@@ -272,7 +272,7 @@ class ProductServiceTest {
     @Test
     void updateProduct_sameSkuIdTwice_throwsBadRequest() {
         Product product = product(10L, ProductStatus.ACTIVE);
-        when(productRepository.findByIdAndShopId(10L, TENANT_ID)).thenReturn(Optional.of(product));
+        when(productRepository.findForUpdate(10L, TENANT_ID)).thenReturn(Optional.of(product));
         stubLockedSkus(sku(100L, product, "SKU-A", "1.00", 1));
 
         ProductRequest request = request("Áo thun", List.of(
@@ -291,7 +291,7 @@ class ProductServiceTest {
         Product product = product(10L, ProductStatus.ACTIVE);
         LocalDateTime old = LocalDateTime.now().minusDays(1);
         product.setUpdatedAt(old);
-        when(productRepository.findByIdAndShopId(10L, TENANT_ID)).thenReturn(Optional.of(product));
+        when(productRepository.findForUpdate(10L, TENANT_ID)).thenReturn(Optional.of(product));
         stubLockedSkus(sku(100L, product, "SKU-A", "1.00", 1));
 
         ProductRequest request = request("Sản phẩm 10", List.of(
@@ -306,7 +306,7 @@ class ProductServiceTest {
     @Test
     void updateProduct_otherTenant_throws404() {
         TenantContext.set(2L);
-        when(productRepository.findByIdAndShopId(10L, 2L)).thenReturn(Optional.empty());
+        when(productRepository.findForUpdate(10L, 2L)).thenReturn(Optional.empty());
 
         ProductRequest request = request("Áo thun", List.of(
                 new SkuRequest(null, "SKU-1", null, new BigDecimal("1.00"), 1, null)));
@@ -322,7 +322,7 @@ class ProductServiceTest {
     @Test
     void restoreProduct_inactiveProduct_staysInactive() {
         Product product = product(10L, ProductStatus.INACTIVE);
-        when(productRepository.findByIdAndShopId(10L, TENANT_ID)).thenReturn(Optional.of(product));
+        when(productRepository.findForUpdate(10L, TENANT_ID)).thenReturn(Optional.of(product));
         when(skuRepository.findByShopIdAndProductId(TENANT_ID, 10L)).thenReturn(List.of());
 
         ProductResponse response = productService.restoreProduct(10L);
@@ -369,7 +369,7 @@ class ProductServiceTest {
     @Test
     void updateProduct_skuOfAnotherProduct_throwsBadRequest() {
         Product product = product(10L, ProductStatus.ACTIVE);
-        when(productRepository.findByIdAndShopId(10L, TENANT_ID)).thenReturn(Optional.of(product));
+        when(productRepository.findForUpdate(10L, TENANT_ID)).thenReturn(Optional.of(product));
         stubLockedSkus(sku(100L, product, "SKU-A", "1.00", 1));
 
         ProductRequest request = request("Áo thun", List.of(
@@ -388,7 +388,7 @@ class ProductServiceTest {
         Sku removed = sku(100L, product, "SKU-OLD", "1.00", 1);
         Sku kept = sku(101L, product, "SKU-KEEP", "2.00", 3);
 
-        when(productRepository.findByIdAndShopId(10L, TENANT_ID)).thenReturn(Optional.of(product));
+        when(productRepository.findForUpdate(10L, TENANT_ID)).thenReturn(Optional.of(product));
         stubLockedSkus(removed, kept);
         when(skuRepository.findByShopIdAndSkuCodeIn(eq(TENANT_ID), anyCollection()))
                 .thenReturn(List.of());
@@ -409,7 +409,7 @@ class ProductServiceTest {
     @Test
     void updateProduct_archivedProduct_throwsBadRequest() {
         Product product = product(10L, ProductStatus.ARCHIVED);
-        when(productRepository.findByIdAndShopId(10L, TENANT_ID)).thenReturn(Optional.of(product));
+        when(productRepository.findForUpdate(10L, TENANT_ID)).thenReturn(Optional.of(product));
 
         ProductRequest request = request("Áo thun", List.of(
                 new SkuRequest(null, "SKU-1", null, new BigDecimal("1.00"), 1, null)));
@@ -424,7 +424,7 @@ class ProductServiceTest {
     @Test
     void updateStatus_rejectsArchivedStatus() {
         Product product = product(10L, ProductStatus.ACTIVE);
-        when(productRepository.findByIdAndShopId(10L, TENANT_ID)).thenReturn(Optional.of(product));
+        when(productRepository.findForUpdate(10L, TENANT_ID)).thenReturn(Optional.of(product));
 
         UpdateProductStatusRequest request = new UpdateProductStatusRequest(ProductStatus.ARCHIVED);
 
@@ -450,7 +450,7 @@ class ProductServiceTest {
     @Test
     void archiveProduct_setsArchived() {
         Product product = product(10L, ProductStatus.ACTIVE);
-        when(productRepository.findByIdAndShopId(10L, TENANT_ID)).thenReturn(Optional.of(product));
+        when(productRepository.findForUpdate(10L, TENANT_ID)).thenReturn(Optional.of(product));
         when(productRepository.save(any(Product.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         productService.archiveProduct(10L);
@@ -462,7 +462,7 @@ class ProductServiceTest {
     @Test
     void restoreProduct_setsActive() {
         Product product = product(10L, ProductStatus.ARCHIVED);
-        when(productRepository.findByIdAndShopId(10L, TENANT_ID)).thenReturn(Optional.of(product));
+        when(productRepository.findForUpdate(10L, TENANT_ID)).thenReturn(Optional.of(product));
         when(productRepository.save(any(Product.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(skuRepository.findByShopIdAndProductId(TENANT_ID, 10L)).thenReturn(List.of());
 
@@ -688,11 +688,232 @@ class ProductServiceTest {
         verify(skuRepository, never()).findForUpdate(any(), anyCollection());
     }
 
+    // ------------------------------------------------------------ PRODUCT LOCK
+
+    @Test
+    void updateProduct_locksProductBeforeSkus() {
+        Product product = activeProduct();
+        stubLockedSkus(sku(100L, product, "SKU-A", "1.00", 7));
+
+        ProductRequest request = request("Áo thun", List.of(
+                new SkuRequest(100L, "SKU-A", null, new BigDecimal("1.00"), 7, 7)));
+
+        productService.updateProduct(10L, request);
+
+        InOrder order = inOrder(productRepository, skuRepository);
+        order.verify(productRepository).findForUpdate(10L, TENANT_ID);
+        order.verify(skuRepository).findIdsByShopIdAndProductId(TENANT_ID, 10L);
+        order.verify(skuRepository).findForUpdate(TENANT_ID, List.of(100L));
+        verify(productRepository, never()).findByIdAndShopId(any(), any());
+    }
+
+    @Test
+    void updateProduct_archivedAfterLock_throws400() {
+        when(productRepository.findForUpdate(10L, TENANT_ID))
+                .thenReturn(Optional.of(product(10L, ProductStatus.ARCHIVED)));
+
+        ProductRequest request = request("Áo thun", List.of(
+                new SkuRequest(null, "SKU-1", null, new BigDecimal("1.00"), 1, null)));
+
+        BusinessException ex = assertThrows(BusinessException.class,
+                () -> productService.updateProduct(10L, request));
+
+        assertThat(ex.getStatus()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(ex.getMessage()).contains("khôi phục trước khi sửa");
+        verifyNoInteractions(skuRepository, productImageService);
+    }
+
+    @Test
+    void updateStatus_usesLockedRead() {
+        Product product = activeProduct();
+
+        productService.updateStatus(10L, new UpdateProductStatusRequest(ProductStatus.INACTIVE));
+
+        assertThat(product.getStatus()).isEqualTo(ProductStatus.INACTIVE);
+        verify(productRepository).findForUpdate(10L, TENANT_ID);
+        verify(productRepository, never()).findByIdAndShopId(any(), any());
+    }
+
+    @Test
+    void archiveProduct_usesLockedRead() {
+        Product product = activeProduct();
+
+        productService.archiveProduct(10L);
+
+        assertThat(product.getStatus()).isEqualTo(ProductStatus.ARCHIVED);
+        verify(productRepository).findForUpdate(10L, TENANT_ID);
+        verify(productRepository, never()).findByIdAndShopId(any(), any());
+    }
+
+    @Test
+    void restoreProduct_usesLockedRead() {
+        when(productRepository.findForUpdate(10L, TENANT_ID))
+                .thenReturn(Optional.of(product(10L, ProductStatus.ARCHIVED)));
+
+        ProductResponse response = productService.restoreProduct(10L);
+
+        assertThat(response.getStatus()).isEqualTo(ProductStatus.ACTIVE);
+        verify(productRepository).findForUpdate(10L, TENANT_ID);
+        verify(productRepository, never()).findByIdAndShopId(any(), any());
+    }
+
+    @Test
+    void getProduct_doesNotLock() {
+        Product product = product(10L, ProductStatus.ACTIVE);
+        when(productRepository.findByIdAndShopId(10L, TENANT_ID)).thenReturn(Optional.of(product));
+
+        productService.getProduct(10L);
+
+        verify(productRepository, never()).findForUpdate(any(), any());
+    }
+
+    // ---------------------------------------------------------- KNOWN SKU IDS
+
+    @Test
+    void updateProduct_unknownSkuInDb_throws409NoWrite() {
+        Product product = activeProduct();
+        stubLockedSkus(sku(100L, product, "SKU-A", "1.00", 7), sku(101L, product, "SKU-MOI", "1.00", 3));
+
+        ProductRequest request = request("Áo thun", List.of(
+                new SkuRequest(100L, "SKU-A", null, new BigDecimal("1.00"), 7, 7)));
+        request.setKnownSkuIds(List.of(100L));
+
+        BusinessException ex = assertThrows(BusinessException.class,
+                () -> productService.updateProduct(10L, request));
+
+        assertThat(ex.getStatus()).isEqualTo(HttpStatus.CONFLICT);
+        assertThat(ex.getMessage()).isEqualTo(
+                "Sản phẩm có biến thể mới được thêm ở nơi khác (SKU-MOI). Vui lòng kiểm tra lại trước khi lưu.");
+        verify(skuRepository, never()).deleteAll(anyCollection());
+        verify(skuRepository, never()).saveAll(anyCollection());
+        verify(productRepository, never()).save(any(Product.class));
+        verifyNoInteractions(productImageService);
+    }
+
+    @Test
+    void updateProduct_knownSkuAbsent_deletes() {
+        Product product = activeProduct();
+        Sku removed = sku(100L, product, "SKU-OLD", "1.00", 1);
+        stubLockedSkus(removed, sku(101L, product, "SKU-KEEP", "2.00", 3));
+        when(skuRepository.findUsedSkuIds(eq(TENANT_ID), anyCollection())).thenReturn(List.of());
+
+        ProductRequest request = request("Áo thun", List.of(
+                new SkuRequest(101L, "SKU-KEEP", null, new BigDecimal("2.00"), 3, 3)));
+        request.setKnownSkuIds(Arrays.asList(100L, null, 101L));
+
+        productService.updateProduct(10L, request);
+
+        verify(skuRepository).deleteAll(List.of(removed));
+    }
+
+    @Test
+    void updateProduct_knownSkuAbsentUsedInOrder_throws409() {
+        Product product = activeProduct();
+        stubLockedSkus(sku(100L, product, "SKU-OLD", "1.00", 1), sku(101L, product, "SKU-KEEP", "2.00", 3));
+        when(skuRepository.findUsedSkuIds(eq(TENANT_ID), anyCollection())).thenReturn(List.of(100L));
+
+        ProductRequest request = request("Áo thun", List.of(
+                new SkuRequest(101L, "SKU-KEEP", null, new BigDecimal("2.00"), 3, 3)));
+        request.setKnownSkuIds(List.of(100L, 101L));
+
+        BusinessException ex = assertThrows(BusinessException.class,
+                () -> productService.updateProduct(10L, request));
+
+        assertThat(ex.getStatus()).isEqualTo(HttpStatus.CONFLICT);
+        assertThat(ex.getMessage()).contains("đã dùng trong đơn hàng").contains("SKU-OLD");
+        verify(skuRepository, never()).deleteAll(anyCollection());
+    }
+
+    @Test
+    void updateProduct_nullKnownSkuIds_keepsLegacyDelete() {
+        Product product = activeProduct();
+        Sku removed = sku(100L, product, "SKU-OLD", "1.00", 1);
+        stubLockedSkus(removed, sku(101L, product, "SKU-KEEP", "2.00", 3));
+        when(skuRepository.findUsedSkuIds(eq(TENANT_ID), anyCollection())).thenReturn(List.of());
+
+        ProductRequest request = request("Áo thun", List.of(
+                new SkuRequest(101L, "SKU-KEEP", null, new BigDecimal("2.00"), 3, 3)));
+
+        productService.updateProduct(10L, request);
+
+        verify(skuRepository).deleteAll(List.of(removed));
+    }
+
+    @Test
+    void updateProduct_submittedKnownIdGone_throws409() {
+        Product product = activeProduct();
+        stubLockedSkus(sku(100L, product, "SKU-A", "1.00", 7));
+
+        ProductRequest request = request("Áo thun", List.of(
+                new SkuRequest(100L, "SKU-A", null, new BigDecimal("1.00"), 7, 7),
+                new SkuRequest(999L, "SKU-GONE", null, new BigDecimal("1.00"), 1, 1)));
+        request.setKnownSkuIds(List.of(100L, 999L));
+
+        BusinessException ex = assertThrows(BusinessException.class,
+                () -> productService.updateProduct(10L, request));
+
+        assertThat(ex.getStatus()).isEqualTo(HttpStatus.CONFLICT);
+        assertThat(ex.getMessage()).isEqualTo(
+                "Biến thể (ID 999) đã bị xoá ở nơi khác. Vui lòng kiểm tra lại trước khi lưu.");
+        verify(skuRepository, never()).saveAll(anyCollection());
+    }
+
+    @Test
+    void updateProduct_submittedUnknownIdGone_throws400() {
+        Product product = activeProduct();
+        stubLockedSkus(sku(100L, product, "SKU-A", "1.00", 7));
+
+        ProductRequest request = request("Áo thun", List.of(
+                new SkuRequest(100L, "SKU-A", null, new BigDecimal("1.00"), 7, 7),
+                new SkuRequest(999L, "SKU-X", null, new BigDecimal("1.00"), 1, 1)));
+        request.setKnownSkuIds(List.of(100L));
+
+        BusinessException ex = assertThrows(BusinessException.class,
+                () -> productService.updateProduct(10L, request));
+
+        assertThat(ex.getStatus()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(ex.getMessage()).isEqualTo("SKU không thuộc sản phẩm này");
+    }
+
+    @Test
+    void updateProduct_knownIdsOtherTenant_notLeaked() {
+        Product product = activeProduct();
+        stubLockedSkus(sku(100L, product, "SKU-A", "1.00", 7));
+
+        ProductRequest request = request("Áo thun", List.of(
+                new SkuRequest(100L, "SKU-A", null, new BigDecimal("1.00"), 7, 7)));
+        // 555 là SKU của shop khác: chỉ là số client gửi, không được dùng để tra cứu hay xoá.
+        request.setKnownSkuIds(List.of(100L, 555L));
+
+        productService.updateProduct(10L, request);
+
+        verify(skuRepository).findForUpdate(TENANT_ID, List.of(100L));
+        verify(skuRepository, never()).findByShopIdAndIdIn(any(), anyCollection());
+        verify(skuRepository, never()).deleteAll(anyCollection());
+    }
+
+    @Test
+    void createProduct_ignoresKnownSkuIds() {
+        when(shopRepository.findById(TENANT_ID)).thenReturn(Optional.of(shop));
+        when(productRepository.save(any(Product.class))).thenAnswer(invocation -> {
+            Product saved = invocation.getArgument(0);
+            saved.setId(10L);
+            return saved;
+        });
+        when(skuRepository.save(any(Sku.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        ProductRequest request = request("Áo thun", List.of(
+                new SkuRequest(null, "SKU-1", null, new BigDecimal("1.00"), 2, null)));
+        request.setKnownSkuIds(List.of(555L));
+
+        assertThat(productService.createProduct(request).getSkus()).hasSize(1);
+    }
+
     // ---------------------------------------------------------------- FIXTURE
 
     private Product activeProduct() {
         Product product = product(10L, ProductStatus.ACTIVE);
-        when(productRepository.findByIdAndShopId(10L, TENANT_ID)).thenReturn(Optional.of(product));
+        when(productRepository.findForUpdate(10L, TENANT_ID)).thenReturn(Optional.of(product));
         return product;
     }
 
@@ -733,6 +954,6 @@ class ProductServiceTest {
     }
 
     private ProductRequest request(String name, List<SkuRequest> skus) {
-        return new ProductRequest(name, "Mô tả", "Danh mục", "MANUAL", null, null, null, skus);
+        return new ProductRequest(name, "Mô tả", "Danh mục", "MANUAL", null, null, null, skus, null);
     }
 }

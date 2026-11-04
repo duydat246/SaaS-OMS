@@ -405,6 +405,39 @@ class ProductControllerTest {
                         .value("Dữ liệu đang được cập nhật bởi thao tác khác, vui lòng thử lại"));
     }
 
+    @Test
+    void update_knownSkuIdsTooLong_returns400() throws Exception {
+        String ids = java.util.stream.LongStream.rangeClosed(1, 1001)
+                .mapToObj(Long::toString)
+                .collect(java.util.stream.Collectors.joining(","));
+        String body = """
+                {"name":"Áo","skus":[{"id":1,"skuCode":"SKU-1","price":1,"stock":1}],"knownSkuIds":[%s]}
+                """.formatted(ids);
+
+        mockMvc.perform(put("/api/products/10")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value("Danh sách biến thể đã biết tối đa 1000 phần tử"));
+
+        verifyNoInteractions(productService);
+    }
+
+    @Test
+    void update_knownSkuIdsWithNullElement_passesToService() throws Exception {
+        when(productService.updateProduct(eq(10L), any(ProductRequest.class))).thenReturn(sampleResponse());
+
+        String body = """
+                {"name":"Áo","skus":[{"id":1,"skuCode":"SKU-1","price":1,"stock":1}],"knownSkuIds":[1,null]}
+                """;
+
+        mockMvc.perform(put("/api/products/10")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isOk());
+    }
+
     // ---------------------------------------------------------------- FIXTURE
 
     private PageResponse<ProductResponse> emptyPageResponse() {

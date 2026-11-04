@@ -125,24 +125,28 @@ public class ProductImageService {
         ProductImage image = productImageRepository.findByIdAndShopId(imageId, tenantId)
                 .orElseThrow(() -> BusinessException.notFound(IMAGE_NOT_FOUND_MESSAGE));
 
-        Product product = image.getProduct();
-        Long productId = product == null ? null : product.getId();
-        boolean wasPrimary = Boolean.TRUE.equals(image.getIsPrimary());
+        // Lấy id qua proxy, không nạp sản phẩm: nạp trước thì khoá bên dưới trả về bản cũ và
+        // save() sẽ ghi đè status vừa được thao tác khác đổi. Khoá sản phẩm trước khi đụng ảnh
+        // để cùng thứ tự với updateProduct (products, skus, product_images), tránh deadlock.
+        Product proxy = image.getProduct();
+        Long productId = proxy == null ? null : proxy.getId();
+        Product locked = productId == null ? null : productRepository.findForUpdate(productId, tenantId)
+                .orElseThrow(() -> BusinessException.notFound("Không tìm thấy sản phẩm"));
         String storageKey = image.getStorageKey();
 
         productImageRepository.delete(image);
         productImageRepository.flush();
 
         if (productId != null) {
+            // Câu đọc ảnh ở đầu method đã chốt snapshot, nên phải dùng locking read để thấy bản đã
+            // commit mới nhất. Vì cùng lý do, không tin isPrimary của ảnh vừa xoá mà xét trên ảnh còn lại.
             List<ProductImage> remaining = productImageRepository
-                    .findByShopIdAndProductIdOrderBySortOrderAscIdAsc(tenantId, productId);
+                    .findForUpdateByShopIdAndProductId(tenantId, productId);
 
             if (remaining.isEmpty()) {
-                productRepository.findByIdAndShopId(productId, tenantId).ifPresent(managed -> {
-                    managed.setImageUrl(null);
-                    productRepository.save(managed);
-                });
-            } else if (wasPrimary) {
+                locked.setImageUrl(null);
+                productRepository.save(locked);
+            } else if (remaining.stream().noneMatch(item -> Boolean.TRUE.equals(item.getIsPrimary()))) {
                 ProductImage next = remaining.get(0);
                 next.setIsPrimary(true);
                 productImageRepository.save(next);

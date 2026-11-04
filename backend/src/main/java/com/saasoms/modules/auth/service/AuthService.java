@@ -15,6 +15,7 @@ import com.saasoms.modules.user.entity.User;
 import com.saasoms.modules.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,19 +27,24 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class AuthService {
 
+    private static final String WRONG_LOGIN_MESSAGE = "Email hoặc mật khẩu không đúng";
+
     private final ShopRepository shopRepository;
     private final UserRepository userRepository;
     private final RefreshTokenRepository refreshTokenRepository;
     private final JwtService jwtService;
     private final PasswordEncoder passwordEncoder;
+    private final LoginRateLimiter loginRateLimiter;
 
     @Value("${app.jwt.refresh-token-expiry-days}")
     private int refreshTokenExpiryDays;
 
     @Transactional
-    public AuthResponse register(RegisterRequest req) {
+    public AuthResponse register(RegisterRequest req, String clientIp) {
+        loginRateLimiter.checkRegister(clientIp);
+
         if (userRepository.existsByEmail(req.getEmail())) {
-            throw BusinessException.conflict("Email already in use");
+            throw BusinessException.conflict("Email đã được sử dụng");
         }
 
         String slug = generateSlug(req.getShopName());
@@ -61,29 +67,33 @@ public class AuthService {
     }
 
     @Transactional
-    public AuthResponse login(LoginRequest req) {
-        User user = userRepository.findByEmail(req.getEmail())
-                .orElseThrow(() -> new BusinessException("Invalid email or password", org.springframework.http.HttpStatus.UNAUTHORIZED));
+    public AuthResponse login(LoginRequest req, String clientIp) {
+        // Chặn trước khi tra DB và trước BCrypt: lượt bị chặn không tốn tài nguyên và không lộ gì.
+        loginRateLimiter.checkLogin(clientIp, req.getEmail());
 
-        if (!passwordEncoder.matches(req.getPassword(), user.getPassword())) {
-            throw new BusinessException("Invalid email or password", org.springframework.http.HttpStatus.UNAUTHORIZED);
+        User user = userRepository.findByEmail(req.getEmail()).orElse(null);
+
+        if (user == null || !passwordEncoder.matches(req.getPassword(), user.getPassword())) {
+            loginRateLimiter.recordLoginFailure(clientIp, req.getEmail());
+            throw new BusinessException(WRONG_LOGIN_MESSAGE, HttpStatus.UNAUTHORIZED);
         }
 
         if (!"ACTIVE".equals(user.getStatus())) {
-            throw BusinessException.forbidden("Account is disabled");
+            throw BusinessException.forbidden("Tài khoản đã bị vô hiệu hoá");
         }
 
+        loginRateLimiter.recordLoginSuccess(clientIp, req.getEmail());
         return buildAuthResponse(user, user.getShop());
     }
 
     @Transactional
     public AuthResponse refresh(RefreshRequest req) {
         RefreshToken refreshToken = refreshTokenRepository.findByToken(req.getRefreshToken())
-                .orElseThrow(() -> BusinessException.badRequest("Invalid refresh token"));
+                .orElseThrow(() -> BusinessException.badRequest("Phiên đăng nhập không hợp lệ, vui lòng đăng nhập lại"));
 
         if (refreshToken.isExpired()) {
             refreshTokenRepository.delete(refreshToken);
-            throw BusinessException.badRequest("Refresh token expired, please login again");
+            throw BusinessException.badRequest("Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại");
         }
 
         User user = refreshToken.getUser();

@@ -39,4 +39,11 @@ public class ProductRequest {
 
     @NotEmpty(message = "Sản phẩm phải có ít nhất 1 SKU")
     private List<@NotNull(message = "Danh sách SKU không được chứa phần tử rỗng") @Valid SkuRequest> skus;
+
+    /**
+     * Id các SKU client đã thấy lúc mở form. SKU trong DB nằm ngoài danh sách này thì không được
+     * coi là "người dùng đã xoá". Null là client cũ, giữ hành vi cũ. POST bỏ qua trường này.
+     */
+    @Size(max = 1000, message = "Danh sách biến thể đã biết tối đa 1000 phần tử")
+    private List<Long> knownSkuIds;
 }

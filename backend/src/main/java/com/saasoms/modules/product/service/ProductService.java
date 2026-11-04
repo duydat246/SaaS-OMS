@@ -175,7 +175,7 @@ public class ProductService {
     @Transactional
     public ProductResponse updateProduct(Long id, ProductRequest req) {
         Long tenantId = requireTenant();
-        Product product = findProduct(tenantId, id);
+        Product product = lockProduct(tenantId, id);
 
         if (product.getStatus() == ProductStatus.ARCHIVED) {
             throw BusinessException.badRequest(
@@ -202,6 +202,9 @@ public class ProductService {
                 .filter(sku -> !submittedIds.contains(sku.getId()))
                 .toList();
 
+        Set<Long> knownIds = toKnownIds(req.getKnownSkuIds());
+        assertNoSkuAddedElsewhere(toDelete, knownIds);
+
         // Tính mã cuối cùng cho từng dòng TRƯỚC khi ghi bất cứ thứ gì
         List<RequestedSku> requestedSkus = new ArrayList<>();
         Set<Long> seenIds = new HashSet<>();
@@ -216,6 +219,10 @@ public class ProductService {
                 }
                 current = existingById.get(skuReq.getId());
                 if (current == null) {
+                    if (knownIds != null && knownIds.contains(skuReq.getId())) {
+                        throw BusinessException.conflict("Biến thể (ID " + skuReq.getId()
+                                + ") đã bị xoá ở nơi khác. Vui lòng kiểm tra lại trước khi lưu.");
+                    }
                     throw BusinessException.badRequest("SKU không thuộc sản phẩm này");
                 }
                 if (finalCode == null) {
@@ -316,7 +323,7 @@ public class ProductService {
             throw BusinessException.badRequest("Trạng thái không được để trống");
         }
 
-        Product product = findProduct(tenantId, id);
+        Product product = lockProduct(tenantId, id);
 
         if (req.getStatus() == ProductStatus.ARCHIVED) {
             throw BusinessException.badRequest("Dùng chức năng xoá để lưu trữ sản phẩm");
@@ -336,7 +343,7 @@ public class ProductService {
     @Transactional
     public void archiveProduct(Long id) {
         Long tenantId = requireTenant();
-        Product product = findProduct(tenantId, id);
+        Product product = lockProduct(tenantId, id);
 
         if (product.getStatus() != ProductStatus.ARCHIVED) {
             product.setStatus(ProductStatus.ARCHIVED);
@@ -348,7 +355,7 @@ public class ProductService {
     @Transactional
     public ProductResponse restoreProduct(Long id) {
         Long tenantId = requireTenant();
-        Product product = findProduct(tenantId, id);
+        Product product = lockProduct(tenantId, id);
 
         // Chỉ sản phẩm đã xoá mới khôi phục; không để endpoint này lén mở bán sản phẩm "Ngừng bán".
         if (product.getStatus() == ProductStatus.ARCHIVED) {
@@ -371,6 +378,12 @@ public class ProductService {
 
     private Product findProduct(Long tenantId, Long id) {
         return productRepository.findByIdAndShopId(id, tenantId)
+                .orElseThrow(() -> BusinessException.notFound("Không tìm thấy sản phẩm"));
+    }
+
+    /** Phải là truy vấn đầu tiên của transaction, xem {@link ProductRepository#findForUpdate}. */
+    private Product lockProduct(Long tenantId, Long id) {
+        return productRepository.findForUpdate(id, tenantId)
                 .orElseThrow(() -> BusinessException.notFound("Không tìm thấy sản phẩm"));
     }
 
@@ -544,6 +557,32 @@ public class ProductService {
 
         if (!changes.isEmpty()) {
             throw BusinessException.conflict(String.join("; ", changes));
+        }
+    }
+
+    /** Null nghĩa là client cũ không gửi danh sách, giữ nguyên hành vi trước đây. */
+    private static Set<Long> toKnownIds(List<Long> knownSkuIds) {
+        if (knownSkuIds == null) {
+            return null;
+        }
+        return knownSkuIds.stream().filter(Objects::nonNull).collect(Collectors.toSet());
+    }
+
+    /**
+     * SKU có trong DB mà client không gửi lên chỉ được coi là "người dùng đã xoá" nếu client từng
+     * thấy nó. Nếu chưa thấy thì đó là SKU tab khác vừa thêm, xoá đi là mất dữ liệu.
+     */
+    private static void assertNoSkuAddedElsewhere(List<Sku> absentFromRequest, Set<Long> knownIds) {
+        if (knownIds == null) {
+            return;
+        }
+        List<String> addedElsewhere = absentFromRequest.stream()
+                .filter(sku -> !knownIds.contains(sku.getId()))
+                .map(Sku::getSkuCode)
+                .toList();
+        if (!addedElsewhere.isEmpty()) {
+            throw BusinessException.conflict("Sản phẩm có biến thể mới được thêm ở nơi khác ("
+                    + String.join(", ", addedElsewhere) + "). Vui lòng kiểm tra lại trước khi lưu.");
         }
     }
 

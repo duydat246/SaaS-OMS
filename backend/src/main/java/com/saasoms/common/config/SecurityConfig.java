@@ -1,5 +1,6 @@
 package com.saasoms.common.config;
 
+import jakarta.servlet.DispatcherType;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -28,6 +29,8 @@ import java.util.List;
 public class SecurityConfig {
 
     private final JwtFilter jwtFilter;
+    private final RestAuthenticationEntryPoint authenticationEntryPoint;
+    private final RestAccessDeniedHandler accessDeniedHandler;
 
     @Value("${app.cors.allowed-origins:http://localhost:4200,http://localhost:80}")
     private String allowedOriginsStr;
@@ -41,8 +44,14 @@ public class SecurityConfig {
             .csrf(AbstractHttpConfigurer::disable)
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+            .exceptionHandling(e -> e
+                .authenticationEntryPoint(authenticationEntryPoint)
+                .accessDeniedHandler(accessDeniedHandler))
             .authorizeHttpRequests(auth -> {
-                auth.requestMatchers("/auth/**").permitAll()
+                // Lỗi từ filter (như firewall chặn /api//products) đi qua ERROR dispatch, không có
+                // JWT ở lượt đó. Thiếu dòng này thì mọi lỗi như vậy đều thành 401 giả.
+                auth.dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
+                    .requestMatchers("/auth/**").permitAll()
                     .requestMatchers("/webhooks/**").permitAll()
                     .requestMatchers("/api/media/**").permitAll();
                 if (swaggerEnabled) {

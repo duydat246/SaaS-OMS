@@ -15,6 +15,7 @@ import com.saasoms.modules.shop.repository.ShopRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
@@ -30,6 +31,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyCollection;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -177,7 +179,8 @@ class ProductImageServiceTest {
         ProductImage next = image(13L, product, false, 1);
 
         when(productImageRepository.findByIdAndShopId(12L, TENANT_ID)).thenReturn(Optional.of(primary));
-        when(productImageRepository.findByShopIdAndProductIdOrderBySortOrderAscIdAsc(TENANT_ID, PRODUCT_ID))
+        when(productRepository.findForUpdate(PRODUCT_ID, TENANT_ID)).thenReturn(Optional.of(product));
+        when(productImageRepository.findForUpdateByShopIdAndProductId(TENANT_ID, PRODUCT_ID))
                 .thenReturn(List.of(next));
 
         productImageService.delete(TENANT_ID, 12L);
@@ -187,6 +190,80 @@ class ProductImageServiceTest {
         verify(localMediaStorage).delete("1/img-12.png");
     }
 
+    /** Mock chỉ chứng minh thứ tự gọi; snapshot REPEATABLE READ phải kiểm trên MySQL thật. */
+    @Test
+    void delete_attached_readsRemainingWithLockAfterProductLock() {
+        Product product = product();
+        ProductImage image = image(12L, product, false, 0);
+        when(productImageRepository.findByIdAndShopId(12L, TENANT_ID)).thenReturn(Optional.of(image));
+        when(productRepository.findForUpdate(PRODUCT_ID, TENANT_ID)).thenReturn(Optional.of(product));
+        when(productImageRepository.findForUpdateByShopIdAndProductId(TENANT_ID, PRODUCT_ID))
+                .thenReturn(List.of(image(13L, product, true, 1)));
+
+        productImageService.delete(TENANT_ID, 12L);
+
+        InOrder order = inOrder(productImageRepository, productRepository);
+        order.verify(productRepository).findForUpdate(PRODUCT_ID, TENANT_ID);
+        order.verify(productImageRepository).delete(image);
+        order.verify(productImageRepository).flush();
+        order.verify(productImageRepository).findForUpdateByShopIdAndProductId(TENANT_ID, PRODUCT_ID);
+        verify(productImageRepository, never())
+                .findByShopIdAndProductIdOrderBySortOrderAscIdAsc(any(), any());
+    }
+
+    /** Ảnh nạp từ snapshot cũ còn cờ chính, nhưng thao tác khác đã commit ảnh chính mới. */
+    @Test
+    void delete_stalePrimaryFlag_doesNotCreateSecondPrimary() {
+        Product product = product();
+        ProductImage stale = image(12L, product, true, 0);
+        ProductImage first = image(13L, product, false, 1);
+        ProductImage currentPrimary = image(14L, product, true, 2);
+        when(productImageRepository.findByIdAndShopId(12L, TENANT_ID)).thenReturn(Optional.of(stale));
+        when(productRepository.findForUpdate(PRODUCT_ID, TENANT_ID)).thenReturn(Optional.of(product));
+        when(productImageRepository.findForUpdateByShopIdAndProductId(TENANT_ID, PRODUCT_ID))
+                .thenReturn(List.of(first, currentPrimary));
+
+        productImageService.delete(TENANT_ID, 12L);
+
+        assertThat(first.getIsPrimary()).isFalse();
+        assertThat(currentPrimary.getIsPrimary()).isTrue();
+        verify(productImageRepository, never()).save(any(ProductImage.class));
+    }
+
+    /** Ảnh nạp từ snapshot cũ không có cờ chính, nhưng thao tác khác vừa đặt nó làm ảnh chính. */
+    @Test
+    void delete_staleNonPrimaryFlag_promotesNextImage() {
+        Product product = product();
+        ProductImage stale = image(12L, product, false, 0);
+        ProductImage next = image(13L, product, false, 1);
+        when(productImageRepository.findByIdAndShopId(12L, TENANT_ID)).thenReturn(Optional.of(stale));
+        when(productRepository.findForUpdate(PRODUCT_ID, TENANT_ID)).thenReturn(Optional.of(product));
+        when(productImageRepository.findForUpdateByShopIdAndProductId(TENANT_ID, PRODUCT_ID))
+                .thenReturn(List.of(next));
+
+        productImageService.delete(TENANT_ID, 12L);
+
+        assertThat(next.getIsPrimary()).isTrue();
+        verify(productImageRepository).save(next);
+    }
+
+    /** Ảnh cũ thấy danh sách rỗng trong snapshot nhưng đã có ảnh mới commit: giữ nguyên imageUrl. */
+    @Test
+    void delete_imagesCommittedByOtherTransaction_keepsImageUrl() {
+        Product product = product();
+        product.setImageUrl("https://example.com/cu.jpg");
+        ProductImage image = image(12L, product, false, 0);
+        when(productImageRepository.findByIdAndShopId(12L, TENANT_ID)).thenReturn(Optional.of(image));
+        when(productRepository.findForUpdate(PRODUCT_ID, TENANT_ID)).thenReturn(Optional.of(product));
+        when(productImageRepository.findForUpdateByShopIdAndProductId(TENANT_ID, PRODUCT_ID))
+                .thenReturn(List.of(image(13L, product, true, 1)));
+
+        productImageService.delete(TENANT_ID, 12L);
+
+        assertThat(product.getImageUrl()).isEqualTo("https://example.com/cu.jpg");
+        verify(productRepository, never()).save(any(Product.class));
+    }
+
     @Test
     void delete_lastImageOfProduct_clearsLegacyImageUrl() {
         Product product = product();
@@ -194,9 +271,9 @@ class ProductImageServiceTest {
         ProductImage only = image(12L, product, true, 0);
 
         when(productImageRepository.findByIdAndShopId(12L, TENANT_ID)).thenReturn(Optional.of(only));
-        when(productImageRepository.findByShopIdAndProductIdOrderBySortOrderAscIdAsc(TENANT_ID, PRODUCT_ID))
+        when(productImageRepository.findForUpdateByShopIdAndProductId(TENANT_ID, PRODUCT_ID))
                 .thenReturn(List.of());
-        when(productRepository.findByIdAndShopId(PRODUCT_ID, TENANT_ID)).thenReturn(Optional.of(product));
+        when(productRepository.findForUpdate(PRODUCT_ID, TENANT_ID)).thenReturn(Optional.of(product));
         when(productRepository.save(product)).thenAnswer(invocation -> invocation.getArgument(0));
 
         productImageService.delete(TENANT_ID, 12L);
@@ -204,6 +281,35 @@ class ProductImageServiceTest {
         assertThat(product.getImageUrl()).isNull();
         verify(productRepository).save(product);
         verify(localMediaStorage).delete("1/img-12.png");
+    }
+
+    @Test
+    void deleteImage_attached_locksProductFirst() {
+        Product product = product();
+        ProductImage image = image(12L, product, false, 0);
+        when(productImageRepository.findByIdAndShopId(12L, TENANT_ID)).thenReturn(Optional.of(image));
+        when(productRepository.findForUpdate(PRODUCT_ID, TENANT_ID)).thenReturn(Optional.of(product));
+        when(productImageRepository.findForUpdateByShopIdAndProductId(TENANT_ID, PRODUCT_ID))
+                .thenReturn(List.of(image(13L, product, true, 1)));
+
+        productImageService.delete(TENANT_ID, 12L);
+
+        InOrder order = inOrder(productImageRepository, productRepository);
+        order.verify(productImageRepository).findByIdAndShopId(12L, TENANT_ID);
+        order.verify(productRepository).findForUpdate(PRODUCT_ID, TENANT_ID);
+        order.verify(productImageRepository).delete(image);
+        verify(productRepository, never()).findByIdAndShopId(any(), any());
+    }
+
+    @Test
+    void deleteImage_draft_doesNotLockProduct() {
+        ProductImage draft = image(12L, null, false, 0);
+        when(productImageRepository.findByIdAndShopId(12L, TENANT_ID)).thenReturn(Optional.of(draft));
+
+        productImageService.delete(TENANT_ID, 12L);
+
+        verify(productImageRepository).delete(draft);
+        verifyNoInteractions(productRepository);
     }
 
     // ------------------------------------------------------------------ SYNC
