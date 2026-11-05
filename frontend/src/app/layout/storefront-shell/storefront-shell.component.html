@@ -1,0 +1,40 @@
+@switch (view()) {
+  @case ("ready") {
+    @if (shop(); as current) {
+      <header class="sign">
+        <div class="sign__inner">
+          <a class="sign__name" [routerLink]="['/s', current.slug]">{{ current.name }}</a>
+          @if (contact(); as info) {
+            <nav class="contact" aria-label="Liên hệ cửa hàng">
+              <a class="contact__call" [href]="info.tel">
+                <i class="pi pi-phone" aria-hidden="true"></i>
+                Gọi {{ info.phone }}
+              </a>
+              <a class="contact__zalo" [href]="info.zalo" target="_blank" rel="noopener noreferrer">Nhắn Zalo</a>
+            </nav>
+          }
+        </div>
+      </header>
+      <main [class.has-contact]="contact()">
+        <router-outlet />
+      </main>
+    }
+  }
+  @case ("loading") {
+    <div class="sign sign--blank" aria-hidden="true"></div>
+    <p class="state" role="status">Đang mở cửa hàng...</p>
+  }
+  @case ("not-found") {
+    <app-storefront-not-found
+      heading="Không tìm thấy cửa hàng"
+      detail="Đường link này không đúng, hoặc cửa hàng đang tạm đóng trang bán hàng. Hãy hỏi lại cửa hàng để lấy link mới."
+    />
+  }
+  @case ("error") {
+    <div class="sign sign--blank" aria-hidden="true"></div>
+    <div class="state" role="alert">
+      <p>{{ errorMessage() }}</p>
+      <button type="button" class="state__retry" (click)="retry()">Thử lại</button>
+    </div>
+  }
+}

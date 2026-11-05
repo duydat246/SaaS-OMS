@@ -1,0 +1,116 @@
+<section class="tools" aria-label="Tìm và lọc sản phẩm">
+  <div class="tools__row">
+    <label class="search">
+      <span class="sr-only">Tìm sản phẩm</span>
+      <i class="pi pi-search" aria-hidden="true"></i>
+      <input
+        #searchBox
+        type="search"
+        enterkeyhint="search"
+        placeholder="Tìm sản phẩm"
+        [attr.maxlength]="searchMaxLength"
+        [value]="searchText()"
+        (input)="onSearchInput(searchBox.value)"
+        (keydown.enter)="submitSearch()"
+      />
+    </label>
+    <label class="sort">
+      <span class="sr-only">Sắp xếp</span>
+      <select #sortBox (change)="onSortChange(sortBox.value)">
+        @for (option of sortOptions; track option.value) {
+          <option [value]="option.value" [selected]="option.value === query().sort">{{ option.label }}</option>
+        }
+      </select>
+    </label>
+  </div>
+
+  @if (categoryChips().length > 0) {
+    <div class="chips" role="group" aria-label="Lọc theo danh mục">
+      <button type="button" class="chip" [attr.aria-pressed]="!query().category" (click)="selectCategory('')">
+        Tất cả
+      </button>
+      @for (category of categoryChips(); track category) {
+        <button
+          type="button"
+          class="chip"
+          [attr.aria-pressed]="query().category === category"
+          (click)="selectCategory(category)"
+        >
+          {{ category }}
+        </button>
+      }
+    </div>
+  }
+  @if (categoriesError(); as message) {
+    <p class="tools__note">
+      {{ message }}
+      <button type="button" class="link" (click)="retryCategories()">Thử lại</button>
+    </p>
+  }
+</section>
+
+@if (loading()) {
+  <p class="sr-only" role="status">Đang tải sản phẩm...</p>
+  <div class="grid" aria-hidden="true">
+    @for (tile of skeletonTiles; track tile) {
+      <div class="tile">
+        <div class="tile__photo"></div>
+        <div class="tile__bar"></div>
+      </div>
+    }
+  </div>
+} @else if (loadError()) {
+  <div class="notice" role="alert">
+    <p>{{ loadError() }}</p>
+    <button type="button" class="action" (click)="retry()">Thử lại</button>
+  </div>
+} @else if (products().length === 0) {
+  <div class="notice">
+    @if (hasFilters()) {
+      <p>Không có sản phẩm khớp với tìm kiếm hoặc danh mục đã chọn.</p>
+      <button type="button" class="action" (click)="clearFilters()">Xem tất cả sản phẩm</button>
+    } @else {
+      <p>Cửa hàng chưa có sản phẩm nào đang bán.</p>
+    }
+  </div>
+} @else {
+  <ul class="grid">
+    @for (product of products(); track product.id) {
+      <li>
+        <a class="tile" [routerLink]="['/s', slug(), 'p', product.id]" queryParamsHandling="preserve">
+          <div class="tile__photo" [class.tile__photo--out]="!product.inStock">
+            @if (product.imageUrl && !isImageBroken(product.id)) {
+              <img loading="lazy" [src]="product.imageUrl" [alt]="product.name" (error)="onImageError(product.id)" />
+            } @else {
+              <i class="pi pi-image" aria-hidden="true"></i>
+            }
+            @if (!product.inStock) {
+              <span class="tile__stamp">Hết hàng</span>
+            }
+          </div>
+          <div class="tile__name">{{ product.name }}</div>
+          <div class="tile__price">{{ priceLabel(product) }}</div>
+        </a>
+      </li>
+    }
+  </ul>
+
+  @if (meta(); as page) {
+    @if (page.totalPages > 1) {
+      <nav class="pager" aria-label="Phân trang">
+        <button type="button" class="action" [disabled]="page.page === 0" (click)="goToPage(page.page - 1)">
+          Trang trước
+        </button>
+        <span>Trang {{ page.page + 1 }}/{{ page.totalPages }}</span>
+        <button
+          type="button"
+          class="action"
+          [disabled]="page.page + 1 >= page.totalPages"
+          (click)="goToPage(page.page + 1)"
+        >
+          Trang sau
+        </button>
+      </nav>
+    }
+  }
+}

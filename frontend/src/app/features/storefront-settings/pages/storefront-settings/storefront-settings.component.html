@@ -1,0 +1,93 @@
+<p-confirmDialog />
+<div class="page-stack settings">
+  <div class="page-header">
+    <h2>Trang bán hàng</h2>
+  </div>
+
+  @if (loading()) {
+    <div class="text-center py-6 muted">Đang tải...</div>
+  } @else if (loadError()) {
+    <div class="load-error" role="alert">
+      <span>{{ loadError() }}</span>
+      <p-button label="Thử lại" severity="danger" [outlined]="true" size="small" (onClick)="load()" />
+    </div>
+  } @else {
+    @if (saved(); as current) {
+    @if (!isOwner()) {
+      <p class="muted m-0">Chỉ chủ cửa hàng mới thay đổi được các cài đặt này.</p>
+    }
+
+    <p-card header="Đường link của cửa hàng">
+      @if (savedSlugValid()) {
+        <div class="link-row">
+          <span class="link-row__url">{{ storefrontUrl() }}</span>
+          @if (current.storefrontEnabled) {
+            <a
+              pButton
+              class="p-button-outlined p-button-sm"
+              icon="pi pi-external-link"
+              label="Mở trang"
+              target="_blank"
+              rel="noopener noreferrer"
+              [href]="storefrontUrl()"
+            ></a>
+          }
+        </div>
+        @if (!current.storefrontEnabled) {
+          <small class="muted">Trang đang tắt. Khách mở link này sẽ thấy trang không tìm thấy.</small>
+        }
+      } @else {
+        <small class="field-error">
+          Địa chỉ hiện tại "{{ current.slug }}" không dùng được. Đặt lại địa chỉ bên dưới để có link cho khách.
+        </small>
+      }
+    </p-card>
+
+    <form [formGroup]="form" (ngSubmit)="onSubmit()">
+      <p-card header="Cài đặt">
+        <div class="settings__fields">
+          <div class="switch-row">
+            <p-inputSwitch inputId="storefront-enabled" formControlName="storefrontEnabled" />
+            <label for="storefront-enabled">Bật trang bán hàng công khai</label>
+          </div>
+
+          <div class="field">
+            <label for="storefront-slug">Địa chỉ cửa hàng *</label>
+            <input id="storefront-slug" pInputText formControlName="slug" autocomplete="off" class="w-full" />
+            @if (form.controls.slug.touched && form.controls.slug.invalid) {
+              <small class="field-error">
+                Địa chỉ dài 3-100 ký tự, chỉ gồm chữ thường không dấu, số và dấu gạch ngang.
+              </small>
+            } @else if (slugChanged()) {
+              <small class="settings__warning">Đổi địa chỉ thì link cũ đã gửi cho khách sẽ không mở được nữa.</small>
+            }
+          </div>
+
+          <div class="field">
+            <label for="storefront-phone">Số điện thoại liên hệ</label>
+            <input
+              id="storefront-phone"
+              pInputText
+              type="tel"
+              formControlName="contactPhone"
+              placeholder="Ví dụ: 0901234567"
+              class="w-full"
+            />
+            @if (form.controls.contactPhone.touched && form.controls.contactPhone.invalid) {
+              <small class="field-error">Số điện thoại gồm 8-15 chữ số, có thể bắt đầu bằng dấu +.</small>
+            } @else {
+              <small class="muted">Khách thấy nút Gọi và Nhắn Zalo. Để trống thì ẩn hai nút này.</small>
+            }
+          </div>
+        </div>
+
+        @if (isOwner()) {
+          <div class="settings__actions">
+            <p-button type="submit" label="Lưu thay đổi" icon="pi pi-check" [loading]="saving()" />
+          </div>
+        }
+      </p-card>
+    </form>
+    }
+  }
+</div>

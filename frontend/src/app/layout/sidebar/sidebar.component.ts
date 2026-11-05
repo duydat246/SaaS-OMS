@@ -55,6 +55,7 @@ export class SidebarComponent {
     { label: "Tổng quan", icon: "pi-home", route: "/dashboard" },
     { label: "Đơn hàng", icon: "pi-shopping-cart", route: "/orders" },
     { label: "Sản phẩm", icon: "pi-box", route: "/products" },
+    { label: "Trang bán hàng", icon: "pi-shop", route: "/storefront-settings" },
   ];
 
   constructor(public auth: AuthService) {}

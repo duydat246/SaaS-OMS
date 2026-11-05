@@ -1,0 +1,7 @@
+<section class="missing">
+  <h1>{{ headingText() }}</h1>
+  <p>{{ detail() ?? "Đường link này không đúng hoặc đã thay đổi. Hãy hỏi lại cửa hàng để lấy link mới." }}</p>
+  @if (shopSlug) {
+    <a class="missing__link" [routerLink]="['/s', shopSlug]">Xem sản phẩm của cửa hàng</a>
+  }
+</section>

@@ -1,0 +1,95 @@
+// Mảnh giao diện của trang khách. Chỉ có mixin, không sinh CSS cho đến khi component gọi.
+// Dùng px vì html admin đặt gốc 14px; ô nhập 16px để iOS không tự phóng to khi chạm.
+
+@mixin tokens {
+  --sf-ink: #16232b;
+  --sf-muted: #566570;
+  --sf-line: #d5dcdd;
+  --sf-paper: #ffffff;
+  --sf-wash: #eef2f1;
+  --sf-sign: #123c4a;
+  --sf-band: #f2b632;
+  --sf-price: #c4291c;
+  --sf-ok: #1a7443;
+  --sf-gutter: 16px;
+
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", "Noto Sans", Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--sf-ink);
+}
+
+@mixin button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 18px;
+  border: 1.5px solid var(--sf-sign);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--sf-sign);
+  font: inherit;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+
+  &:disabled {
+    border-color: var(--sf-line);
+    color: var(--sf-muted);
+    cursor: default;
+  }
+}
+
+@mixin chip {
+  min-height: 40px;
+  padding: 0 14px;
+  border: 1px solid var(--sf-line);
+  border-radius: 6px;
+  background: var(--sf-paper);
+  color: var(--sf-ink);
+  font: inherit;
+  font-size: 15px;
+  cursor: pointer;
+
+  &[aria-pressed="true"] {
+    border-color: var(--sf-sign);
+    background: var(--sf-sign);
+    color: #fff;
+  }
+}
+
+@mixin notice {
+  max-width: 560px;
+  margin: 40px auto;
+  padding: 0 var(--sf-gutter);
+  text-align: center;
+
+  p {
+    margin: 0 0 16px;
+  }
+}
+
+// Khung ảnh dùng chung: ảnh lấp đầy, không có ảnh thì hiện biểu tượng trung tính.
+@mixin frame {
+  display: flex;
+  position: relative;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  aspect-ratio: 4 / 5;
+  background: var(--sf-wash);
+  color: var(--sf-muted);
+
+  img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .pi {
+    font-size: 32px;
+  }
+}

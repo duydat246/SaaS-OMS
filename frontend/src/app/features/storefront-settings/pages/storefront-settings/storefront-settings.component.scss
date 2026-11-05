@@ -1,0 +1,39 @@
+.settings {
+  max-width: 720px;
+}
+
+.link-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.link-row__url {
+  min-width: 0;
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+
+.settings__fields {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.switch-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.settings__warning {
+  color: var(--apollo-danger);
+}
+
+.settings__actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 16px;
+}

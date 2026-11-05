@@ -7,6 +7,14 @@ export const routes: Routes = [
     loadChildren: () =>
       import("./features/auth/auth.routes").then((m) => m.authRoutes),
   },
+  // Trang khách công khai: phải đứng trước route "" có authGuard và không có guard.
+  {
+    path: "s",
+    loadChildren: () =>
+      import("./features/storefront/storefront.routes").then(
+        (m) => m.storefrontRoutes,
+      ),
+  },
   {
     path: "",
     loadComponent: () =>
@@ -30,6 +38,13 @@ export const routes: Routes = [
         loadChildren: () =>
           import("./features/products/products.routes").then(
             (m) => m.productsRoutes,
+          ),
+      },
+      {
+        path: "storefront-settings",
+        loadChildren: () =>
+          import("./features/storefront-settings/storefront-settings.routes").then(
+            (m) => m.storefrontSettingsRoutes,
           ),
       },
       { path: "", redirectTo: "dashboard", pathMatch: "full" },

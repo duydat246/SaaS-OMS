@@ -1,0 +1,24 @@
+@use "../../styles/kit";
+
+.missing {
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 64px var(--sf-gutter);
+}
+
+h1 {
+  margin: 0 0 12px;
+  color: var(--sf-sign);
+  font-size: 32px;
+  font-weight: 800;
+  line-height: 1.15;
+}
+
+p {
+  margin: 0 0 24px;
+  color: var(--sf-muted);
+}
+
+.missing__link {
+  @include kit.button;
+}
