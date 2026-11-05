@@ -33,7 +33,12 @@ public class OrderController {
             @RequestParam(required = false) String search,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
-        var pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+        int safeSize = Math.min(Math.max(size, 1), 100);
+        // Offset vượt Integer.MAX_VALUE sẽ lỗi khi query; kẹp lại để trả trang rỗng kèm totalPages thật.
+        int safePage = Math.min(Math.max(page, 0), Integer.MAX_VALUE / safeSize);
+        // Có id để thứ tự cố định khi trùng createdAt, nếu không các trang sẽ lặp hoặc sót dòng.
+        var sort = Sort.by(Sort.Direction.DESC, "createdAt").and(Sort.by(Sort.Direction.DESC, "id"));
+        var pageable = PageRequest.of(safePage, safeSize, sort);
         return ApiResponse.ok(orderService.getOrders(status, search, pageable));
     }
 

@@ -7,6 +7,10 @@ spring:
     multipart:
       max-file-size: 5MB
       max-request-size: 6MB
+  jackson:
+    deserialization:
+      # Mặc định Jackson cắt 1.5 thành 1 cho field Integer/Long, làm đơn hàng sai số lượng mà không báo lỗi.
+      accept-float-as-int: false
   jpa:
     hibernate:
       ddl-auto: validate
@@ -14,6 +18,7 @@ spring:
       hibernate:
         dialect: org.hibernate.dialect.MySQLDialect
         format_sql: true
+        default_batch_fetch_size: 100
     show-sql: false
   flyway:
     enabled: true

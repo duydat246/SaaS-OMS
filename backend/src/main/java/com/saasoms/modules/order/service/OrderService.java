@@ -60,6 +60,9 @@ public class OrderService {
             OrderStatus.CANCELLED, "Đã huỷ"
     );
 
+    /** Giá trị lớn nhất của cột DECIMAL(12,2). */
+    private static final BigDecimal MAX_MONEY = new BigDecimal("9999999999.99");
+
     private final OrderRepository orderRepository;
     private final CustomerRepository customerRepository;
     private final ShopRepository shopRepository;
@@ -134,6 +137,7 @@ public class OrderService {
 
             BigDecimal unitPrice = sku.getPrice() == null ? BigDecimal.ZERO : sku.getPrice();
             BigDecimal lineTotal = unitPrice.multiply(BigDecimal.valueOf(quantity));
+            assertWithinMoneyLimit(lineTotal);
             subtotal = subtotal.add(lineTotal);
 
             items.add(OrderItem.builder()
@@ -147,6 +151,10 @@ public class OrderService {
                     .build());
         }
 
+        BigDecimal shippingFee = safeMoney(req.getShippingFee());
+        BigDecimal discount = safeMoney(req.getDiscount());
+        BigDecimal total = assertOrderAmounts(subtotal, shippingFee, discount);
+
         // Upsert customer by phone
         Customer customer = customerRepository
                 .findByShopIdAndPhone(tenantId, req.getCustomerPhone())
@@ -156,10 +164,6 @@ public class OrderService {
                         .phone(req.getCustomerPhone())
                         .address(req.getCustomerAddress())
                         .build()));
-
-        BigDecimal shippingFee = safeMoney(req.getShippingFee());
-        BigDecimal discount = safeMoney(req.getDiscount());
-        BigDecimal total = subtotal.add(shippingFee).subtract(discount);
 
         Order order = Order.builder()
                 .shop(shop)
@@ -357,6 +361,30 @@ public class OrderService {
 
     private static String statusLabel(OrderStatus status) {
         return STATUS_LABELS.getOrDefault(status, status.name());
+    }
+
+    /**
+     * Phải gọi trước khi upsert customer, nếu không request bị từ chối vẫn để lại khách hàng mới.
+     * Subtotal và total đều là cột DECIMAL(12,2), nên giảm giá không cứu được subtotal vượt giới hạn.
+     */
+    private static BigDecimal assertOrderAmounts(BigDecimal subtotal, BigDecimal shippingFee, BigDecimal discount) {
+        assertWithinMoneyLimit(subtotal);
+
+        BigDecimal beforeDiscount = subtotal.add(shippingFee);
+        BigDecimal total = beforeDiscount.subtract(discount);
+        if (total.signum() < 0) {
+            throw BusinessException.badRequest("Giảm giá (" + discount.toPlainString()
+                    + ") không được lớn hơn tạm tính cộng phí vận chuyển (" + beforeDiscount.toPlainString() + ")");
+        }
+        assertWithinMoneyLimit(total);
+        return total;
+    }
+
+    private static void assertWithinMoneyLimit(BigDecimal value) {
+        if (value.signum() < 0 || value.compareTo(MAX_MONEY) > 0) {
+            throw BusinessException.badRequest(
+                    "Giá trị đơn hàng vượt giới hạn 9.999.999.999,99 ₫, vui lòng giảm số lượng");
+        }
     }
 
     private static BigDecimal safeMoney(BigDecimal value) {

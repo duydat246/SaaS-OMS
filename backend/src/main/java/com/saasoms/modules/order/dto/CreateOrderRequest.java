@@ -2,6 +2,7 @@ package com.saasoms.modules.order.dto;
 
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.Digits;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
@@ -28,9 +29,11 @@ public class CreateOrderRequest {
     private String customerAddress;
 
     @DecimalMin(value = "0", message = "Phí vận chuyển không được âm")
+    @Digits(integer = 10, fraction = 2, message = "Phí vận chuyển tối đa 10 chữ số phần nguyên và 2 chữ số thập phân")
     private BigDecimal shippingFee = BigDecimal.ZERO;
 
     @DecimalMin(value = "0", message = "Giảm giá không được âm")
+    @Digits(integer = 10, fraction = 2, message = "Giảm giá tối đa 10 chữ số phần nguyên và 2 chữ số thập phân")
     private BigDecimal discount = BigDecimal.ZERO;
 
     private String notes;

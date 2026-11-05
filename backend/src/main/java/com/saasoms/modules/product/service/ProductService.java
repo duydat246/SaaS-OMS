@@ -114,7 +114,10 @@ public class ProductService {
     public ProductResponse getProduct(Long id) {
         Long tenantId = requireTenant();
         Product product = findProduct(tenantId, id);
-        return toResponse(tenantId, product);
+        List<ProductImageResponse> images = productImageService.toResponses(
+                tenantId, productImageService.findByProductId(tenantId, product.getId()));
+        List<Sku> skus = skuRepository.findByShopIdAndProductId(tenantId, product.getId());
+        return ProductResponse.from(product, skus, images, findUsedSkuIds(tenantId, skus));
     }
 
     // ----------------------------------------------------------------- WRITE
@@ -398,6 +401,13 @@ public class ProductService {
                                        List<ProductImageResponse> images) {
         List<Sku> skus = skuRepository.findByShopIdAndProductId(tenantId, product.getId());
         return ProductResponse.from(product, skus, images);
+    }
+
+    private Set<Long> findUsedSkuIds(Long tenantId, List<Sku> skus) {
+        if (skus.isEmpty()) {
+            return Set.of();
+        }
+        return new HashSet<>(skuRepository.findUsedSkuIds(tenantId, skus.stream().map(Sku::getId).toList()));
     }
 
     /**

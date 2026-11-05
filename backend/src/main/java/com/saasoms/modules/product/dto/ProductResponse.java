@@ -11,6 +11,7 @@ import java.time.LocalDateTime;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 
 @Data
 @Builder
@@ -42,6 +43,8 @@ public class ProductResponse {
         private BigDecimal price;
         private Integer stock;
         private String externalId;
+        /** Chỉ có ở chi tiết sản phẩm (GET /api/products/{id}), endpoint khác để null. */
+        private Boolean usedInOrders;
     }
 
     public static SkuInfo from(Sku sku) {
@@ -62,6 +65,14 @@ public class ProductResponse {
     public static ProductResponse from(Product product,
                                        List<Sku> skus,
                                        List<ProductImageResponse> images) {
+        return from(product, skus, images, null);
+    }
+
+    /** {@code usedSkuIds} null nghĩa là không tính, {@code usedInOrders} của mọi SKU để null. */
+    public static ProductResponse from(Product product,
+                                       List<Sku> skus,
+                                       List<ProductImageResponse> images,
+                                       Set<Long> usedSkuIds) {
         // Sắp theo id để thứ tự biến thể ổn định giữa danh sách, chi tiết và form sửa.
         List<Sku> safeSkus = skus == null ? List.of() : skus.stream()
                 .sorted(Comparator.comparing(Sku::getId, Comparator.nullsLast(Comparator.naturalOrder())))
@@ -101,7 +112,13 @@ public class ProductResponse {
                 .minPrice(minPrice)
                 .maxPrice(maxPrice)
                 .totalStock(totalStock)
-                .skus(safeSkus.stream().map(ProductResponse::from).toList())
+                .skus(safeSkus.stream().map(sku -> {
+                    SkuInfo info = from(sku);
+                    if (usedSkuIds != null) {
+                        info.setUsedInOrders(usedSkuIds.contains(sku.getId()));
+                    }
+                    return info;
+                }).toList())
                 .images(safeImages)
                 .build();
     }

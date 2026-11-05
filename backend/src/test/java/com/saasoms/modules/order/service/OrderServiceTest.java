@@ -35,6 +35,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyCollection;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -245,7 +246,159 @@ class OrderServiceTest {
         verifyNoInteractions(skuRepository);
     }
 
+    // --------------------------------------------------- GIỚI HẠN TỔNG ĐƠN
+
+    private static final String LIMIT_MESSAGE =
+            "Giá trị đơn hàng vượt giới hạn 9.999.999.999,99 ₫, vui lòng giảm số lượng";
+
+    @Test
+    void createOrder_discountExceedsTotal_throws400AndSavesNothing() {
+        CreateOrderRequest request = request(1);
+        request.setShippingFee(new BigDecimal("20000.00"));
+        request.setDiscount(new BigDecimal("500000.50"));
+        stubShopAndSku(sku(5, "100000.00"));
+        allowWritesIfCheckIsMissing();
+
+        BusinessException ex = assertThrows(BusinessException.class,
+                () -> orderService.createOrder(request));
+
+        assertThat(ex.getStatus()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(ex.getMessage()).isEqualTo(
+                "Giảm giá (500000.50) không được lớn hơn tạm tính cộng phí vận chuyển (120000.00)");
+        verifyNoInteractions(customerRepository);
+        verify(orderRepository, never()).save(any());
+    }
+
+    @Test
+    void createOrder_totalZero_isAccepted() {
+        CreateOrderRequest request = request(1);
+        request.setShippingFee(new BigDecimal("20000.00"));
+        request.setDiscount(new BigDecimal("120000.00"));
+        stubShopAndSku(sku(5, "100000.00"));
+        stubCustomerAndSave();
+
+        OrderResponse response = orderService.createOrder(request);
+
+        assertThat(response.getTotalAmount()).isEqualByComparingTo("0");
+    }
+
+    @Test
+    void createOrder_lineTotalOverflow_throws400() {
+        CreateOrderRequest request = request(2);
+        request.setShippingFee(BigDecimal.ZERO);
+        request.setDiscount(BigDecimal.ZERO);
+        stubShopAndSku(sku(5, "5000000000.00"));
+        allowWritesIfCheckIsMissing();
+
+        BusinessException ex = assertThrows(BusinessException.class,
+                () -> orderService.createOrder(request));
+
+        assertThat(ex.getStatus()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(ex.getMessage()).isEqualTo(LIMIT_MESSAGE);
+        verifyNoInteractions(customerRepository);
+        verify(orderRepository, never()).save(any());
+    }
+
+    @Test
+    void createOrder_subtotalOverflowWithDiscount_throws400() {
+        // Mỗi dòng vừa giới hạn, tổng trừ giảm giá cũng vừa, nhưng cột subtotal không chứa nổi.
+        Sku first = sku(5, "6000000000.00");
+        Sku second = Sku.builder()
+                .id(SKU_ID + 1)
+                .product(product)
+                .shop(shop)
+                .skuCode("SKU-2")
+                .price(new BigDecimal("6000000000.00"))
+                .stock(5)
+                .build();
+        CreateOrderRequest.OrderItemRequest secondLine = new CreateOrderRequest.OrderItemRequest();
+        secondLine.setSkuId(SKU_ID + 1);
+        secondLine.setQuantity(1);
+        CreateOrderRequest request = request(1);
+        request.setItems(List.of(request.getItems().get(0), secondLine));
+        request.setShippingFee(BigDecimal.ZERO);
+        request.setDiscount(new BigDecimal("5000000000.00"));
+        stubShopAndSku(first, second);
+        allowWritesIfCheckIsMissing();
+
+        BusinessException ex = assertThrows(BusinessException.class,
+                () -> orderService.createOrder(request));
+
+        assertThat(ex.getStatus()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(ex.getMessage()).isEqualTo(LIMIT_MESSAGE);
+        verifyNoInteractions(customerRepository);
+    }
+
+    @Test
+    void createOrder_totalOverflowFromShippingFee_throws400() {
+        CreateOrderRequest request = request(1);
+        request.setShippingFee(new BigDecimal("0.01"));
+        request.setDiscount(BigDecimal.ZERO);
+        stubShopAndSku(sku(5, "9999999999.99"));
+        allowWritesIfCheckIsMissing();
+
+        BusinessException ex = assertThrows(BusinessException.class,
+                () -> orderService.createOrder(request));
+
+        assertThat(ex.getStatus()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(ex.getMessage()).isEqualTo(LIMIT_MESSAGE);
+        verifyNoInteractions(customerRepository);
+    }
+
+    @Test
+    void createOrder_totalAtLimit_isAccepted() {
+        CreateOrderRequest request = request(1);
+        request.setShippingFee(BigDecimal.ZERO);
+        request.setDiscount(BigDecimal.ZERO);
+        stubShopAndSku(sku(5, "9999999999.99"));
+        stubCustomerAndSave();
+
+        OrderResponse response = orderService.createOrder(request);
+
+        assertThat(response.getTotalAmount()).isEqualByComparingTo("9999999999.99");
+    }
+
+    @Test
+    void updateStatus_legacyNegativeTotal_stillWorks() {
+        Order order = order(OrderStatus.PENDING, 1);
+        order.setTotalAmount(new BigDecimal("-5000.00"));
+        when(orderRepository.findForUpdate(100L, TENANT_ID)).thenReturn(Optional.of(order));
+        when(orderRepository.save(any(Order.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        OrderResponse response = orderService.updateStatus(100L, statusRequest(OrderStatus.CANCELLED));
+
+        assertThat(response.getStatus()).isEqualTo("CANCELLED");
+        assertThat(response.getTotalAmount()).isEqualByComparingTo("-5000.00");
+    }
+
+    @Test
+    void getOrder_legacyNegativeTotal_returnsActualValue() {
+        Order order = order(OrderStatus.DELIVERED, 1);
+        order.setTotalAmount(new BigDecimal("-5000.00"));
+        when(orderRepository.findByIdAndShopId(100L, TENANT_ID)).thenReturn(Optional.of(order));
+
+        assertThat(orderService.getOrder(100L).getTotalAmount()).isEqualByComparingTo("-5000.00");
+    }
+
     // ---------------------------------------------------------------- HELPERS
+
+    private void stubShopAndSku(Sku... skus) {
+        when(shopRepository.findById(TENANT_ID)).thenReturn(Optional.of(shop));
+        when(skuRepository.findByShopIdAndIdIn(eq(TENANT_ID), anyCollection())).thenReturn(List.of(skus));
+    }
+
+    private void stubCustomerAndSave() {
+        when(customerRepository.findByShopIdAndPhone(TENANT_ID, "0901234567")).thenReturn(Optional.of(customer));
+        when(orderRepository.save(any(Order.class))).thenAnswer(invocation -> invocation.getArgument(0));
+    }
+
+    /** Nếu thiếu kiểm tra thì service đi hết luồng ghi và test đỏ vì không có exception, không phải vì NPE. */
+    private void allowWritesIfCheckIsMissing() {
+        lenient().when(customerRepository.findByShopIdAndPhone(TENANT_ID, "0901234567"))
+                .thenReturn(Optional.of(customer));
+        lenient().when(orderRepository.save(any(Order.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+    }
 
     private Sku sku(int stock, String price) {
         return Sku.builder()

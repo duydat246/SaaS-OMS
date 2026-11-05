@@ -270,6 +270,60 @@ class ProductServiceTest {
     }
 
     @Test
+    void getProduct_skuInOrder_setsUsedInOrdersTrue() {
+        Product product = product(10L, ProductStatus.ACTIVE);
+        when(productRepository.findByIdAndShopId(10L, TENANT_ID)).thenReturn(Optional.of(product));
+        when(skuRepository.findByShopIdAndProductId(TENANT_ID, 10L)).thenReturn(List.of(
+                sku(100L, product, "SKU-A", "1.00", 1),
+                sku(101L, product, "SKU-B", "1.00", 1)));
+        when(skuRepository.findUsedSkuIds(eq(TENANT_ID), anyCollection())).thenReturn(List.of(101L));
+
+        ProductResponse response = productService.getProduct(10L);
+
+        assertThat(response.getSkus())
+                .extracting(ProductResponse.SkuInfo::getId, ProductResponse.SkuInfo::getUsedInOrders)
+                .containsExactly(tuple(100L, false), tuple(101L, true));
+    }
+
+    @Test
+    void getProduct_skuNotInOrder_setsUsedInOrdersFalse() {
+        Product product = product(10L, ProductStatus.ACTIVE);
+        when(productRepository.findByIdAndShopId(10L, TENANT_ID)).thenReturn(Optional.of(product));
+        when(skuRepository.findByShopIdAndProductId(TENANT_ID, 10L))
+                .thenReturn(List.of(sku(100L, product, "SKU-A", "1.00", 1)));
+        when(skuRepository.findUsedSkuIds(eq(TENANT_ID), anyCollection())).thenReturn(List.of());
+
+        ProductResponse response = productService.getProduct(10L);
+
+        assertThat(response.getSkus().get(0).getUsedInOrders()).isFalse();
+    }
+
+    @Test
+    void getProduct_wrongTenant_doesNotQueryUsedSkus() {
+        TenantContext.set(2L);
+        when(productRepository.findByIdAndShopId(10L, 2L)).thenReturn(Optional.empty());
+
+        assertThrows(BusinessException.class, () -> productService.getProduct(10L));
+
+        verify(skuRepository, never()).findUsedSkuIds(any(), anyCollection());
+    }
+
+    @Test
+    void getProducts_doesNotQueryUsedSkus() {
+        Product product = product(10L, ProductStatus.ACTIVE);
+        Page<Product> page = new PageImpl<>(List.of(product), PageRequest.of(0, 20), 1);
+        when(productRepository.search(any(), any(), any(), any(), any(), any())).thenReturn(page);
+        when(skuRepository.findByShopIdAndProductIdIn(eq(TENANT_ID), anyCollection()))
+                .thenReturn(List.of(sku(100L, product, "SKU-A", "1.00", 1)));
+
+        PageResponse<ProductResponse> response =
+                productService.getProducts(null, null, null, null, PageRequest.of(0, 20));
+
+        assertThat(response.getContent().get(0).getSkus().get(0).getUsedInOrders()).isNull();
+        verify(skuRepository, never()).findUsedSkuIds(any(), anyCollection());
+    }
+
+    @Test
     void updateProduct_sameSkuIdTwice_throwsBadRequest() {
         Product product = product(10L, ProductStatus.ACTIVE);
         when(productRepository.findForUpdate(10L, TENANT_ID)).thenReturn(Optional.of(product));
