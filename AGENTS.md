@@ -1,6 +1,6 @@
 # AGENTS.md — Quy ước phát triển SaaS OMS
 
-> Phiên bản 1.0 · Cập nhật 23/10/2026
+> Phiên bản 1.1 · Cập nhật 05/11/2026
 > Áp dụng cho mọi người và mọi agent làm việc trong repo này.
 > Quy ước riêng của từng vai (backend-dev, frontend-dev, reviewer, QA) nằm trong `.opencode/agents/`; file này là chuẩn chung, không thay thế các file đó.
 
@@ -36,6 +36,7 @@ backend/src/main/java/com/saasoms/
 ├── common/
 │   ├── config/        JwtFilter, JwtService, SecurityConfig, SwaggerConfig
 │   ├── exception/     BusinessException, GlobalExceptionHandler
+│   ├── ratelimit/     PublicRateLimiter
 │   ├── response/      ApiResponse<T>, PageResponse<T>
 │   ├── tenant/        TenantContext (ThreadLocal)
 │   └── util/
@@ -47,7 +48,7 @@ backend/src/main/java/com/saasoms/
     └── service/       nghiệp vụ + @Transactional
 ```
 
-Module hiện có: `auth`, `user`, `shop`, `customer`, `order` (legacy), `product` (mẫu tham chiếu mới nhất), `dashboard` (chỉ đọc, không có entity).
+Module hiện có: `auth`, `user`, `shop`, `customer`, `order` (legacy), `product` (mẫu tham chiếu mới nhất), `dashboard` (chỉ đọc, không có entity), `storefront` (API công khai chỉ đọc, không có entity).
 
 ### Frontend
 
@@ -55,12 +56,14 @@ Module hiện có: `auth`, `user`, `shop`, `customer`, `order` (legacy), `produc
 frontend/src/app/
 ├── core/       auth (service, guard), interceptors, models dùng chung
 ├── shared/     services dùng chung (Excel), components dùng chung
-├── layout/     shell, sidebar, topbar, styles
+├── layout/     shell, sidebar, topbar, styles, storefront-shell
 └── features/
     ├── auth/
     ├── dashboard/
     ├── orders/    (legacy)
-    └── products/  (mẫu tham chiếu mới nhất)
+    ├── products/  (mẫu tham chiếu mới nhất)
+    ├── storefront/           (trang khách, công khai)
+    └── storefront-settings/  (cài đặt cho chủ shop)
 ```
 
 Mỗi feature: `*.routes.ts`, `models/`, `constants/`, `services/`, `pages/`.
@@ -77,7 +80,7 @@ Mỗi feature: `*.routes.ts`, `models/`, `constants/`, `services/`, `pages/`.
 
 ## 3. Nguyên tắc bất biến
 
-1. **Cách ly tenant tuyệt đối.** Mọi đọc/ghi đều lấy `tenantId` từ `TenantContext.get()`. Không bao giờ nhận `tenantId`/`shopId` từ client. Truy cập chéo tenant trả **404**, không trả 403 (tránh lộ sự tồn tại của dữ liệu).
+1. **Cách ly tenant tuyệt đối.** Mọi đọc/ghi đều lấy `tenantId` từ `TenantContext.get()`. Không bao giờ nhận `tenantId`/`shopId` từ client. Truy cập chéo tenant trả **404**, không trả 403 (tránh lộ sự tồn tại của dữ liệu). Ngoại lệ là `GET /api/public/**` của module `storefront`: tenant do server phân giải từ slug, shop phải `ACTIVE` và đã bật `storefront_enabled`, chỉ trả dữ liệu đã công khai. Code nhóm này **không được đọc** `TenantContext`, vì người xem có thể đang đăng nhập ở shop khác.
 2. **Không hard delete** dữ liệu nghiệp vụ. Sản phẩm dùng soft-delete: `status = 'ARCHIVED'`; đơn hàng dùng `status = 'CANCELLED'`.
 3. **Sản phẩm luôn có ≥ 1 SKU.** Sản phẩm không biến thể = một SKU mặc định.
 4. **Tiền và tồn kho không nằm trên `products`.** Giá/tồn nằm ở `skus`; mọi tổng hợp tính từ `skus`.
@@ -323,14 +326,14 @@ export class ProductListComponent implements OnInit {
 
 ## 8. Bảo mật
 
-- Mọi endpoint `/api/**` yêu cầu xác thực; chỉ `/auth/**`, `/webhooks/**`, tài liệu Swagger (theo profile) là public.
+- Mọi endpoint `/api/**` yêu cầu xác thực; chỉ `/auth/**`, `/webhooks/**`, tài liệu Swagger (theo profile) và `GET /api/public/**` (trang bán hàng, chỉ đọc) là public. Không thêm API ghi vào nhóm `/api/public/**`.
 - `TenantContext` chỉ được set từ JWT trong `JwtFilter`; luôn `clear()` trong `finally`.
 - Role hiện có: `OWNER`, `STAFF`. Phân quyền bằng `@PreAuthorize` khi hành động nguy hiểm.
 - Không log token, mật khẩu, dữ liệu cá nhân; không bật `show-sql` ở production.
 - CORS: allowlist tường minh từ `APP_CORS_ALLOWED_ORIGINS`; không phản chiếu mọi `Origin`.
 - Swagger chỉ mở ở dev; production chặn hoặc bảo vệ.
 - Bắt buộc validate input ở biên; không tin dữ liệu client.
-- Rate-limit bắt buộc cho `/auth/login` và `/auth/register` (xem mục 12).
+- Rate-limit bắt buộc cho `/auth/login` và `/auth/register` (xem mục 12), và cho `/api/public/**` theo IP.
 - Secret (JWT, DB) phải được truyền qua env; không có giá trị mặc định dùng được ở production.
 
 ---
