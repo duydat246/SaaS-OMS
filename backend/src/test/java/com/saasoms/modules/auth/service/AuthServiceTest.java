@@ -15,6 +15,7 @@ import com.saasoms.modules.user.entity.User;
 import com.saasoms.modules.user.repository.UserRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InOrder;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -27,6 +28,7 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.never;
@@ -164,6 +166,38 @@ class AuthServiceTest {
         verify(loginRateLimiter).checkRegister(IP);
     }
 
+    @Test
+    void register_vietnameseName_generatesAsciiSlug() {
+        stubSuccessfulRegister();
+
+        authService.register(registerRequest("Cửa Hàng Đẹp"), IP);
+
+        assertThat(savedShop().getSlug()).isEqualTo("cua-hang-dep");
+    }
+
+    @Test
+    void register_newShop_storefrontDisabledByDefault() {
+        stubSuccessfulRegister();
+
+        authService.register(registerRequest("Cửa Hàng Đẹp"), IP);
+
+        assertThat(savedShop().getStorefrontEnabled()).isFalse();
+        assertThat(savedShop().getContactPhone()).isNull();
+    }
+
+    @Test
+    void register_slugCollision_appendsSuffixWithin100Chars() {
+        stubSuccessfulRegister();
+        String base = "a".repeat(90);
+        when(shopRepository.existsBySlug(base)).thenReturn(true);
+        when(shopRepository.existsBySlug(base + "-1")).thenReturn(true);
+
+        authService.register(registerRequest("a".repeat(100)), IP);
+
+        assertThat(savedShop().getSlug()).isEqualTo(base + "-2");
+        assertThat(savedShop().getSlug().length()).isLessThanOrEqualTo(100);
+    }
+
     // --------------------------------------------------------------- REFRESH
 
     @Test
@@ -193,9 +227,25 @@ class AuthServiceTest {
         return request;
     }
 
+    private void stubSuccessfulRegister() {
+        when(shopRepository.save(any(Shop.class))).thenAnswer(i -> i.getArgument(0));
+        when(userRepository.save(any(User.class))).thenAnswer(i -> i.getArgument(0));
+        when(refreshTokenRepository.save(any(RefreshToken.class))).thenAnswer(i -> i.getArgument(0));
+    }
+
+    private Shop savedShop() {
+        ArgumentCaptor<Shop> captor = ArgumentCaptor.forClass(Shop.class);
+        verify(shopRepository, atLeastOnce()).save(captor.capture());
+        return captor.getValue();
+    }
+
     private static RegisterRequest registerRequest() {
+        return registerRequest("Shop test");
+    }
+
+    private static RegisterRequest registerRequest(String shopName) {
         RegisterRequest request = new RegisterRequest();
-        request.setShopName("Shop test");
+        request.setShopName(shopName);
         request.setEmail(EMAIL);
         request.setPassword("mat-khau-du-dai");
         request.setFullName("Người dùng");

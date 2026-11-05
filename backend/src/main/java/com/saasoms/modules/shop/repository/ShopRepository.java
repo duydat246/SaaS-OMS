@@ -7,5 +7,6 @@ import java.util.Optional;
 
 public interface ShopRepository extends JpaRepository<Shop, Long> {
     boolean existsBySlug(String slug);
+    boolean existsBySlugAndIdNot(String slug, Long id);
     Optional<Shop> findBySlug(String slug);
 }

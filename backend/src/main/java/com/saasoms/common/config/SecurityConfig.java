@@ -53,7 +53,8 @@ public class SecurityConfig {
                 auth.dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
                     .requestMatchers("/auth/**").permitAll()
                     .requestMatchers("/webhooks/**").permitAll()
-                    .requestMatchers("/api/media/**").permitAll();
+                    .requestMatchers("/api/media/**").permitAll()
+                    .requestMatchers(HttpMethod.GET, "/api/public/**").permitAll();
                 if (swaggerEnabled) {
                     auth.requestMatchers("/swagger-ui/**", "/api-docs/**", "/swagger-ui.html").permitAll();
                 }

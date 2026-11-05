@@ -69,6 +69,35 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
             @Param("shopId") Long shopId,
             @Param("archivedStatus") ProductStatus archivedStatus);
 
+    /**
+     * Danh sách cho khách: chỉ sản phẩm đang bán, không khớp mã SKU.
+     * Trạng thái viết cứng trong query để người gọi không truyền nhầm được.
+     */
+    @Query("""
+            SELECT p FROM Product p
+            WHERE p.shop.id = :shopId
+              AND p.status = com.saasoms.modules.product.entity.ProductStatus.ACTIVE
+              AND (:category IS NULL OR p.category = :category)
+              AND (:search IS NULL OR
+                   LOWER(p.name) LIKE LOWER(CONCAT('%', :search, '%')) ESCAPE '!'
+                   OR LOWER(COALESCE(p.category, '')) LIKE LOWER(CONCAT('%', :search, '%')) ESCAPE '!')
+            """)
+    Page<Product> searchPublished(
+            @Param("shopId") Long shopId,
+            @Param("category") String category,
+            @Param("search") String search,
+            Pageable pageable);
+
+    @Query("""
+            SELECT DISTINCT p.category FROM Product p
+            WHERE p.shop.id = :shopId
+              AND p.status = com.saasoms.modules.product.entity.ProductStatus.ACTIVE
+              AND p.category IS NOT NULL
+              AND p.category <> ''
+            ORDER BY p.category ASC
+            """)
+    List<String> findPublishedCategories(@Param("shopId") Long shopId);
+
     @Query("""
             SELECT COUNT(p) FROM Product p
             WHERE p.shop.id = :shopId

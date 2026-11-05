@@ -35,4 +35,19 @@ public interface ProductImageRepository extends JpaRepository<ProductImage, Long
     List<ProductImage> findByShopIdAndIdIn(Long shopId, Collection<Long> ids);
 
     List<ProductImage> findByProductIsNullAndCreatedAtBefore(LocalDateTime cutoff);
+
+    /**
+     * Ảnh cho khách: INNER JOIN loại ảnh nháp (product_id NULL), sản phẩm phải đang bán.
+     * Sản phẩm cũng phải cùng cửa hàng với ảnh.
+     */
+    @Query("""
+            SELECT i FROM ProductImage i
+            JOIN i.product p
+            WHERE i.id = :imageId
+              AND i.shop.id = :shopId
+              AND p.shop.id = :shopId
+              AND p.status = com.saasoms.modules.product.entity.ProductStatus.ACTIVE
+            """)
+    Optional<ProductImage> findPublishedByIdAndShopId(@Param("imageId") Long imageId,
+                                                      @Param("shopId") Long shopId);
 }

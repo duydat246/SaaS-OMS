@@ -38,4 +38,12 @@ public class Shop {
 
     @UpdateTimestamp
     private LocalDateTime updatedAt;
+
+    /** Shop chỉ hiện trên trang công khai khi chủ shop tự bật. */
+    @Column(name = "storefront_enabled", nullable = false)
+    @Builder.Default
+    private Boolean storefrontEnabled = false;
+
+    @Column(name = "contact_phone", length = 20)
+    private String contactPhone;
 }

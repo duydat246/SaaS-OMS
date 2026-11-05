@@ -3,6 +3,8 @@ package com.saasoms.common.media;
 import com.saasoms.common.exception.BusinessException;
 import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.io.FileSystemResource;
+import org.springframework.core.io.Resource;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
@@ -11,6 +13,7 @@ import java.nio.file.Files;
 import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.util.Locale;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.regex.Pattern;
@@ -92,6 +95,18 @@ public class LocalMediaStorage {
             log.warn("Không đọc được tệp ảnh {}", target, ex);
             throw BusinessException.notFound(FILE_NOT_FOUND_MESSAGE);
         }
+    }
+
+    /**
+     * Mở tệp để stream, không nạp cả tệp vào heap. Rỗng nếu khoá sai hoặc tệp không còn;
+     * người gọi tự chọn thông báo lỗi.
+     */
+    public Optional<Resource> openResource(String key) {
+        Path target = resolve(key);
+        if (target == null || !Files.isRegularFile(target) || !Files.isReadable(target)) {
+            return Optional.empty();
+        }
+        return Optional.of(new FileSystemResource(target));
     }
 
     /**

@@ -2,6 +2,7 @@ package com.saasoms.modules.auth.service;
 
 import com.saasoms.common.config.JwtService;
 import com.saasoms.common.exception.BusinessException;
+import com.saasoms.common.util.SlugPolicy;
 import com.saasoms.modules.auth.dto.AuthResponse;
 import com.saasoms.modules.auth.dto.LoginRequest;
 import com.saasoms.modules.auth.dto.RefreshRequest;
@@ -133,11 +134,7 @@ public class AuthService {
     }
 
     private String generateSlug(String shopName) {
-        String base = shopName.toLowerCase()
-                .replaceAll("[^a-z0-9\\s-]", "")
-                .replaceAll("\\s+", "-")
-                .replaceAll("-+", "-")
-                .replaceAll("^-|-$", "");
+        String base = SlugPolicy.fromName(shopName);
 
         String slug = base;
         int suffix = 1;
