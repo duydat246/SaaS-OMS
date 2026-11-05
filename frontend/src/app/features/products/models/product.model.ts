@@ -7,6 +7,8 @@ export interface Sku {
   price: number;
   stock: number;
   externalId: string | null;
+  /** Chỉ `GET /api/products/{id}` tính giá trị thật; endpoint khác trả null. */
+  usedInOrders: boolean | null;
 }
 
 export interface ProductImage {

@@ -112,6 +112,8 @@ export class ProductFormComponent {
   private readonly currentStockBySkuId = signal<ReadonlyMap<number, number>>(new Map());
   /** Id SKU đã thấy từ máy chủ, gồm cả dòng người dùng tự xoá: phân biệt với SKU được thêm ở nơi khác. */
   private knownSkuIds = new Set<number>();
+  /** SKU đã có trong đơn hàng: backend không cho xoá nên khoá nút xoá. */
+  private readonly usedSkuIds = signal<ReadonlySet<number>>(new Set());
   /** Danh sách ảnh không nằm trong form nên phải tự theo dõi thay đổi. */
   private imagesChanged = false;
   private saved = false;
@@ -285,8 +287,13 @@ export class ProductFormComponent {
     this.skus.updateValueAndValidity();
   }
 
+  isSkuUsed(index: number): boolean {
+    const id = this.skuRows()[index]?.id;
+    return id != null && this.usedSkuIds().has(id);
+  }
+
   removeSku(index: number): void {
-    if (this.skus.length <= 1) {
+    if (this.skus.length <= 1 || this.isSkuUsed(index)) {
       return;
     }
     this.skus.removeAt(index);
@@ -313,6 +320,7 @@ export class ProductFormComponent {
         }
         this.product.set(product);
         this.knownSkuIds = new Set((product.skus ?? []).map((sku) => sku.id));
+        this.usedSkuIds.set(this.collectUsedSkuIds(product.skus ?? []));
         this.form.patchValue({
           name: product.name,
           description: product.description ?? "",
@@ -697,6 +705,16 @@ export class ProductFormComponent {
     }
     this.currentStockBySkuId.set(hints);
 
+    if (skuListChanges.restoredCodes.length > 0) {
+      this.messageService.add({
+        severity: "warn",
+        summary: "Đã đưa lại biến thể",
+        detail:
+          `Biến thể ${skuListChanges.restoredCodes.join(", ")} vừa có trong đơn hàng nên không xoá được và đã được đưa lại. ` +
+          "Vui lòng kiểm tra rồi lưu lại.",
+      });
+    }
+
     if (skuListChanges.added > 0 || skuListChanges.removed > 0) {
       this.messageService.add({
         severity: "warn",
@@ -710,11 +728,17 @@ export class ProductFormComponent {
 
   /**
    * Đưa danh sách dòng về khớp máy chủ: thêm SKU chưa từng thấy, bỏ dòng có SKU đã mất.
-   * Dòng người dùng tự xoá có id trong `knownSkuIds` nên không quay lại. Không làm vậy thì lần lưu sau lại 409.
+   * Dòng người dùng tự xoá có id trong `knownSkuIds` nên không quay lại, trừ khi SKU đó đã có trong đơn hàng:
+   * backend không cho xoá nên phải đưa lại. Không làm vậy thì lần lưu sau lại 409.
    */
-  private applyFreshSkuList(freshSkus: Sku[]): { added: number; removed: number } {
+  private applyFreshSkuList(freshSkus: Sku[]): { added: number; removed: number; restoredCodes: string[] } {
     const freshIds = new Set(freshSkus.map((sku) => sku.id));
     const newSkus = freshSkus.filter((sku) => !this.knownSkuIds.has(sku.id));
+    const rowIds = new Set(this.skus.controls.map((control) => (control.getRawValue() as SkuFormValue).id));
+    const restored = freshSkus.filter(
+      (sku) => sku.usedInOrders === true && this.knownSkuIds.has(sku.id) && !rowIds.has(sku.id),
+    );
+    this.usedSkuIds.set(this.collectUsedSkuIds(freshSkus));
 
     let removed = 0;
     for (let i = this.skus.length - 1; i >= 0; i--) {
@@ -724,7 +748,7 @@ export class ProductFormComponent {
         removed++;
       }
     }
-    for (const sku of newSkus) {
+    for (const sku of [...restored, ...newSkus]) {
       this.skus.push(this.createSkuGroup(sku));
     }
     this.knownSkuIds = freshIds;
@@ -737,7 +761,11 @@ export class ProductFormComponent {
         added++;
       }
     }
-    return { added, removed };
+    return { added, removed, restoredCodes: restored.map((sku) => sku.skuCode) };
+  }
+
+  private collectUsedSkuIds(skus: Sku[]): ReadonlySet<number> {
+    return new Set(skus.filter((sku) => sku.usedInOrders === true).map((sku) => sku.id));
   }
 
   getSkuGroup(index: number): FormGroup {

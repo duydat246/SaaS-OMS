@@ -212,6 +212,22 @@
   color: var(--apollo-danger);
 }
 
+.dash-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.dash-panel-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--apollo-text);
+}
+
 .summary-row {
   display: flex;
   justify-content: space-between;

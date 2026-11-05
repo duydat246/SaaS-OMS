@@ -34,29 +34,83 @@
     }
   </div>
 
-  <div class="dash-row">
-    <div class="dash-panel">
-      <div class="dash-panel-head">
-        <h3 class="dash-panel-title">Doanh thu &amp; lợi nhuận</h3>
-        <span class="dash-demo-label">Dữ liệu minh hoạ</span>
-      </div>
-      <div class="dash-chart-box">
-        <p-chart type="bar" height="100%" [data]="barData" [options]="barOptions" />
-      </div>
+  @if (statsError()) {
+    <div class="dash-alert" role="alert">
+      <span>Không tải được số liệu đơn hàng.</span>
+      <p-button label="Thử lại" size="small" [outlined]="true" severity="secondary" type="button" (onClick)="loadStats()" />
     </div>
-    <div class="dash-panel">
+  }
+
+  <div class="dash-period">
+    <p-selectButton
+      [options]="periodOptions"
+      [ngModel]="selectedDays()"
+      (onChange)="onPeriodChange($event.value)"
+      optionLabel="label"
+      optionValue="value"
+      [allowEmpty]="false"
+      ariaLabelledBy="dash-period-label"
+    />
+    <span id="dash-period-label" class="muted text-sm">
+      Theo ngày đặt đơn
+      @if (periodRange()) {
+        <span class="num">({{ periodRange() }})</span>
+      }
+    </span>
+  </div>
+
+  @if (overviewError(); as message) {
+    <div class="dash-alert" role="alert">
+      <span>{{ message }}</span>
+      <p-button label="Thử lại" size="small" [outlined]="true" severity="secondary" type="button" (onClick)="reloadOverview()" />
+    </div>
+  }
+
+  <ng-template #overviewPending>
+    <p class="dash-state muted">
+      {{ overviewLoading() ? "Đang tải số liệu..." : "Chưa tải được số liệu." }}
+    </p>
+  </ng-template>
+
+  <div class="dash-row">
+    <div class="dash-panel" [class.dash-panel--busy]="overviewLoading()" [attr.aria-busy]="overviewLoading()">
       <div class="dash-panel-head">
-        <h3 class="dash-panel-title">Đơn theo danh mục</h3>
-        <span class="dash-demo-label">Dữ liệu minh hoạ</span>
+        <h3 class="dash-panel-title">Doanh thu theo ngày</h3>
+        <span class="muted text-xs">Doanh thu chỉ tính đơn đã giao</span>
       </div>
-      <div class="dash-chart-box">
-        <p-chart
-          type="doughnut"
-          height="100%"
-          [data]="doughnutData"
-          [options]="doughnutOptions"
-        />
+      @if (!overview()) {
+        <ng-container *ngTemplateOutlet="overviewPending" />
+      } @else if (hasRevenue()) {
+        <div class="dash-chart-box" role="img" [attr.aria-label]="barSummary()">
+          <p-chart type="bar" height="100%" [data]="barData()" [options]="barOptions" />
+        </div>
+      } @else {
+        <p class="dash-state muted">Chưa có đơn hàng trong kỳ này.</p>
+      }
+    </div>
+    <div class="dash-panel" [class.dash-panel--busy]="overviewLoading()" [attr.aria-busy]="overviewLoading()">
+      <div class="dash-panel-head">
+        <h3 class="dash-panel-title">Doanh số theo danh mục</h3>
+        <span class="muted text-xs">Đơn đã giao, trước giảm giá và phí ship</span>
       </div>
+      @if (!overview()) {
+        <ng-container *ngTemplateOutlet="overviewPending" />
+      } @else if (hasCategories()) {
+        <div class="dash-doughnut-box" role="img" [attr.aria-label]="categorySummary()">
+          <p-chart type="doughnut" height="100%" [data]="doughnutData()" [options]="doughnutOptions" />
+        </div>
+        <ul class="dash-legend list-none m-0 p-0">
+          @for (row of categoryRows(); track row.label) {
+            <li class="dash-legend__row">
+              <span class="dash-legend__swatch" [style.background]="row.color" aria-hidden="true"></span>
+              <span class="dash-legend__name" [title]="row.label">{{ row.label }}</span>
+              <span class="num font-medium">{{ row.amount | currency }}</span>
+            </li>
+          }
+        </ul>
+      } @else {
+        <p class="dash-state muted">Chưa có đơn đã giao trong kỳ này.</p>
+      }
     </div>
   </div>
 
@@ -151,7 +205,14 @@
           <ng-template pTemplate="emptymessage">
             <tr>
               <td colspan="6" class="text-center py-4 muted">
-                Chưa có đơn hàng
+                @if (tableError(); as message) {
+                  <div class="dash-table-error" role="alert">
+                    <span>{{ message }}</span>
+                    <p-button label="Thử lại" size="small" [outlined]="true" severity="secondary" type="button" (onClick)="reloadTable()" />
+                  </div>
+                } @else if (!tableLoading()) {
+                  Chưa có đơn hàng
+                }
               </td>
             </tr>
           </ng-template>
@@ -229,37 +290,34 @@
       </div>
     </div>
     <div>
-      <div class="dash-panel">
+      <div class="dash-panel" [class.dash-panel--busy]="overviewLoading()" [attr.aria-busy]="overviewLoading()">
         <div class="dash-panel-head">
           <h3 class="dash-panel-title">Sản phẩm nổi bật</h3>
-          <span class="dash-demo-label">Dữ liệu minh hoạ</span>
+          <span class="muted text-xs">Đơn đã giao trong kỳ, trước giảm giá và phí ship</span>
         </div>
-        <ul class="dash-product-list list-none m-0 p-0">
-          @for (p of topProducts; track p.name) {
-            <li class="dash-product-row flex align-items-center gap-3">
-              <div class="dash-product-thumb" aria-hidden="true">
-                <i class="pi pi-image"></i>
-              </div>
-              <div class="flex-1 min-w-0">
-                <div class="dash-product-name">{{ p.name }}</div>
-                <div class="dash-product-stars">
-                  @for (i of [1, 2, 3, 4, 5]; track i) {
-                    <i
-                      class="pi text-sm"
-                      [class.pi-star-fill]="i <= p.rating"
-                      [class.pi-star]="i > p.rating"
-                      [class.dash-star-on]="i <= p.rating"
-                      [class.dash-star-off]="i > p.rating"
-                    ></i>
+        @if (!overview()) {
+          <ng-container *ngTemplateOutlet="overviewPending" />
+        } @else {
+          <ul class="dash-product-list list-none m-0 p-0">
+            @for (p of topProducts(); track topProductKey(p)) {
+              <li class="dash-product-row flex align-items-center gap-3">
+                <div class="flex-1 min-w-0">
+                  @if (p.productId !== null) {
+                    <a class="dash-product-name" [routerLink]="['/products', p.productId]" [title]="p.name">{{ p.name }}</a>
+                  } @else {
+                    <span class="dash-product-name" [title]="p.name">{{ p.name }}</span>
                   }
+                  <span class="muted text-xs">Đã bán {{ p.quantity }}</span>
                 </div>
-              </div>
-              <div class="dash-product-price num font-medium">
-                {{ p.price | currency }}
-              </div>
-            </li>
-          }
-        </ul>
+                <div class="dash-product-price num font-medium">
+                  {{ p.amount | currency }}
+                </div>
+              </li>
+            } @empty {
+              <li class="dash-state muted">Chưa có đơn đã giao trong kỳ này.</li>
+            }
+          </ul>
+        }
       </div>
     </div>
   </div>

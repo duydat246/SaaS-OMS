@@ -170,15 +170,23 @@
                     }
                   </td>
                   <td class="sku-action">
-                    <p-button
-                      icon="pi pi-trash"
-                      [rounded]="true"
-                      [text]="true"
-                      severity="danger"
-                      ariaLabel="Xoá dòng SKU"
-                      (click)="removeSku(i)"
-                      [disabled]="skus.length === 1"
-                    />
+                    <!-- Nút disabled không nhận hover nên tooltip đặt ở span bọc ngoài. -->
+                    <span
+                      class="inline-block"
+                      pTooltip="Biến thể đã có trong đơn hàng, không thể xoá."
+                      tooltipPosition="left"
+                      [tooltipDisabled]="!isSkuUsed(i)"
+                    >
+                      <p-button
+                        icon="pi pi-trash"
+                        [rounded]="true"
+                        [text]="true"
+                        severity="danger"
+                        [ariaLabel]="isSkuUsed(i) ? 'Không thể xoá: biến thể đã có trong đơn hàng' : 'Xoá dòng SKU'"
+                        (click)="removeSku(i)"
+                        [disabled]="skus.length === 1 || isSkuUsed(i)"
+                      />
+                    </span>
                   </td>
                 </tr>
               }

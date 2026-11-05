@@ -1,9 +1,12 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { Observable } from 'rxjs';
-import { map } from 'rxjs/operators';
+import { EMPTY, Observable } from 'rxjs';
+import { expand, map, reduce } from 'rxjs/operators';
 import { ApiResponse, PageResponse } from '@core/models/api.model';
 import { CreateOrderRequest, Order, OrderFilters, OrderStats, OrderStatus } from '@features/orders/models/order.model';
+
+/** Backend kẹp size tối đa 100, nên xuất toàn bộ phải đi theo từng trang. */
+const EXPORT_PAGE_SIZE = 100;
 
 @Injectable({ providedIn: 'root' })
 export class OrderService {
@@ -27,6 +30,23 @@ export class OrderService {
 
     return this.http.get<ApiResponse<PageResponse<Order>>>(this.base, { params })
       .pipe(map(r => r.data));
+  }
+
+  /** Lấy mọi đơn khớp bộ lọc, gọi tuần tự từng trang; đơn mới đẩy dòng sang trang sau nên phải khử trùng theo id. */
+  getAllOrders(filters: OrderFilters = {}): Observable<Order[]> {
+    const fetchPage = (page: number) =>
+      this.getOrders({ ...filters, page, size: EXPORT_PAGE_SIZE });
+
+    return fetchPage(0).pipe(
+      expand(res =>
+        res.meta.page + 1 < res.meta.totalPages ? fetchPage(res.meta.page + 1) : EMPTY,
+      ),
+      reduce((byId, res) => {
+        for (const order of res.content ?? []) byId.set(order.id, order);
+        return byId;
+      }, new Map<number, Order>()),
+      map(byId => [...byId.values()]),
+    );
   }
 
   getOrder(id: number): Observable<Order> {

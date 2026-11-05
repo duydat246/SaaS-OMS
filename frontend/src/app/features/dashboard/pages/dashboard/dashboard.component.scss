@@ -17,28 +17,66 @@
   border-radius: var(--apollo-radius-block);
 }
 
-.dash-panel-head {
+.dash-panel--busy {
+  opacity: 0.6;
+}
+
+.dash-period,
+.dash-alert,
+.dash-table-error {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 10px;
+  gap: 8px 12px;
 }
 
-.dash-panel-title {
+.dash-alert {
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: var(--apollo-danger-soft);
+  border-radius: var(--apollo-radius-block);
+  color: var(--apollo-danger);
+}
+
+.dash-table-error {
+  justify-content: center;
+  color: var(--apollo-danger);
+}
+
+.dash-state {
   margin: 0;
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--apollo-text);
+  padding: 32px 0;
+  text-align: center;
 }
 
-.dash-demo-label {
-  padding: 1px 6px;
-  background: var(--apollo-neutral-soft);
-  border-radius: var(--apollo-radius-control);
-  color: var(--apollo-muted);
-  font-size: 12px;
+.dash-doughnut-box {
+  height: 170px;
+}
+
+.dash-legend {
+  margin-top: 8px;
+  font-size: 13px;
+}
+
+.dash-legend__row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 2px 0;
+}
+
+.dash-legend__swatch {
+  flex-shrink: 0;
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+}
+
+.dash-legend__name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
@@ -47,9 +85,17 @@
   height: 260px;
 }
 
+.dash-doughnut-box p-chart,
 .dash-chart-box p-chart {
   display: block;
   height: 100%;
+}
+
+// Hai panel nằm cạnh nhau: cao bằng biểu đồ tròn kèm 6 dòng chú giải.
+@media (min-width: 1200px) {
+  .dash-chart-box {
+    height: 318px;
+  }
 }
 
 .dash-stat-trend {
@@ -67,49 +113,20 @@
 
 .dash-product-row {
   padding: 6px 0;
+}
+
+.dash-product-row:not(:last-child) {
   border-bottom: 1px solid var(--apollo-border);
 }
 
-.dash-product-row:last-child {
-  border-bottom: 0;
-}
-
-.dash-product-thumb {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  width: 28px;
-  height: 28px;
-  background: var(--apollo-surface-2);
-  border-radius: var(--apollo-radius-control);
-  color: var(--apollo-muted);
-}
-
 .dash-product-name {
+  display: block;
   overflow: hidden;
   color: var(--apollo-text);
   font-size: 13px;
   font-weight: 500;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.dash-product-stars {
-  display: flex;
-  gap: 2px;
-}
-
-.dash-product-stars i {
-  font-size: 11px;
-}
-
-.dash-star-on {
-  color: var(--apollo-muted);
-}
-
-.dash-star-off {
-  color: var(--apollo-border);
 }
 
 .dash-product-price {

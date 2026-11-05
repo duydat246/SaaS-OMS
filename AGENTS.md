@@ -47,7 +47,7 @@ backend/src/main/java/com/saasoms/
     └── service/       nghiệp vụ + @Transactional
 ```
 
-Module hiện có: `auth`, `user`, `shop`, `customer`, `order` (legacy), `product` (mẫu tham chiếu mới nhất).
+Module hiện có: `auth`, `user`, `shop`, `customer`, `order` (legacy), `product` (mẫu tham chiếu mới nhất), `dashboard` (chỉ đọc, không có entity).
 
 ### Frontend
 
@@ -422,8 +422,8 @@ Một bước chỉ được coi là xong khi:
 | 6 | P1 | ~~Login chưa rate-limit; mật khẩu tối thiểu 6 ký tự~~ — đã xử lý 04/11/2026 | `LoginRateLimiter.java`, `RegisterRequest`, `frontend/nginx.conf` | Rate-limit theo (IP, email) và IP; mật khẩu đăng ký 8–72 ký tự. IP thật lấy từ `CF-Connecting-IP` qua nginx |
 | 7 | P1 | ~~Thiếu 401 entry point → trả 403 khi hết token~~ — đã xử lý 04/11/2026 | `RestAuthenticationEntryPoint.java`, `jwt.interceptor.ts` | Trả 401 + `ApiResponse`; interceptor chỉ refresh với 401, lỗi của retry trả về component |
 | 8 | P1 | ~~CI deploy cả `dev`, tag `latest`, không chạy test~~ — đã xử lý 04/11/2026 | `.github/workflows/deploy.yml` | Chỉ deploy khi push vào `main`; test chạy trước khi build; image có tag commit SHA |
-| 9 | P1 | Dashboard dùng số liệu giả (đã gắn nhãn "Dữ liệu minh hoạ" ngày 04/11/2026); export cắt cứng 1000 dòng | `dashboard.component.ts:108-152`, `dashboard.constants.ts:18`, `dashboard.component.ts:314` | Nối API thật; phân trang khi export và báo số dòng |
-| 10 | P2 | Order chưa kẹp `size`, bỏ qua `sort` | `OrderController.java:34-37` | Kẹp 1..100, nhận sort whitelist |
+| 9 | P1 | ~~Dashboard dùng số liệu giả; export cắt cứng 1000 dòng~~ — đã xử lý 05/11/2026 | `modules/dashboard/**`, `dashboard.component.ts` | Đã nối `GET /api/dashboard/overview`; export lấy đủ trang và báo số dòng |
+| 10 | P2 | Order bỏ qua `sort` (đã kẹp `size` và `page` ngày 05/11/2026) | `OrderController.java` | Còn lại: nhận sort whitelist |
 | 11 | P2 | ~~`as any`, subscription không huỷ, `.css` trùng~~ — đã xử lý 03/11/2026 | `features/products/**` | Đã bỏ `any`, dùng `takeUntilDestroyed(destroyRef)`, xoá `.css` thừa |
 | 12 | P2 | Message lỗi lẫn Anh/Việt (đã chuẩn hoá `auth` và `GlobalExceptionHandler` ngày 04/11/2026) | `order/dto/UpdateStatusRequest.java:9` | Còn lại dòng này trong vùng cấm `modules/order` |
 | 13 | P2 | Tài liệu lệch code (localStorage, thiếu route products) | `frontend/CLAUDE.md:34,38-44` | Cập nhật tài liệu khi chạm; code là chuẩn |

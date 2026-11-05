@@ -86,6 +86,7 @@
                 inputId="shipping-fee"
                 formControlName="shippingFee"
                 [min]="0"
+                [max]="moneyInputMax"
                 [maxFractionDigits]="0"
                 mode="decimal"
                 locale="vi-VN"
@@ -99,6 +100,7 @@
                 inputId="discount"
                 formControlName="discount"
                 [min]="0"
+                [max]="moneyInputMax"
                 [maxFractionDigits]="0"
                 mode="decimal"
                 locale="vi-VN"
@@ -113,8 +115,11 @@
             </div>
             <div class="summary-row order-form-total">
               <span>Tổng cộng</span>
-              <span class="num">{{ summary().total | currency }}</span>
+              <span class="num" [class.p-error]="summary().total < 0">{{ summary().total | currency }}</span>
             </div>
+            @if (summary().error; as summaryError) {
+              <small class="p-error block" role="alert">{{ summaryError }}</small>
+            }
           </div>
         </p-card>
       </div>
@@ -194,25 +199,19 @@
                     <label class="font-medium text-sm" [for]="'quantity-' + i">
                       Số lượng *
                     </label>
-                    <p-inputNumber
-                      [inputId]="'quantity-' + i"
+                    <input
+                      pInputText
+                      type="text"
+                      inputmode="numeric"
+                      autocomplete="off"
+                      [id]="'quantity-' + i"
                       formControlName="quantity"
-                      [min]="1"
-                      [max]="maxQuantity(line)"
-                      [maxFractionDigits]="0"
-                      locale="vi-VN"
-                      class="w-full"
-                      inputStyleClass="w-full num"
-                      (onBlur)="clampQuantity(line)"
+                      class="w-full num"
+                      (blur)="clampQuantity(line)"
                     />
                     <small class="muted">Tồn kho: {{ line.controls.sku.value?.stock ?? "—" }}</small>
-                    @if (
-                      line.controls.quantity.touched &&
-                      line.controls.quantity.invalid
-                    ) {
-                      <small class="p-error block">
-                        Số lượng phải từ 1 đến {{ maxQuantity(line) }}.
-                      </small>
+                    @if (quantityError(line); as quantityMessage) {
+                      <small class="p-error block" role="alert">{{ quantityMessage }}</small>
                     }
                   </div>
 
@@ -269,7 +268,7 @@
         label="Tạo đơn hàng"
         icon="pi pi-check"
         [loading]="loading()"
-        [disabled]="loading() || form.invalid || items.length === 0"
+        [disabled]="loading() || form.invalid || items.length === 0 || summary().error !== null"
       />
     </div>
   </form>
