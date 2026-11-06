@@ -8,7 +8,7 @@ import { ActivatedRoute, RouterLink } from "@angular/router";
   imports: [RouterLink],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: "./storefront-not-found.component.html",
-  styleUrls: ["./storefront-not-found.component.scss"],
+  styleUrls: ["../../styles/storefront-base.scss", "./storefront-not-found.component.scss"],
 })
 export class StorefrontNotFoundComponent {
   private readonly title = inject(Title);

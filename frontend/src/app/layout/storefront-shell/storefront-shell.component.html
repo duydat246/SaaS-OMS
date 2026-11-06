@@ -1,40 +1,107 @@
+<div class="aura" aria-hidden="true"></div>
+
+<ng-template #mark>
+  <svg class="mark" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+    <path d="M12 0C12.5 8 16 11.5 24 12C16 12.5 12.5 16 12 24C11.5 16 8 12.5 0 12C8 11.5 11.5 8 12 0Z" />
+  </svg>
+</ng-template>
+
 @switch (view()) {
   @case ("ready") {
     @if (shop(); as current) {
-      <header class="sign">
-        <div class="sign__inner">
-          <a class="sign__name" [routerLink]="['/s', current.slug]">{{ current.name }}</a>
+      <div class="frame" [class.has-contact]="contact()">
+        <header class="bar">
+          <div class="bar__pill sf-glass">
+            <a class="brand" [routerLink]="['/s', current.slug]">
+              <ng-container [ngTemplateOutlet]="mark" />
+              <span class="brand__name">{{ current.name }}</span>
+            </a>
+            <div class="bar__end">
+              @if (section(); as label) {
+                <span class="bar__section sf-label">{{ label }}</span>
+              }
+              @if (contact(); as info) {
+                <nav class="bar__contact" aria-label="Liên hệ cửa hàng">
+                  <a class="sf-btn sf-btn--sm" [href]="info.tel">
+                    <i class="pi pi-phone" aria-hidden="true"></i>
+                    Gọi {{ info.phone }}
+                  </a>
+                  <a class="sf-btn sf-btn--sm sf-btn--primary" [href]="info.zalo" target="_blank" rel="noopener noreferrer">
+                    Nhắn Zalo
+                  </a>
+                </nav>
+              }
+            </div>
+          </div>
+        </header>
+
+        <main>
+          <router-outlet />
+        </main>
+
+        <footer class="foot">
           @if (contact(); as info) {
-            <nav class="contact" aria-label="Liên hệ cửa hàng">
-              <a class="contact__call" [href]="info.tel">
-                <i class="pi pi-phone" aria-hidden="true"></i>
-                Gọi {{ info.phone }}
-              </a>
-              <a class="contact__zalo" [href]="info.zalo" target="_blank" rel="noopener noreferrer">Nhắn Zalo</a>
-            </nav>
+            <section class="cta sf-rise" aria-labelledby="sf-cta-title">
+              <h2 id="sf-cta-title" class="cta__title">Cần tư vấn?<br />Liên hệ cửa hàng.</h2>
+              <p class="cta__text">Hỏi về sản phẩm, phân loại còn hàng hay cách đặt hàng qua số {{ info.phone }}.</p>
+              <div class="cta__actions">
+                <a class="sf-btn sf-btn--lg sf-btn--primary" [href]="info.tel">
+                  <i class="pi pi-phone" aria-hidden="true"></i>
+                  Gọi cửa hàng
+                </a>
+                <a class="sf-btn sf-btn--lg" [href]="info.zalo" target="_blank" rel="noopener noreferrer">Nhắn Zalo</a>
+              </div>
+            </section>
           }
-        </div>
-      </header>
-      <main [class.has-contact]="contact()">
-        <router-outlet />
-      </main>
+          <div class="foot__base">
+            <a class="foot__brand" [routerLink]="['/s', current.slug]">
+              <ng-container [ngTemplateOutlet]="mark" />
+              <span>{{ current.name }}</span>
+            </a>
+            <p class="foot__copy sf-label">© {{ year }}</p>
+          </div>
+        </footer>
+
+        @if (contact(); as info) {
+          <!-- Điện thoại: thanh liên hệ nổi ở đáy, trong tầm ngón cái. Không có giỏ hàng nên đây là hành động chính. -->
+          <nav class="dock sf-glass" aria-label="Liên hệ cửa hàng">
+            <a class="dock__call" [href]="info.tel">
+              <i class="pi pi-phone" aria-hidden="true"></i>
+              <span class="dock__text">Gọi<span class="dock__phone">&nbsp;{{ info.phone }}</span></span>
+            </a>
+            <a class="dock__zalo" [href]="info.zalo" target="_blank" rel="noopener noreferrer">
+              <span class="dock__text">Nhắn Zalo</span>
+            </a>
+          </nav>
+        }
+      </div>
     }
   }
   @case ("loading") {
-    <div class="sign sign--blank" aria-hidden="true"></div>
-    <p class="state" role="status">Đang mở cửa hàng...</p>
+    <div class="frame">
+      <div class="bar" aria-hidden="true">
+        <div class="bar__pill sf-glass"></div>
+      </div>
+      <p class="state sf-notice" role="status">Đang mở cửa hàng...</p>
+    </div>
   }
   @case ("not-found") {
-    <app-storefront-not-found
-      heading="Không tìm thấy cửa hàng"
-      detail="Đường link này không đúng, hoặc cửa hàng đang tạm đóng trang bán hàng. Hãy hỏi lại cửa hàng để lấy link mới."
-    />
+    <div class="frame">
+      <app-storefront-not-found
+        heading="Không tìm thấy cửa hàng"
+        detail="Đường link này không đúng, hoặc cửa hàng đang tạm đóng trang bán hàng. Hãy hỏi lại cửa hàng để lấy link mới."
+      />
+    </div>
   }
   @case ("error") {
-    <div class="sign sign--blank" aria-hidden="true"></div>
-    <div class="state" role="alert">
-      <p>{{ errorMessage() }}</p>
-      <button type="button" class="state__retry" (click)="retry()">Thử lại</button>
+    <div class="frame">
+      <div class="bar" aria-hidden="true">
+        <div class="bar__pill sf-glass"></div>
+      </div>
+      <div class="state sf-notice" role="alert">
+        <p>{{ errorMessage() }}</p>
+        <button type="button" class="sf-btn sf-btn--sm" (click)="retry()">Thử lại</button>
+      </div>
     </div>
   }
 }

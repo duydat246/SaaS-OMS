@@ -1,61 +1,114 @@
 // Mảnh giao diện của trang khách. Chỉ có mixin, không sinh CSS cho đến khi component gọi.
 // Dùng px vì html admin đặt gốc 14px; ô nhập 16px để iOS không tự phóng to khi chạm.
+// Phong cách: nền ngà ấm, thẻ kính bo tròn, chữ hình học mảnh, nhãn và con số dạng mono.
 
+$sans: "Lexend", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", "Noto Sans", Arial, sans-serif;
+$mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+
+// `--sf-gutter` do layout đặt (đổi theo bề rộng), không nằm ở đây để component con không ghi đè.
 @mixin tokens {
-  --sf-ink: #16232b;
-  --sf-muted: #566570;
-  --sf-line: #d5dcdd;
-  --sf-paper: #ffffff;
-  --sf-wash: #eef2f1;
-  --sf-sign: #123c4a;
-  --sf-band: #f2b632;
-  --sf-price: #c4291c;
-  --sf-ok: #1a7443;
-  --sf-gutter: 16px;
+  --sf-ink: #1b201d;
+  --sf-muted: #5b625d;
+  --sf-line: #e3e1da;
+  --sf-hair: rgba(27, 32, 29, 0.08);
+  --sf-bg: #f4f3ef;
+  --sf-paper: #fbfbf9;
+  --sf-white: #ffffff;
+  --sf-glass: rgba(255, 255, 255, 0.72);
+  --sf-wash: #ecebe5;
+  --sf-forest: #1f3d2b;
+  --sf-lime: #dfe9b8;
+  --sf-ok: #3f9a5a;
+  --sf-shadow: 0 1px 2px rgba(27, 32, 29, 0.04), 0 12px 32px -12px rgba(27, 32, 29, 0.14);
+  --sf-shadow-lift: 0 2px 4px rgba(27, 32, 29, 0.05), 0 22px 44px -18px rgba(27, 32, 29, 0.24);
+  --sf-sans: #{$sans};
+  --sf-mono: #{$mono};
 
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", "Noto Sans", Arial, sans-serif;
+  font-family: var(--sf-sans);
   font-size: 16px;
+  font-weight: 400;
   line-height: 1.5;
   color: var(--sf-ink);
+  -webkit-font-smoothing: antialiased;
 }
 
+// Nhãn phụ kiểu "01 / SẢN PHẨM": mono, chữ hoa nhỏ, giãn chữ rộng.
+@mixin label {
+  font-family: var(--sf-mono);
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.4;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+@mixin glass {
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  background: var(--sf-glass);
+  box-shadow: var(--sf-shadow);
+  -webkit-backdrop-filter: blur(18px);
+  backdrop-filter: blur(18px);
+}
+
+@mixin focus {
+  &:focus-visible {
+    outline: 2px solid var(--sf-forest);
+    outline-offset: 2px;
+  }
+}
+
+// Nút phụ: viên thuốc trắng bóng mềm.
 @mixin button {
+  @include focus;
+
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
   min-height: 44px;
-  padding: 0 18px;
-  border: 1.5px solid var(--sf-sign);
-  border-radius: 6px;
-  background: transparent;
-  color: var(--sf-sign);
-  font: inherit;
-  font-weight: 600;
-  text-decoration: none;
-  cursor: pointer;
-
-  &:disabled {
-    border-color: var(--sf-line);
-    color: var(--sf-muted);
-    cursor: default;
-  }
-}
-
-@mixin chip {
-  min-height: 40px;
-  padding: 0 14px;
-  border: 1px solid var(--sf-line);
-  border-radius: 6px;
-  background: var(--sf-paper);
+  padding: 0 20px;
+  border: 1px solid var(--sf-hair);
+  border-radius: 999px;
+  background: var(--sf-white);
+  box-shadow: var(--sf-shadow);
   color: var(--sf-ink);
   font: inherit;
   font-size: 15px;
+  font-weight: 500;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+
+  &:disabled {
+    box-shadow: none;
+    cursor: default;
+    opacity: 0.5;
+  }
+}
+
+// Nút chính: viên thuốc lime nhạt, chữ đậm. Dùng kèm `button`.
+@mixin button-primary {
+  border-color: transparent;
+  background: var(--sf-lime);
+  box-shadow: 0 6px 20px -8px rgba(122, 150, 40, 0.55);
+}
+
+@mixin chip {
+  @include focus;
+
+  min-height: 40px;
+  padding: 0 16px;
+  border: 1px solid var(--sf-hair);
+  border-radius: 999px;
+  background: var(--sf-white);
+  color: var(--sf-ink);
+  font: inherit;
+  font-size: 14px;
   cursor: pointer;
 
   &[aria-pressed="true"] {
-    border-color: var(--sf-sign);
-    background: var(--sf-sign);
+    border-color: var(--sf-forest);
+    background: var(--sf-forest);
     color: #fff;
   }
 }
@@ -91,5 +144,27 @@
 
   .pi {
     font-size: 32px;
+  }
+}
+
+// Xuất hiện mờ dần và trượt lên nhẹ. Đặt `--sf-delay` trên phần tử để so le.
+@mixin rise {
+  animation: sf-rise 0.6s cubic-bezier(0.22, 1, 0.36, 1) var(--sf-delay, 0s) both;
+}
+
+// Gọi một lần ở đầu mỗi stylesheet: khai báo keyframes và tắt mọi chuyển động khi người dùng yêu cầu.
+@mixin motion {
+  @keyframes sf-rise {
+    from {
+      opacity: 0;
+      transform: translateY(14px);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * {
+      animation: none !important;
+      transition: none !important;
+    }
   }
 }

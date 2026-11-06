@@ -1,0 +1,91 @@
+// Lớp dùng chung của trang khách, nạp qua `styleUrls` của từng component (vẫn đóng gói theo component).
+// Đặt trước stylesheet riêng của component để file riêng ghi đè được khi cần.
+@use "kit";
+
+@include kit.motion;
+
+// Token trên host của mọi component trang khách (giá trị giống nhau nên lặp lại không sao).
+:host {
+  @include kit.tokens;
+}
+
+.sf-rise {
+  @include kit.rise;
+}
+
+.sf-label {
+  @include kit.label;
+
+  color: var(--sf-muted);
+}
+
+.sf-glass {
+  @include kit.glass;
+}
+
+.sf-btn {
+  @include kit.button;
+}
+
+.sf-btn--primary {
+  @include kit.button-primary;
+}
+
+.sf-chip {
+  @include kit.chip;
+}
+
+.sf-frame {
+  @include kit.frame;
+}
+
+.sf-notice {
+  @include kit.notice;
+
+  margin-top: 56px;
+  color: var(--sf-muted);
+}
+
+.sf-btn--sm {
+  min-height: 40px;
+  padding: 0 16px;
+  font-size: 14px;
+}
+
+.sf-btn--lg {
+  min-height: 52px;
+  padding: 0 26px;
+  font-size: 16px;
+}
+
+// Ô nhập và select dạng viên thuốc. 16px để iOS không tự phóng to khi chạm.
+.sf-field {
+  width: 100%;
+  height: 48px;
+  padding: 0 18px;
+  border: 1px solid var(--sf-hair);
+  border-radius: 999px;
+  background: var(--sf-white);
+  box-shadow: var(--sf-shadow);
+  color: var(--sf-ink);
+  font: inherit;
+  font-size: 16px;
+
+  &:focus-visible {
+    border-color: var(--sf-forest);
+    outline: 2px solid var(--sf-forest);
+    outline-offset: 2px;
+  }
+
+  &::placeholder {
+    color: var(--sf-muted);
+  }
+}
+
+select.sf-field {
+  padding-right: 40px;
+  background: var(--sf-white)
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8' width='12'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%23000'/%3E%3C/svg%3E")
+    right 18px center no-repeat;
+  appearance: none;
+}

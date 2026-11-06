@@ -8,6 +8,11 @@ export const STOREFRONT_DEFAULT_SORT = "updatedAt,desc";
 export const STOREFRONT_SEARCH_MAX_LENGTH = 100;
 export const STOREFRONT_EMPTY_VALUE = "—";
 
+/** Font của trang khách. Cả hai đều có subset `vietnamese`; Urbanist trong thiết kế gốc thì không. */
+export const STOREFRONT_FONT_URL =
+  "https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap";
+export const STOREFRONT_FONT_LINK_ID = "sf-fonts";
+
 export const STOREFRONT_SORT_OPTIONS: ReadonlyArray<{ value: string; label: string }> = [
   { value: STOREFRONT_DEFAULT_SORT, label: "Mới cập nhật" },
   { value: "createdAt,desc", label: "Mới thêm" },

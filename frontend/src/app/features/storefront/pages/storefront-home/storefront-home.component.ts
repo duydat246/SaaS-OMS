@@ -14,10 +14,25 @@ import {
   STOREFRONT_SEARCH_MAX_LENGTH,
   STOREFRONT_SORT_OPTIONS,
   storefrontErrorMessage,
+  telLink,
 } from "@features/storefront/constants/storefront.constants";
 
 const SEARCH_DEBOUNCE_MS = 350;
 const INT_MAX = 2147483647;
+/** Thẻ sản phẩm xuất hiện so le, nhưng không để thẻ cuối trang chờ quá lâu. */
+const TILE_STAGGER_MS = 40;
+const TILE_STAGGER_MAX = 12;
+const COUNT_FORMAT = new Intl.NumberFormat("vi-VN");
+
+interface HeroStat {
+  key: string;
+  icon: string;
+  label: string;
+  value: string;
+  href: string | null;
+  /** Ô chiếm cả hàng trên lưới hai cột của điện thoại, để giá trị dài không bị cắt. */
+  wide: boolean;
+}
 
 interface ListQuery {
   q: string;
@@ -44,7 +59,7 @@ function parseListQuery(params: ParamMap): ListQuery {
   imports: [RouterLink],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: "./storefront-home.component.html",
-  styleUrls: ["./storefront-home.component.scss"],
+  styleUrls: ["../../styles/storefront-base.scss", "./storefront-home.component.scss"],
 })
 export class StorefrontHomeComponent {
   private readonly route = inject(ActivatedRoute);
@@ -61,6 +76,8 @@ export class StorefrontHomeComponent {
   readonly slug = signal("");
   readonly products = signal<StorefrontProductSummary[]>([]);
   readonly meta = signal<PageMeta | null>(null);
+  /** `meta` hiện tại là kết quả có lọc hay toàn bộ sản phẩm, để nhãn số liệu khớp con số. */
+  private readonly metaFiltered = signal(false);
   readonly loading = signal(true);
   readonly loadError = signal<string | null>(null);
   readonly categories = signal<string[]>([]);
@@ -74,6 +91,41 @@ export class StorefrontHomeComponent {
   readonly skeletonTiles = [1, 2, 3, 4, 5, 6, 7, 8];
   readonly priceLabel = (product: StorefrontProductSummary) =>
     formatStorefrontPriceFrom(product.minPrice, product.maxPrice);
+
+  readonly shop = this.storefront.currentShop;
+  readonly tileDelay = (index: number) => `${Math.min(index, TILE_STAGGER_MAX) * TILE_STAGGER_MS}ms`;
+
+  /** Dải thông số trên hero: chỉ dữ liệu thật đang có, thiếu thì ẩn cột. */
+  readonly heroStats = computed<HeroStat[]>(() => {
+    const stats: HeroStat[] = [];
+    const meta = this.meta();
+    if (meta) {
+      stats.push({
+        key: "products",
+        icon: "pi-box",
+        label: this.metaFiltered() ? "Kết quả lọc" : "Sản phẩm",
+        value: COUNT_FORMAT.format(meta.totalElements),
+        href: null,
+        wide: false,
+      });
+    }
+    const categoryCount = this.categories().length;
+    if (categoryCount > 0) {
+      stats.push({
+        key: "categories",
+        icon: "pi-tags",
+        label: "Danh mục",
+        value: COUNT_FORMAT.format(categoryCount),
+        href: null,
+        wide: false,
+      });
+    }
+    const phone = this.shop()?.contactPhone;
+    if (phone) {
+      stats.push({ key: "contact", icon: "pi-phone", label: "Liên hệ", value: phone, href: telLink(phone), wide: true });
+    }
+    return stats;
+  });
 
   readonly hasFilters = computed(() => !!this.query().q || !!this.query().category);
   /** Danh mục trên URL có thể đã hết sản phẩm: vẫn hiện để khách thấy đang lọc gì và bỏ lọc được. */
@@ -141,6 +193,7 @@ export class StorefrontHomeComponent {
         this.loading.set(false);
         this.products.set(page.content);
         this.meta.set(page.meta);
+        this.metaFiltered.set(this.hasFilters());
       });
 
     combineLatest([slugFromParent(this.route), this.reloadCategories$.pipe(startWith(undefined))])

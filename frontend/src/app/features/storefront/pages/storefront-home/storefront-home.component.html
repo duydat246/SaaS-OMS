@@ -1,3 +1,29 @@
+@if (shop(); as current) {
+  <section class="hero" aria-labelledby="sf-hero-title">
+    <p class="hero__kicker sf-label sf-rise">Trang bán hàng</p>
+    <h1 id="sf-hero-title" class="hero__title sf-rise">{{ current.name }}</h1>
+    <p class="hero__lead sf-rise">{{ current.contactPhone ? "Xem sản phẩm, chọn phân loại rồi liên hệ cửa hàng để đặt hàng." : "Xem sản phẩm và phân loại cửa hàng đang bán." }}</p>
+
+    @if (heroStats().length > 0) {
+      <ul class="stats sf-glass" aria-label="Thông tin cửa hàng">
+        @for (stat of heroStats(); track stat.key; let index = $index) {
+          <li class="stat sf-rise" [class.stat--wide]="stat.wide" [style.--sf-delay]="120 + index * 70 + 'ms'">
+            <span class="stat__icon" aria-hidden="true"><i [class]="'pi ' + stat.icon"></i></span>
+            <span class="stat__text">
+              <span class="stat__label sf-label">{{ stat.label }}</span>
+              @if (stat.href) {
+                <a class="stat__value" [href]="stat.href">{{ stat.value }}</a>
+              } @else {
+                <span class="stat__value">{{ stat.value }}</span>
+              }
+            </span>
+          </li>
+        }
+      </ul>
+    }
+  </section>
+}
+
 <section class="tools" aria-label="Tìm và lọc sản phẩm">
   <div class="tools__row">
     <label class="search">
@@ -5,6 +31,7 @@
       <i class="pi pi-search" aria-hidden="true"></i>
       <input
         #searchBox
+        class="sf-field"
         type="search"
         enterkeyhint="search"
         placeholder="Tìm sản phẩm"
@@ -16,7 +43,7 @@
     </label>
     <label class="sort">
       <span class="sr-only">Sắp xếp</span>
-      <select #sortBox (change)="onSortChange(sortBox.value)">
+      <select #sortBox class="sf-field" (change)="onSortChange(sortBox.value)">
         @for (option of sortOptions; track option.value) {
           <option [value]="option.value" [selected]="option.value === query().sort">{{ option.label }}</option>
         }
@@ -26,13 +53,13 @@
 
   @if (categoryChips().length > 0) {
     <div class="chips" role="group" aria-label="Lọc theo danh mục">
-      <button type="button" class="chip" [attr.aria-pressed]="!query().category" (click)="selectCategory('')">
+      <button type="button" class="chip sf-chip" [attr.aria-pressed]="!query().category" (click)="selectCategory('')">
         Tất cả
       </button>
       @for (category of categoryChips(); track category) {
         <button
           type="button"
-          class="chip"
+          class="chip sf-chip"
           [attr.aria-pressed]="query().category === category"
           (click)="selectCategory(category)"
         >
@@ -54,42 +81,49 @@
   <div class="grid" aria-hidden="true">
     @for (tile of skeletonTiles; track tile) {
       <div class="tile">
-        <div class="tile__photo"></div>
-        <div class="tile__bar"></div>
+        <div class="tile__photo sf-frame"></div>
+        <div class="tile__body">
+          <div class="tile__bar"></div>
+        </div>
       </div>
     }
   </div>
 } @else if (loadError()) {
-  <div class="notice" role="alert">
+  <div class="sf-notice sf-rise" role="alert">
     <p>{{ loadError() }}</p>
-    <button type="button" class="action" (click)="retry()">Thử lại</button>
+    <button type="button" class="sf-btn" (click)="retry()">Thử lại</button>
   </div>
 } @else if (products().length === 0) {
-  <div class="notice">
+  <div class="sf-notice sf-rise">
     @if (hasFilters()) {
       <p>Không có sản phẩm khớp với tìm kiếm hoặc danh mục đã chọn.</p>
-      <button type="button" class="action" (click)="clearFilters()">Xem tất cả sản phẩm</button>
+      <button type="button" class="sf-btn" (click)="clearFilters()">Xem tất cả sản phẩm</button>
     } @else {
       <p>Cửa hàng chưa có sản phẩm nào đang bán.</p>
     }
   </div>
 } @else {
   <ul class="grid">
-    @for (product of products(); track product.id) {
-      <li>
+    @for (product of products(); track product.id; let index = $index) {
+      <li class="grid__item sf-rise" [style.--sf-delay]="tileDelay(index)">
         <a class="tile" [routerLink]="['/s', slug(), 'p', product.id]" queryParamsHandling="preserve">
-          <div class="tile__photo" [class.tile__photo--out]="!product.inStock">
+          <div class="tile__photo sf-frame" [class.tile__photo--out]="!product.inStock">
             @if (product.imageUrl && !isImageBroken(product.id)) {
               <img loading="lazy" [src]="product.imageUrl" [alt]="product.name" (error)="onImageError(product.id)" />
             } @else {
               <i class="pi pi-image" aria-hidden="true"></i>
             }
             @if (!product.inStock) {
-              <span class="tile__stamp">Hết hàng</span>
+              <span class="tile__stamp sf-label">Hết hàng</span>
             }
           </div>
-          <div class="tile__name">{{ product.name }}</div>
-          <div class="tile__price">{{ priceLabel(product) }}</div>
+          <div class="tile__body">
+            <div class="tile__name">{{ product.name }}</div>
+            @if (product.category) {
+              <div class="tile__category sf-label">{{ product.category }}</div>
+            }
+            <div class="tile__price">{{ priceLabel(product) }}</div>
+          </div>
         </a>
       </li>
     }
@@ -98,13 +132,13 @@
   @if (meta(); as page) {
     @if (page.totalPages > 1) {
       <nav class="pager" aria-label="Phân trang">
-        <button type="button" class="action" [disabled]="page.page === 0" (click)="goToPage(page.page - 1)">
+        <button type="button" class="sf-btn" [disabled]="page.page === 0" (click)="goToPage(page.page - 1)">
           Trang trước
         </button>
-        <span>Trang {{ page.page + 1 }}/{{ page.totalPages }}</span>
+        <span class="pager__count sf-label">Trang {{ page.page + 1 }} / {{ page.totalPages }}</span>
         <button
           type="button"
-          class="action"
+          class="sf-btn"
           [disabled]="page.page + 1 >= page.totalPages"
           (click)="goToPage(page.page + 1)"
         >

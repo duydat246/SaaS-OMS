@@ -35,7 +35,7 @@ function parseProductId(raw: string | null): number | null {
   imports: [RouterLink, StorefrontNotFoundComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: "./storefront-product.component.html",
-  styleUrls: ["./storefront-product.component.scss"],
+  styleUrls: ["../../styles/storefront-base.scss", "./storefront-product.component.scss"],
 })
 export class StorefrontProductComponent {
   private readonly route = inject(ActivatedRoute);

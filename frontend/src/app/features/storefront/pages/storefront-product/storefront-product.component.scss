@@ -1,54 +1,59 @@
 @use "../../styles/kit";
 
 .page {
-  max-width: 1080px;
+  max-width: 1200px;
   margin: 0 auto;
-  padding-bottom: 32px;
+  padding: 20px var(--sf-gutter) 32px;
 }
 
-.back {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  min-height: 44px;
-  padding: 0 var(--sf-gutter);
-  color: var(--sf-sign);
-  font-weight: 600;
-  text-decoration: none;
+.detail {
+  margin-top: 20px;
 }
 
-.notice {
-  @include kit.notice;
-
-  color: var(--sf-muted);
+.gallery,
+.info {
+  min-width: 0;
 }
 
-.action {
-  @include kit.button;
-}
-
+// Ảnh lớn trong khung trắng bo tròn.
 .gallery__main {
-  @include kit.frame;
+  border: 1px solid var(--sf-hair);
+  border-radius: 24px;
+  background: var(--sf-white);
+  box-shadow: var(--sf-shadow);
 }
 
 .thumbs {
   display: flex;
-  gap: 4px;
-  padding: 4px var(--sf-gutter);
+  gap: 8px;
+  margin: 0 calc(-1 * var(--sf-gutter));
+  padding: 12px var(--sf-gutter) 4px;
   overflow-x: auto;
+  scrollbar-width: none;
 }
 
 .thumb {
+  @include kit.focus;
+
   flex: none;
   width: 64px;
   height: 80px;
   padding: 0;
+  overflow: hidden;
   border: 2px solid transparent;
+  border-radius: 14px;
   background: var(--sf-wash);
+  box-shadow: var(--sf-shadow);
   cursor: pointer;
+  opacity: 0.75;
+
+  &:hover {
+    opacity: 1;
+  }
 
   &[aria-pressed="true"] {
-    border-color: var(--sf-sign);
+    border-color: var(--sf-forest);
+    opacity: 1;
   }
 
   img {
@@ -60,52 +65,75 @@
 }
 
 .info {
-  min-width: 0;
-  padding: 16px var(--sf-gutter) 0;
+  --sf-delay: 100ms;
+
+  padding-top: 28px;
 }
 
-.info__category {
-  margin: 0 0 4px;
-  color: var(--sf-muted);
-  font-size: 15px;
+.info__category,
+.info__label {
+  margin: 0 0 10px;
 }
 
 h1 {
   margin: 0;
-  font-size: 26px;
-  font-weight: 800;
-  line-height: 1.2;
+  font-size: clamp(30px, 7vw, 52px);
+  font-weight: 400;
+  line-height: 1.08;
+  letter-spacing: -0.035em;
   overflow-wrap: anywhere;
 }
 
 .info__price {
-  margin: 12px 0 0;
-  color: var(--sf-price);
-  font-size: 24px;
-  font-weight: 700;
+  margin: 20px 0 0;
+  font-family: var(--sf-mono);
+  font-size: clamp(22px, 5vw, 30px);
+  font-weight: 500;
   font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
 }
 
+// Trạng thái kho: chấm xanh nhỏ, hết hàng thì chấm xám.
 .info__stock {
-  margin: 2px 0 0;
-  color: var(--sf-ok);
-  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 14px 0 0;
+  padding: 6px 12px;
+  border: 1px solid var(--sf-hair);
+  border-radius: 999px;
+  background: var(--sf-white);
+  color: var(--sf-ink);
+}
 
-  &--out {
-    color: var(--sf-muted);
+.info__dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--sf-ok);
+  box-shadow: 0 0 0 3px rgba(63, 154, 90, 0.18);
+}
+
+.info__stock--out {
+  color: var(--sf-muted);
+
+  .info__dot {
+    background: #a3a9a5;
+    box-shadow: none;
   }
+}
+
+.info > .info__label {
+  margin-top: 28px;
 }
 
 .variants {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  margin-top: 16px;
 }
 
 .variant {
-  @include kit.chip;
-
   max-width: 100%;
   overflow-wrap: anywhere;
 
@@ -119,42 +147,52 @@ h1 {
   }
 }
 
-h2 {
-  margin: 24px 0 6px;
-  font-size: 17px;
-  font-weight: 700;
+h2.info__label {
+  padding-top: 24px;
+  border-top: 1px solid var(--sf-line);
 }
 
 // Mô tả là chữ do chủ shop nhập: chỉ hiển thị bằng interpolation, giữ xuống dòng.
 .info__description {
-  max-width: 68ch;
+  max-width: 62ch;
   margin: 0;
+  color: #3a403c;
+  font-size: 15px;
+  font-weight: 300;
+  line-height: 1.7;
   overflow-wrap: anywhere;
   white-space: pre-line;
 }
 
 @media (min-width: 768px) {
-  .detail {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    gap: 32px;
-    padding: 0 var(--sf-gutter);
+  .page {
+    padding-top: 32px;
   }
 
-  .back {
-    padding: 0 var(--sf-gutter);
+  .detail {
+    display: grid;
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+    gap: 48px;
+    align-items: start;
+    margin-top: 28px;
   }
 
   .thumbs {
-    padding: 8px 0;
     flex-wrap: wrap;
+    margin: 0;
+    padding: 14px 0 0;
+    overflow: visible;
   }
 
   .info {
-    padding: 0;
+    position: sticky;
+    top: 104px;
+    padding-top: 8px;
   }
+}
 
-  h1 {
-    font-size: 32px;
+@media (min-width: 1024px) {
+  .detail {
+    gap: 72px;
   }
 }

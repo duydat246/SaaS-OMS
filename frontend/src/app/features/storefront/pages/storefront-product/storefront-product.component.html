@@ -2,23 +2,23 @@
   <app-storefront-not-found [heading]="message" detail="Sản phẩm này không còn bán hoặc đường link không đúng." />
 } @else {
   <div class="page">
-    <a class="back" [routerLink]="['/s', slug()]" queryParamsHandling="preserve">
+    <a class="back sf-btn sf-btn--sm" [routerLink]="['/s', slug()]" queryParamsHandling="preserve">
       <i class="pi pi-arrow-left" aria-hidden="true"></i>
       Tất cả sản phẩm
     </a>
 
     @if (loading()) {
-      <p class="notice" role="status">Đang tải sản phẩm...</p>
+      <p class="sf-notice" role="status">Đang tải sản phẩm...</p>
     } @else if (loadError()) {
-      <div class="notice" role="alert">
+      <div class="sf-notice" role="alert">
         <p>{{ loadError() }}</p>
-        <button type="button" class="action" (click)="retry()">Thử lại</button>
+        <button type="button" class="sf-btn" (click)="retry()">Thử lại</button>
       </div>
     } @else {
       @if (product(); as item) {
       <article class="detail">
-        <div class="gallery">
-          <div class="gallery__main">
+        <div class="gallery sf-rise">
+          <div class="gallery__main sf-frame">
             @if (shownImageUrl(); as url) {
               <img [src]="url" [alt]="item.name" (error)="onImageError(url)" />
             } @else {
@@ -42,20 +42,24 @@
           }
         </div>
 
-        <div class="info">
+        <div class="info sf-rise">
           @if (item.category) {
-            <p class="info__category">{{ item.category }}</p>
+            <p class="info__category sf-label">{{ item.category }}</p>
           }
           <h1>{{ item.name }}</h1>
           <p class="info__price">{{ priceText() }}</p>
-          <p class="info__stock" [class.info__stock--out]="!inStock()">{{ inStock() ? "Còn hàng" : "Hết hàng" }}</p>
+          <p class="info__stock sf-label" [class.info__stock--out]="!inStock()">
+            <span class="info__dot" aria-hidden="true"></span>
+            {{ inStock() ? "Còn hàng" : "Hết hàng" }}
+          </p>
 
           @if (showVariants()) {
+            <p class="info__label sf-label" aria-hidden="true">Phân loại</p>
             <div class="variants" role="group" aria-label="Chọn phân loại">
               @for (sku of item.skus; track sku.id) {
                 <button
                   type="button"
-                  class="variant"
+                  class="variant sf-chip"
                   [class.variant--out]="!sku.inStock"
                   [attr.aria-pressed]="sku.id === selectedSkuId()"
                   (click)="selectSku(sku.id)"
@@ -67,7 +71,7 @@
           }
 
           @if (description()) {
-            <h2>Mô tả</h2>
+            <h2 class="info__label sf-label">Mô tả</h2>
             <p class="info__description">{{ description() }}</p>
           }
         </div>

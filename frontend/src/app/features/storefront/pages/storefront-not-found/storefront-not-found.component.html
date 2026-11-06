@@ -1,7 +1,8 @@
-<section class="missing">
+<section class="missing sf-rise">
+  <p class="missing__label sf-label">Trang bán hàng</p>
   <h1>{{ headingText() }}</h1>
-  <p>{{ detail() ?? "Đường link này không đúng hoặc đã thay đổi. Hãy hỏi lại cửa hàng để lấy link mới." }}</p>
+  <p class="missing__detail">{{ detail() ?? "Đường link này không đúng hoặc đã thay đổi. Hãy hỏi lại cửa hàng để lấy link mới." }}</p>
   @if (shopSlug) {
-    <a class="missing__link" [routerLink]="['/s', shopSlug]">Xem sản phẩm của cửa hàng</a>
+    <a class="sf-btn sf-btn--primary" [routerLink]="['/s', shopSlug]">Xem sản phẩm của cửa hàng</a>
   }
 </section>
